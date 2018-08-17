@@ -1,0 +1,45 @@
+{% set name = "spyder-modelx" %}
+{% set version = "0.1" %}
+{% set hash_type = "sha256" %}
+{% set hash = "" %}
+
+package:
+  name: {{ name|lower }}
+  version: {{ version }}
+
+source:
+  fn: {{ name }}-{{ version }}.tar.gz
+  url: https://pypi.io/packages/source/{{ name[0] }}/{{ name }}/{{ name }}-{{ version }}.tar.gz
+  {{ hash_type }}: {{ hash }}
+
+build:
+  number: 0
+  script: python setup.py install --single-version-externally-managed --record=record.txt
+
+requirements:
+  build:
+    - python
+    - setuptools
+
+  run:
+    - python
+    - spyder >=3.2
+    - qtpy
+
+test:
+  imports:
+    - spyder_modelx
+
+about:
+  home: https://github.com/fumitoh/spyder-modelx
+  license: MIT
+  license_family: MIT
+  license_file: LICENSE.txt
+  summary: 'Spyder plugin for modelx'
+  description: |
+    Spyder plugin for modelx
+  dev_url: https://github.com/fumitoh/spyder-modelx
+
+extra:
+  recipe-maintainers:
+    - fumitoh

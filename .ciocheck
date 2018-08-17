@@ -1,0 +1,110 @@
+# -----------------------------------------------------------------------------
+# ciocheck
+# https://github.com/ContinuumIO/ciocheck
+# -----------------------------------------------------------------------------
+[ciocheck]
+inherit_config = .ciocheck
+branch = origin/master
+diff_mode = commited
+file_mode = all
+check = pep8,pydocstyle,flake8,pylint,pyformat,isort,autopep8,yapf,coverage,pytest
+enforce =flake8,isort,yapf
+
+# Python (pyformat)
+header = # -*- coding: utf-8 -*-
+copyright_file = .ciocopyright
+add_copyright = true
+add_header = true
+add_init = true
+
+# -----------------------------------------------------------------------------
+# pep8
+# https://pep8.readthedocs.io/en/release-1.7.x/intro.html#configuration
+# -----------------------------------------------------------------------------
+[pep8]
+exclude = */tests/*
+ignore = E126,
+max-line-length = 79
+
+# -----------------------------------------------------------------------------
+# pydocstyle
+# http://www.pydocstyle.org/en/latest/usage.html#example
+# -----------------------------------------------------------------------------
+[pydocstyle]
+add-ignore = D203,
+inherit = false
+
+# -----------------------------------------------------------------------------
+# Flake 8
+# https://flake8.readthedocs.io/en/latest/user/configuration.html
+# -----------------------------------------------------------------------------
+[flake8]
+exclude = */tests/*
+ignore = E126,
+max-line-length = 79
+max-complexity = 64
+
+# -----------------------------------------------------------------------------
+# pylint
+# https://pylint.readthedocs.io/en/latest/
+# -----------------------------------------------------------------------------
+#[pylint:messages]
+
+# -----------------------------------------------------------------------------
+# isort
+# https://github.com/timothycrosley/isort/wiki/isort-Settings
+# -----------------------------------------------------------------------------
+[isort]
+from_first = true
+import_heading_stdlib = Standard library imports
+import_heading_firstparty = Local imports
+import_heading_thirdparty = Third party imports
+indent = '    '
+known_first_party = ciocheck
+known_third_party = six,pytest,autopep8,yapf,pylint
+line_length = 79
+sections = FUTURE,STDLIB,THIRDPARTY,FIRSTPARTY,LOCALFOLDER
+
+# -----------------------------------------------------------------------------
+# YAPF
+# https://github.com/google/yapf#formatting-style
+# -----------------------------------------------------------------------------
+[yapf:style]
+based_on_style = pep8
+column_limit = 79
+spaces_before_comment = 2
+
+# -----------------------------------------------------------------------------
+# autopep8
+# https://pep8.readthedocs.io/en/latest/intro.html#configuration
+# -----------------------------------------------------------------------------
+[autopep8]
+exclude = */tests/*
+ignore = E126,
+max-line-length = 99
+aggressive = 0
+
+# -----------------------------------------------------------------------------
+# Coverage
+# https://coverage.readthedocs.io/en/latest/config.html
+# -----------------------------------------------------------------------------
+[coverage:run]
+omit =
+    */tests/*
+
+[coverage:report]
+fail_under = 0
+show_missing = true
+skip_covered = true
+exclude_lines =
+    pragma: no cover
+    def test():
+    if __name__ == .__main__.:
+
+# -----------------------------------------------------------------------------
+# pytest
+# http://doc.pytest.org/en/latest/usage.html
+# -----------------------------------------------------------------------------
+[pytest]
+addopts = -rfew --durations=10
+python_functions = test_*
