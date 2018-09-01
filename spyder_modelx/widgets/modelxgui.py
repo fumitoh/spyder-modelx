@@ -41,7 +41,15 @@ class ModelxWidget(QWidget):
 
     def process_remote_view(self, data):
         if data:
-            self.treeview.setModel(ModelTreeModel(data))
+            model = self.treeview.model()
+            if model:
+                if model.modelid == data['id']:
+                    if model.rootItem.itemData != data:
+                        model.updateRoot(data)
+                else:
+                    self.treeview.setModel(ModelTreeModel(data))
+            else:
+                self.treeview.setModel(ModelTreeModel(data))
         else:
             self.treeview.setModel(None)
 
