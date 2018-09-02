@@ -32,8 +32,8 @@ test:
 
 about:
   home: https://github.com/fumitoh/spyder-modelx
-  license: MIT
-  license_family: MIT
+  license: LGPL
+  license_family: LGPLv3
   license_file: LICENSE.txt
   summary: 'Spyder plugin for modelx'
   description: |

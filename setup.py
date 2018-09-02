@@ -1,10 +1,19 @@
 # -*- coding: utf-8 -*-
-# -----------------------------------------------------------------------------
-# Copyright (c) Fumito Hamamura
+
+# Copyright (c) 2017-2018 Fumito Hamamura <fumito.ham@gmail.com>
+
+# This library is free software: you can redistribute it and/or
+# modify it under the terms of the GNU Lesser General Public
+# License as published by the Free Software Foundation version 3.
 #
-# Licensed under the terms of the MIT License
-# (see LICENSE.txt for details)
-# -----------------------------------------------------------------------------
+# This library is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+# Lesser General Public License for more details.
+#
+# You should have received a copy of the GNU Lesser General Public
+# License along with this library.  If not, see <http://www.gnu.org/licenses/>.
+
 """Setup script for spyder_modelx."""
 
 # Standard library imports
@@ -35,7 +44,7 @@ def get_description():
     return data
 
 
-REQUIREMENTS = ['spyder']
+REQUIREMENTS = ['spyder', 'modelx']
 
 
 setup(
@@ -43,7 +52,7 @@ setup(
     version=get_version(),
     keywords=['Spyder', 'Plugin'],
     url='https://github.com/fumitoh/spyder-modelx',
-    license='MIT',
+    license='License :: OSI Approved :: GNU Lesser General Public License v3 (LGPLv3)',
     author='Fumito Hamamura',
     author_email='fumito.ham@gmail.com',
     description='Spyder plugin for modelx',
@@ -56,7 +65,7 @@ setup(
         'Development Status :: 1 - Planning',
         'Intended Audience :: Developers',
         'Intended Audience :: Science/Research',
-        'License :: OSI Approved :: MIT License',
+        'License :: OSI Approved :: GNU Lesser General Public License v3 (LGPLv3)',
         'Operating System :: MacOS',
         'Operating System :: Microsoft :: Windows',
         'Operating System :: POSIX :: Linux',

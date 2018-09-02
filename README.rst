@@ -48,12 +48,6 @@ Using pip
 
 pip install spyder_modelx
 
-Using conda
-
-::
-
-conda install spyder_modelx -c spyder-ide
-
 Usage
 -----
 
