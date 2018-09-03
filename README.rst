@@ -1,5 +1,8 @@
-modelx
-======
+Spyder plugin for **modelx**
+============================
+
+Spyder plugin to add custom consoles and widgets for
+`modelx <https://github.com/mpastell/Pweave>`_ .
 
 Build status
 ------------
@@ -44,10 +47,8 @@ Installation
 
 Using pip
 
-::
-
-pip install spyder_modelx
+``pip install spyder_modelx``
 
 Usage
 -----
-
+See https://docs.modelx.io
