@@ -78,6 +78,9 @@ from spyder_modelx.widgets.modelxgui import ModelxWidget, ModelxClientWidget
 class ModelxConfigPage(PluginConfigPage):
     """modelx plugin preferences."""
 
+    def get_name(self):
+        return _('modelx')
+
     def setup_page(self):
         pass
 
@@ -105,7 +108,7 @@ class ModelxPlugin(SpyderPluginWidget):
     # --- SpyderPluginWidget API ----------------------------------------------
     def get_plugin_title(self):
         """Return widget title."""
-        return "modelx"
+        return _('Mx explorer')
 
     def get_focus_widget(self):
         """Return the widget to give focus to."""
@@ -120,10 +123,12 @@ class ModelxPlugin(SpyderPluginWidget):
 
         create_client_action = create_action(
                                    self,
-                                   _("Open an &modelx console"),
+                                   _("Open a &modelx console"),
                                    icon=ima.icon('ipython_console'),
                                    triggered=self.create_new_client,
                                    context=Qt.WidgetWithChildrenShortcut)
+        self.register_shortcut(create_client_action, context="ipython_console",
+                               name="New tab")
 
         # Add the action to the 'Consoles' menu on the main window
         main_consoles_menu = self.main.consoles_menu_actions
@@ -131,12 +136,11 @@ class ModelxPlugin(SpyderPluginWidget):
         self.main.ipyconsole.menu_actions.insert(0, create_client_action)
 
         # Plugin actions
-        self.menu_actions = [create_client_action]  # , MENU_SEPARATOR,
-                             # restart_action, connect_to_kernel_action,
-                             # MENU_SEPARATOR, rename_tab_action]
+        self.menu_actions = [create_client_action] + \
+            self.main.ipyconsole.menu_actions.copy()
 
         add_actions(self.main.ipyconsole.tabwidget.menu,
-                    self.menu_actions,
+                    [create_client_action],
                     insert_before=main_consoles_menu[1])
 
         return self.menu_actions

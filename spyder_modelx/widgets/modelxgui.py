@@ -50,6 +50,7 @@ from qtpy.QtCore import QUrl, QTimer, Signal, Slot
 from qtpy.QtWidgets import (QHBoxLayout, QLabel, QMenu, QMessageBox,
                             QToolButton, QVBoxLayout, QWidget, QTreeView)
 from qtpy.QtWidgets import QTextEdit
+from spyder.config.base import _
 from spyder.widgets.ipythonconsole.client import ShellWidget
 from spyder.widgets.ipythonconsole.client import ClientWidget
 from spyder.widgets.mixins import SaveHistoryMixin
@@ -67,7 +68,7 @@ class ModelxWidget(QWidget):
     def __init__(self, parent):
         QWidget.__init__(self, parent)
 
-        self.setWindowTitle("modelx")
+        self.setWindowTitle("Mx explorer") # Not visible
 
         self.treeview = QTreeView()
 
@@ -91,14 +92,6 @@ class ModelxWidget(QWidget):
             self.treeview.setModel(None)
 
 
-class ModelxTreeView(QTreeView):
-    pass
-
-
-class ModelxTreeModel():
-    pass
-
-
 class ModelxClientWidget(ClientWidget):
     """Custom client widget for modelx
 
@@ -111,7 +104,7 @@ class ModelxClientWidget(ClientWidget):
                  additional_options, interpreter_versions,
                  connection_file=None, hostname=None,
                  menu_actions=None, slave=False,
-                 external_kernel=False, given_name="Modelx Console",
+                 external_kernel=False, given_name="Mx Console",
                  show_elapsed_time=False,
                  reset_warning=True):
         super(ClientWidget, self).__init__(plugin)
@@ -183,6 +176,21 @@ class ModelxClientWidget(ClientWidget):
         # Set up modelx browser
         self.shellwidget.set_modelxbrowser(plugin.widget)
 
+    def get_name(self):
+        """Return client name"""
+        if self.given_name is None:
+            # Name according to host
+            if self.hostname is None:
+                name = _("Console")
+            else:
+                name = self.hostname
+            # Adding id to name
+            client_id = self.id_['int_id'] + u'/' + self.id_['str_id']
+            name = name + u' ' + client_id
+        else:
+            client_id = self.id_['int_id'] + u'/' + self.id_['str_id']
+            name = self.given_name + u' ' + client_id
+        return name
 
 class ModelxShellWidget(ShellWidget):
     """Custom shell widget for modelx"""
