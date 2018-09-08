@@ -119,7 +119,11 @@ class ModelxPlugin(SpyderPluginWidget):
         pass
 
     def get_plugin_actions(self):
-        """Return a list of actions related to plugin."""
+        """Return a list of actions related to plugin.
+
+        Note: these actions will be enabled when plugin's dockwidget is visible
+              and they will be disabled when it's hidden
+        """
 
         create_client_action = create_action(
                                    self,
@@ -143,7 +147,8 @@ class ModelxPlugin(SpyderPluginWidget):
                     [create_client_action],
                     insert_before=main_consoles_menu[1])
 
-        return self.menu_actions
+        # This should return the actions specific to this plugin.
+        return [create_client_action]
 
 
     def register_plugin(self):
