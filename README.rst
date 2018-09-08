@@ -2,7 +2,9 @@ Spyder plugin for **modelx**
 ============================
 
 Spyder plugin to add custom consoles and widgets for
-`modelx <https://github.com/mpastell/Pweave>`_ .
+`modelx <https://github.com/fumitoh/spyder-modelx>`_ .
+
+See `modelx site <https://docs.modelx.io>`_ .
 
 Build status
 ------------
