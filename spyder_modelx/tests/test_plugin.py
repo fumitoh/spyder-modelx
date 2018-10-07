@@ -52,7 +52,7 @@ from spyder_modelx.modelxplugin import ModelxPlugin
 @pytest.fixture
 def setup_modelx(qtbot):
     """Set up the ModelxPlugin plugin."""
-    modelx = ModelxPlugin(None)
+    modelx = ModelxPlugin(parent=None, testing=True)
     qtbot.addWidget(modelx)
     modelx.show()
     return modelx

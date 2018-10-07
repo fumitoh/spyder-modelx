@@ -92,7 +92,7 @@ class ModelxPlugin(SpyderPluginWidget):
     CONFIGWIDGET_CLASS = ModelxConfigPage
 
 
-    def __init__(self, parent=None):
+    def __init__(self, parent=None, testing=False):
         SpyderPluginWidget.__init__(self, parent)
         self.main = parent # Spyder3
 
@@ -103,7 +103,8 @@ class ModelxPlugin(SpyderPluginWidget):
         self.setLayout(layout)
 
         # Initialize plugin
-        self.initialize_plugin()
+        if not testing:
+            self.initialize_plugin()
 
     # --- SpyderPluginWidget API ----------------------------------------------
     def get_plugin_title(self):
