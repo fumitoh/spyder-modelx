@@ -72,7 +72,7 @@ from spyder.plugins.ipythonconsole import IPythonConsole
 
 from spyder_modelx.kernelspec import ModelxKernelSpec
 from spyder_modelx.widgets.modelxgui import ModelxWidget, ModelxClientWidget
-
+from spyder_modelx.widgets.mxdataview import MxDataFrameWidget
 
 
 class ModelxConfigPage(PluginConfigPage):
@@ -155,6 +155,13 @@ class ModelxPlugin(SpyderPluginWidget):
     def register_plugin(self):
         """Register plugin in Spyder's main window."""
         self.main.add_dockwidget(self)
+        self.register_subplugin()
+
+    def register_subplugin(self):
+        """Register sub plugin """
+        self.dataview = ModelxDataViewPlugin(self.main)
+        self.main.thirdparty_plugins.append(self.dataview)
+        self.dataview.register_plugin()
 
     def on_first_registration(self):
         """Action to be performed on first plugin registration."""
@@ -291,3 +298,56 @@ class ModelxPlugin(SpyderPluginWidget):
         else:
             return IPythonConsole.create_kernel_manager_and_kernel_client(
                 self, connection_file, stderr_file, is_cython=is_cython)
+
+
+class ModelxDataViewPlugin(SpyderPluginWidget):
+    """modelx sub-plugin.
+
+    This plugin in registered by the modelx main plugin.
+    """
+
+    CONF_SECTION = 'modelx'
+
+    def __init__(self, parent=None):
+
+        SpyderPluginWidget.__init__(self, parent)
+        self.main = parent # Spyder3
+
+        # Create widget and add to dockwindow
+        self.widget = MxDataFrameWidget(self.main)
+        # self.widget.setup_and_check(DataFrame(np.random.rand(100100, 10)))
+        layout = QVBoxLayout()
+        layout.addWidget(self.widget)
+        self.setLayout(layout)
+
+        # Initialize plugin
+        self.initialize_plugin()
+
+    # --- SpyderPluginWidget API ----------------------------------------------
+    def get_plugin_title(self):
+        """Return widget title."""
+        return "Mx DataView"
+
+    def get_focus_widget(self):
+        """Return the widget to give focus to."""
+        return self.widget
+
+    def refresh_plugin(self):
+        """Refresh ModelxWidget widget."""
+        pass
+
+    def get_plugin_actions(self):
+        """Return a list of actions related to plugin."""
+        return []
+
+    def register_plugin(self):
+        """Register plugin in Spyder's main window."""
+        self.main.add_dockwidget(self)
+
+    def on_first_registration(self):
+        """Action to be performed on first plugin registration."""
+        self.main.tabify_plugins(self.main.help, self)
+
+    def apply_plugin_settings(self, options):
+        """Apply configuration file's plugin settings."""
+        pass

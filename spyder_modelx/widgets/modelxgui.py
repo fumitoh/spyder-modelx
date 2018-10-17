@@ -45,12 +45,14 @@
 """modelx Widget."""
 import ast
 
+import cloudpickle
+
 from modelx.qtgui.modeltree import ModelTreeModel
 from qtpy.QtCore import QUrl, QTimer, Signal, Slot
 from qtpy.QtWidgets import (QHBoxLayout, QLabel, QMenu, QMessageBox,
                             QToolButton, QVBoxLayout, QWidget, QTreeView)
 from qtpy.QtWidgets import QTextEdit
-from spyder.config.base import _
+from spyder.config.base import _, debug_print
 from spyder.widgets.ipythonconsole.client import ShellWidget
 from spyder.widgets.ipythonconsole.client import ClientWidget
 from spyder.widgets.mixins import SaveHistoryMixin
@@ -175,6 +177,7 @@ class ModelxClientWidget(ClientWidget):
 
         # Set up modelx browser
         self.shellwidget.set_modelxbrowser(plugin.widget)
+        self.shellwidget.set_mxdataview(plugin.dataview.widget)
 
     def get_name(self):
         """Return client name"""
@@ -196,7 +199,9 @@ class ModelxShellWidget(ShellWidget):
     """Custom shell widget for modelx"""
 
     sig_modelx_view = Signal(object)
+    sig_mx_dataview = Signal(object)
 
+    # ---- modelx browser ----
     def set_modelxbrowser(self, modelxbrowser):
         """Set namespace browser widget"""
         self.modelxbrowser = modelxbrowser
@@ -208,6 +213,16 @@ class ModelxShellWidget(ShellWidget):
         self.sig_modelx_view.connect(lambda data:
             self.modelxbrowser.process_remote_view(data))
         
+    # ---- modelx data view ----
+    def set_mxdataview(self, mxdataview):
+        """Set modelx dataview widget"""
+        self.mxdataview = mxdataview
+        self.configure_mxdataview()
+
+    def configure_mxdataview(self):
+        """Configure mx data view widget"""
+        self.sig_mx_dataview.connect(
+            lambda data: self.mxdataview.process_remote_view(data))
 
     # ---- Override NamespaceBrowserWidget ---
     def refresh_namespacebrowser(self):
@@ -218,7 +233,8 @@ class ModelxShellWidget(ShellWidget):
         if self.namespacebrowser:
             self.silent_exec_method(
                 'get_ipython().kernel.mx_get_models()')
-
+            self.silent_exec_method(
+                'get_ipython().kernel.mx_get_evalresult(mx.cur_space().frame)')
 
     def handle_exec_method(self, msg):
         """
@@ -291,3 +307,36 @@ class ModelxShellWidget(ShellWidget):
 
                 # Remove method after being processed
                 self._kernel_methods.pop(expression)
+
+
+    # ---- Private API (defined by us) ------------------------------
+    def _handle_modelx_msg(self, msg):
+        """
+        Handle internal spyder messages
+        """
+        modelx_msg_type = msg['content'].get('modelx_msg_type')
+        if modelx_msg_type == 'data':
+            # Deserialize data
+            try:
+                if PY2:
+                    value = cloudpickle.loads(msg['buffers'][0])
+                else:
+                    value = cloudpickle.loads(bytes(msg['buffers'][0]))
+            except Exception as msg:
+                value = None
+
+            self.sig_mx_dataview.emit(value)
+            return
+        # elif modelx_msg_type == 'pdb_state':
+        #     pdb_state = msg['content']['pdb_state']
+        #     if pdb_state is not None and isinstance(pdb_state, dict):
+        #         self.refresh_from_pdb(pdb_state)
+        # elif modelx_msg_type == 'pdb_continue':
+        #     # Run Pdb continue to get to the first breakpoint
+        #     # Fixes 2034
+        #     self.write_to_stdin('continue')
+        # elif modelx_msg_type == 'set_breakpoints':
+        #     self.set_spyder_breakpoints(force=True)
+        else:
+            debug_print("No such modelx message type: %s" % modelx_msg_type)
+
