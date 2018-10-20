@@ -816,7 +816,6 @@ class MxDataFrameWidget(QWidget):
         self.max_width = avg_width * 64  # Maximum size for columns
 
         self.setLayout(self.layout)
-        self.setMinimumSize(400, 300)
         # Make the dialog act as a window
         # self.setWindowFlags(Qt.Window)
 
