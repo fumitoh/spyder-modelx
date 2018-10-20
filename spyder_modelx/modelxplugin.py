@@ -44,8 +44,8 @@
 
 
 """modelx Plugin."""
+import sys
 
-from qtpy.QtWidgets import QVBoxLayout
 from jupyter_core.paths import jupyter_config_dir, jupyter_runtime_dir
 
 try:
@@ -58,6 +58,7 @@ except ImportError:
     from spyder.plugins.configdialog import PluginConfigPage # Spyder3
 
 from qtpy.QtCore import Qt, Signal, Slot
+from qtpy.QtWidgets import QVBoxLayout, QHBoxLayout, QLabel
 
 import spyder
 from spyder.config.base import (_, DEV, get_conf_path, get_home_dir,
@@ -67,12 +68,13 @@ from spyder.py3compat import is_string, PY2, to_text_string
 from spyder.config.main import CONF
 from spyder.utils import encoding, programs, sourcecode
 from spyder.utils.qthelpers import (add_actions, create_action,
-                                    create_toolbutton)
+                                    create_toolbutton, create_plugin_layout)
 from spyder.plugins.ipythonconsole import IPythonConsole
 
 from spyder_modelx.kernelspec import ModelxKernelSpec
 from spyder_modelx.widgets.modelxgui import ModelxWidget, ModelxClientWidget
-from spyder_modelx.widgets.mxdataview import MxDataFrameWidget
+from spyder_modelx.widgets.mxdataview import (
+    MxDataFrameWidget, MxPyExprLineEdit)
 
 
 class ModelxConfigPage(PluginConfigPage):
@@ -313,11 +315,26 @@ class ModelxDataViewPlugin(SpyderPluginWidget):
         SpyderPluginWidget.__init__(self, parent)
         self.main = parent # Spyder3
 
-        # Create widget and add to dockwindow
+        # Create main widget
         self.widget = MxDataFrameWidget(self.main)
-        # self.widget.setup_and_check(DataFrame(np.random.rand(100100, 10)))
-        layout = QVBoxLayout()
-        layout.addWidget(self.widget)
+
+        # Layout of the top area in the plugin widget
+        layout_top = QHBoxLayout()
+        layout_top.setContentsMargins(0, 0, 0, 0)
+        txt = _("Expression")
+        if sys.platform == 'darwin':
+            expr_label = QLabel("  " + txt)
+        else:
+            expr_label = QLabel(txt)
+        layout_top.addWidget(expr_label)
+
+        self.exprbox = MxPyExprLineEdit(self)
+        layout_top.addWidget(self.exprbox)
+        layout_top.addSpacing(10)
+
+        # Main layout of this widget
+
+        layout = create_plugin_layout(layout_top, self.widget)
         self.setLayout(layout)
 
         # Initialize plugin

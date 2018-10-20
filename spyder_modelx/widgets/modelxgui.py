@@ -177,7 +177,8 @@ class ModelxClientWidget(ClientWidget):
 
         # Set up modelx browser
         self.shellwidget.set_modelxbrowser(plugin.widget)
-        self.shellwidget.set_mxdataview(plugin.dataview.widget)
+        self.shellwidget.set_mxdataview(plugin.dataview.widget,
+                                        plugin.dataview.exprbox)
 
     def get_name(self):
         """Return client name"""
@@ -214,15 +215,25 @@ class ModelxShellWidget(ShellWidget):
             self.modelxbrowser.process_remote_view(data))
         
     # ---- modelx data view ----
-    def set_mxdataview(self, mxdataview):
+    def set_mxdataview(self, mxdataview, mxexprbox):
         """Set modelx dataview widget"""
         self.mxdataview = mxdataview
+        self.mxexprbox = mxexprbox
         self.configure_mxdataview()
 
     def configure_mxdataview(self):
         """Configure mx data view widget"""
         self.sig_mx_dataview.connect(
             lambda data: self.mxdataview.process_remote_view(data))
+
+        self.mxexprbox.editingFinished.connect(
+            self.update_mxdataview)
+
+    def update_mxdataview(self):
+        """Update dataview"""
+        expr = self.mxexprbox.get_expr()
+        method = 'get_ipython().kernel.mx_get_evalresult(%s)' % expr
+        self.silent_exec_method(method)
 
     # ---- Override NamespaceBrowserWidget ---
     def refresh_namespacebrowser(self):
@@ -233,8 +244,9 @@ class ModelxShellWidget(ShellWidget):
         if self.namespacebrowser:
             self.silent_exec_method(
                 'get_ipython().kernel.mx_get_models()')
-            self.silent_exec_method(
-                'get_ipython().kernel.mx_get_evalresult(mx.cur_space().frame)')
+            self.update_mxdataview()
+            # self.silent_exec_method(
+            #     'get_ipython().kernel.mx_get_evalresult(mx.cur_space().frame)')
 
     def handle_exec_method(self, msg):
         """
