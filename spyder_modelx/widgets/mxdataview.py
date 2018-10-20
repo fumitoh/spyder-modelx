@@ -256,7 +256,9 @@ class MxDataFrameModel(QAbstractTableModel):
             column = index.column()
             row = index.row()
             value = self.get_value(row, column)
-            if isinstance(value, float):
+            if np.isnan(value):
+                return ''
+            elif isinstance(value, float):
                 try:
                     return to_qvariant(self._format % value)
                 except (ValueError, TypeError):
