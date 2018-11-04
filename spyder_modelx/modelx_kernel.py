@@ -42,7 +42,6 @@
 # FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
 # OTHER DEALINGS IN THE SOFTWARE.
 
-import modelx as mx
 import spyder
 
 if spyder.version_info < (3, 3, 0):
@@ -50,10 +49,16 @@ if spyder.version_info < (3, 3, 0):
 else:
     from spyder_kernels.console.kernel import SpyderKernel
 
+
 class ModelxKernel(SpyderKernel):
 
+    def __init__(self, *args, **kwargs):
+        super(ModelxKernel, self).__init__(*args, **kwargs)
+        import modelx as mx
+        self.mx = mx
+
     def mx_get_models(self):
-        return repr(mx.cur_model().literaldict)
+        return repr(self.mx.cur_model().literaldict)
 
     def mx_get_evalresult(self, frame):
 

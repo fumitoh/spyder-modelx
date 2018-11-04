@@ -90,6 +90,10 @@ def main():
         pass
     kernel.initialize()
 
+    # Setup modelx for IPython here because
+    # __IPYTHON__ is not defined before kernel.initialize()
+    kernel.kernel.mx.core.system.setup_ipython()
+
     # Set our own magics
     kernel.shell.register_magic_function(varexp)
 
@@ -101,7 +105,6 @@ def main():
 
     # Start the (infinite) kernel event loop.
     kernel.start()
-
 
 if __name__ == '__main__':
     main()
