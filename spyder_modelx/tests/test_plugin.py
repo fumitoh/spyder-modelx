@@ -46,7 +46,7 @@
 import pytest
 
 # Local imports
-from spyder_modelx.modelxplugin import ModelxPlugin
+from spyder_modelx.mxplugin import ModelxPlugin
 
 
 @pytest.fixture

@@ -134,7 +134,7 @@ def global_max(col_vals, index):
     return max(max_col), min(min_col)
 
 
-class MxDataFrameModel(QAbstractTableModel):
+class MxDataModel(QAbstractTableModel):
     """ DataFrame Table Model.
 
     Partly based in ExtDataModel and ExtFrameModel classes
@@ -405,7 +405,7 @@ class MxDataFrameModel(QAbstractTableModel):
         self.endResetModel()
 
 
-class MxDataFrameView(QTableView):
+class MxDataView(QTableView):
     """
     Data Frame view class.
 
@@ -734,7 +734,7 @@ class DataFrameLevelModel(QAbstractTableModel):
         return None
 
 
-class MxDataFrameWidget(QWidget):
+class MxDataWidget(QWidget):
     """
     Dialog for displaying and editing DataFrame and related objects.
 
@@ -800,7 +800,7 @@ class MxDataFrameWidget(QWidget):
         self.create_table_index()
 
         # Create the model and view of the data
-        self.dataModel = MxDataFrameModel(data, parent=self)
+        self.dataModel = MxDataModel(data, parent=self)
         # self.dataModel.dataChanged.connect(self.save_and_close_enable)
         self.create_data_table()
 
@@ -875,7 +875,7 @@ class MxDataFrameWidget(QWidget):
 
     def create_data_table(self):
         """Create the QTableView that will hold the data model."""
-        self.dataTable = MxDataFrameView(self, self.dataModel,
+        self.dataTable = MxDataView(self, self.dataModel,
                                          self.table_header.horizontalHeader(),
                                          self.hscroll, self.vscroll)
         self.dataTable.verticalHeader().hide()
@@ -1170,12 +1170,12 @@ class MxDataFrameWidget(QWidget):
         if data is None:
             data = DataFrame() # Empty DataFrame
 
-        self.setModel(MxDataFrameModel(data, parent=self))
+        self.setModel(MxDataModel(data, parent=self))
         # self.setup_and_check(data)
 
 
 class MxPyExprLineEdit(QLineEdit):
-    """A text form to enter a Python expression for MxDataFrameWidget."""
+    """A text form to enter a Python expression for MxDataWidget."""
 
     def is_empty(self):
         """Check if the text is empty."""
@@ -1205,7 +1205,7 @@ class MxPyExprLineEdit(QLineEdit):
 def test_edit(data, title="", parent=None):
     """Test subroutine"""
     app = qapplication()  # analysis:ignore
-    dlg = MxDataFrameWidget(parent=parent)
+    dlg = MxDataWidget(parent=parent)
 
     if dlg.setup_and_check(data, title=title):
         dlg.show()

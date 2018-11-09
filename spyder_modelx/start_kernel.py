@@ -79,7 +79,7 @@ def main():
     else:
         from spyder_kernels.console.start import kernel_config, varexp
 
-    from spyder_modelx.modelx_kernel import ModelxKernel
+    from spyder_modelx.mxkernel import ModelxKernel
 
 
     kernel = IPKernelApp.instance()

@@ -71,10 +71,10 @@ from spyder.utils.qthelpers import (add_actions, create_action,
                                     create_toolbutton, create_plugin_layout)
 from spyder.plugins.ipythonconsole import IPythonConsole
 
-from spyder_modelx.kernelspec import ModelxKernelSpec
-from spyder_modelx.widgets.modelxgui import ModelxWidget, ModelxClientWidget
+from spyder_modelx.mxkernelspec import MxKernelSpec
+from spyder_modelx.widgets.mxexplorer import MxExplorer, MxClientWidget
 from spyder_modelx.widgets.mxdataview import (
-    MxDataFrameWidget, MxPyExprLineEdit)
+    MxDataWidget, MxPyExprLineEdit)
 
 
 class ModelxConfigPage(PluginConfigPage):
@@ -89,17 +89,16 @@ class ModelxConfigPage(PluginConfigPage):
 
 class ModelxPlugin(SpyderPluginWidget):
     """modelx plugin."""
+
     CONF_SECTION = 'modelx'
-
     CONFIGWIDGET_CLASS = ModelxConfigPage
-
 
     def __init__(self, parent=None, testing=False):
         SpyderPluginWidget.__init__(self, parent)
         self.main = parent # Spyder3
 
         # Create widget and add to dockwindow
-        self.widget = ModelxWidget(self.main)
+        self.widget = MxExplorer(self.main)
         layout = QVBoxLayout()
         layout.addWidget(self.widget)
         self.setLayout(layout)
@@ -111,14 +110,14 @@ class ModelxPlugin(SpyderPluginWidget):
     # --- SpyderPluginWidget API ----------------------------------------------
     def get_plugin_title(self):
         """Return widget title."""
-        return _('Mx explorer')
+        return _('Mx Explorer')
 
     def get_focus_widget(self):
         """Return the widget to give focus to."""
         return self.widget
 
     def refresh_plugin(self):
-        """Refresh ModelxWidget widget."""
+        """Refresh MxExplorer widget."""
         pass
 
     def get_plugin_actions(self):
@@ -161,7 +160,7 @@ class ModelxPlugin(SpyderPluginWidget):
 
     def register_subplugin(self):
         """Register sub plugin """
-        self.dataview = ModelxDataViewPlugin(self.main)
+        self.dataview = MxDataViewPlugin(self.main)
         self.main.thirdparty_plugins.append(self.dataview)
         self.dataview.register_plugin()
 
@@ -193,7 +192,7 @@ class ModelxPlugin(SpyderPluginWidget):
         cf = ipyconsole._new_connection_file()
         show_elapsed_time = ipyconsole.get_option('show_elapsed_time')
         reset_warning = ipyconsole.get_option('show_reset_namespace_warning')
-        client = ModelxClientWidget(self,
+        client = MxClientWidget(self,
             id_=client_id,
             history_filename=get_conf_path('history.py'),
             config_options=ipyconsole.config_options(),
@@ -288,7 +287,7 @@ class ModelxPlugin(SpyderPluginWidget):
         if not ipyconsole.testing:
             CONF.set('main', 'spyder_pythonpath',
                      ipyconsole.main.get_spyder_pythonpath())
-        return ModelxKernelSpec(is_cython=is_cython)
+        return MxKernelSpec(is_cython=is_cython)
 
 
     def create_kernel_manager_and_kernel_client(self, connection_file,
@@ -302,7 +301,7 @@ class ModelxPlugin(SpyderPluginWidget):
                 self, connection_file, stderr_file, is_cython=is_cython)
 
 
-class ModelxDataViewPlugin(SpyderPluginWidget):
+class MxDataViewPlugin(SpyderPluginWidget):
     """modelx sub-plugin.
 
     This plugin in registered by the modelx main plugin.
@@ -316,7 +315,7 @@ class ModelxDataViewPlugin(SpyderPluginWidget):
         self.main = parent # Spyder3
 
         # Create main widget
-        self.widget = MxDataFrameWidget(self.main)
+        self.widget = MxDataWidget(self.main)
 
         # Layout of the top area in the plugin widget
         layout_top = QHBoxLayout()
@@ -350,7 +349,7 @@ class ModelxDataViewPlugin(SpyderPluginWidget):
         return self.widget
 
     def refresh_plugin(self):
-        """Refresh ModelxWidget widget."""
+        """Refresh MxExplorer widget."""
         pass
 
     def get_plugin_actions(self):

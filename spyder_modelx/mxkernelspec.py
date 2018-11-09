@@ -48,7 +48,7 @@ import spyder
 from spyder.utils.ipython.kernelspec import SpyderKernelSpec
 
 
-class ModelxKernelSpec(SpyderKernelSpec):
+class MxKernelSpec(SpyderKernelSpec):
 
     @property
     def argv(self):

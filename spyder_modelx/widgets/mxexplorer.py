@@ -64,7 +64,8 @@ from spyder.utils.qthelpers import (add_actions, create_action,
                                     MENU_SEPARATOR)
 from spyder.py3compat import PY2, to_text_string
 
-class ModelxWidget(QWidget):
+
+class MxExplorer(QWidget):
     """modelx widget."""
 
     def __init__(self, parent):
@@ -94,11 +95,11 @@ class ModelxWidget(QWidget):
             self.treeview.setModel(None)
 
 
-class ModelxClientWidget(ClientWidget):
+class MxClientWidget(ClientWidget):
     """Custom client widget for modelx
 
     The only difference from ClientWidget is its
-    shell member being ModelxShellWidget
+    shell member being MxShellWidget
     """
 
     def __init__(self, plugin, id_,
@@ -133,7 +134,7 @@ class ModelxClientWidget(ClientWidget):
         self.stderr_dir = None
 
         # --- Widgets
-        self.shellwidget = ModelxShellWidget(
+        self.shellwidget = MxShellWidget(
             config=config_options,
             ipyclient=self,
             additional_options=additional_options,
@@ -196,7 +197,8 @@ class ModelxClientWidget(ClientWidget):
             name = self.given_name + u' ' + client_id
         return name
 
-class ModelxShellWidget(ShellWidget):
+
+class MxShellWidget(ShellWidget):
     """Custom shell widget for modelx"""
 
     sig_modelx_view = Signal(object)
@@ -239,7 +241,7 @@ class ModelxShellWidget(ShellWidget):
     def refresh_namespacebrowser(self):
         """Refresh namespace browser"""
 
-        super(ModelxShellWidget, self).refresh_namespacebrowser()
+        super(MxShellWidget, self).refresh_namespacebrowser()
 
         if self.namespacebrowser:
             self.silent_exec_method(
@@ -319,7 +321,6 @@ class ModelxShellWidget(ShellWidget):
 
                 # Remove method after being processed
                 self._kernel_methods.pop(expression)
-
 
     # ---- Private API (defined by us) ------------------------------
     def _handle_modelx_msg(self, msg):
