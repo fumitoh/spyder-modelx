@@ -98,7 +98,7 @@ class ModelxPlugin(SpyderPluginWidget):
         self.main = parent # Spyder3
 
         # Create widget and add to dockwindow
-        self.widget = MxExplorer(self.main)
+        self.widget = MxExplorer(self)
         layout = QVBoxLayout()
         layout.addWidget(self.widget)
         self.setLayout(layout)
