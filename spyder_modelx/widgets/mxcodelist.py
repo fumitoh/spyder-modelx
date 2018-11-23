@@ -1,52 +1,16 @@
 
 import sys
+import collections
+from textwrap import dedent
 
 # Third party imports
-from qtpy.QtCore import Signal, Slot
+from qtpy.QtCore import (Qt, Signal, Slot,
+                         QAbstractListModel)
 from qtpy.QtGui import QFont
 from qtpy.QtWidgets import (QLabel, QVBoxLayout, QWidget,
-                            QMainWindow, QScrollArea)
+                            QMainWindow, QScrollArea,
+                            QAbstractItemView)
 from spyder.widgets.sourcecode.codeeditor import CodeEditor
-
-
-sampletexts = [
-'''\
-def SizeExpsAcq(t):
-    """Acquisition expense per policy at time t"""
-    if t == 0:
-        return (SizeAnnPrem(t) * asmp.ExpsAcqAnnPrem
-                + (SizeSumAssured(t) * asmp.ExpsAcqSA + asmp.ExpsAcqPol)
-                * scen.InflFactor(t) / scen.InflFactor(0))
-    else:
-        return 0
-    print('foo')
-    print('foo')
-    print('foo')
-    print('foo')
-    print('foo')
-    print('foo')        
-''',
-
-'''\
-def SizeExpsMaint(t):
-    """Maintenance expense per policy at time t"""
-    return (SizeAnnPrem(t) * asmp.ExpsMaintAnnPrem
-            + (SizeSumAssured(t) * asmp.ExpsMaintSA + asmp.ExpsMaintPol)
-            * scen.InflFactor(t))
-''',
-
-'''\
-def SizeExpsOther(t):
-    """Other expenses per policy at time t"""
-    return 0''']
-
-code2insert = '''\
-def InflFactor(t):
-    if t == 0:
-        return 1
-    else:
-        return InflFactor(t-1) / (1 + asmp.InflRate)
-'''
 
 # ===============================================================================
 # Editor + Class browser test
@@ -93,7 +57,7 @@ class CodePane(QWidget):
         return nHeight
 
 
-class CodeListWidget(QWidget):
+class CodeList(QWidget):
 
     def __init__(self, parent):
         QWidget.__init__(self, parent)
@@ -114,38 +78,130 @@ class CodeListWidget(QWidget):
         item = self.layout.takeAt(index)
         item.widget().deleteLater()
 
+    def removeAll(self):
+        for _ in range(self.layout.count()):
+            self.removeCode(0)
+
     def appendCode(self, title='', code=''):
         codepane = CodePane(self, title, code)
         self.layout.addWidget(codepane)
 
 
-def test(fname):
+class FormulaListModel(QAbstractListModel):
+
+    def __init__(self, parent=None, data=None):
+        super().__init__(parent)
+
+        if data is None:
+            data = []
+
+        self.formulas = data
+
+    def rowCount(self, parent):
+        return len(self.formulas)
+
+    def data(self, index, role):
+        if not index.isValid():
+            return None
+
+        if role != Qt.DisplayRole:
+            return None
+
+        return self.formulas[index.row()]
+
+
+class CodeListDataWrapper:
+    """Wrap attribute list to list-like"""
+
+    def __init__(self, attrdict):
+
+        self.items = attrdict['items']
+        self.names = list(self.items.keys())
+
+    def __getitem__(self, index):
+        value = self.items[self.names[index]]
+        return {'name': value['name'],
+                'formula': value['formula']['source']}
+
+    def __len__(self):
+        return len(self.items)
+
+
+class MxCodeListWidget(QScrollArea, QAbstractItemView):
+
+    def __init__(self, parent):
+        QScrollArea.__init__(self, parent)
+        # QAbstractItemView.__init__(self, parent)
+        self.codelist = CodeList(self)
+        self.model = None
+        self.setWidget(self.codelist)
+        self.setWidgetResizable(True)
+
+    def setModel(self, model):
+        self.model = model
+        self.updateList()
+
+    def updateList(self):
+        self.codelist.removeAll()
+        for i in range(self.model.rowCount(None)):
+            index = self.model.index(i)
+            item = self.model.data(index, Qt.DisplayRole)
+            self.codelist.appendCode(item['name'],
+                                     item['formula'])
+
+    def process_remote_view(self, data):
+        if data is None:
+            return
+        data = CodeListDataWrapper(data)
+        self.setModel(FormulaListModel(parent=self, data=data))
+
+
+# ---- Test MxCodeListWidget ----
+
+sampletexts = [
+    {'name': 'SizeExpsAcq',
+     'formula': dedent('''\
+        def SizeExpsAcq(t):
+            """Acquisition expense per policy at time t"""
+            if t == 0:
+                return (SizeAnnPrem(t) * asmp.ExpsAcqAnnPrem
+                        + (SizeSumAssured(t) * asmp.ExpsAcqSA + asmp.ExpsAcqPol)
+                        * scen.InflFactor(t) / scen.InflFactor(0))
+            else:
+                return 0
+            print('foo')
+            print('foo')
+            print('foo')
+            print('foo')
+            print('foo')
+            print('foo')        
+        ''')},
+    {'name': 'SizeExpsMaint',
+     'formula': dedent('''\
+        def SizeExpsMaint(t):
+            """Maintenance expense per policy at time t"""
+            return (SizeAnnPrem(t) * asmp.ExpsMaintAnnPrem
+                    + (SizeSumAssured(t) * asmp.ExpsMaintSA + asmp.ExpsMaintPol)
+                    * scen.InflFactor(t))
+        ''')},
+    {'name': 'SizeExpsOther',
+     'formula': dedent('''\
+        def SizeExpsOther(t):
+            """Other expenses per policy at time t"""
+            return 0''')}] * 3
+
+
+def testsample():
     from spyder.utils.qthelpers import qapplication
     app = qapplication(test_time=5)
     win = QMainWindow(None)
-    scrollarea = QScrollArea(win)
-    win.setCentralWidget(scrollarea)
-    scrollarea.setWidgetResizable(True)
-
-    tw = CodeListWidget(None)
-    scrollarea.setWidget(tw)
-    # win = CodeListWidget(None)
-
+    codewidget = MxCodeListWidget(win)
+    win.setCentralWidget(codewidget)
+    codewidget.setWidgetResizable(True)
+    codewidget.setModel(FormulaListModel(win, sampletexts))
     win.show()
-
-    for text in sampletexts:
-        tw.appendCode('Cells Foo', text)
-
-    tw.insertCode(2, 'InflFactor', code2insert)
-    tw.removeCode(3)
-
-
     sys.exit(app.exec_())
 
 
 if __name__ == '__main__':
-    if len(sys.argv) > 1:
-        fname = sys.argv[1]
-    else:
-        fname = __file__
-    test(fname)
+    testsample()

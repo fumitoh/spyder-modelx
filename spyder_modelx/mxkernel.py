@@ -60,17 +60,27 @@ class ModelxKernel(SpyderKernel):
     def mx_get_models(self):
         return repr(self.mx.cur_model().literaldict)
 
-    def mx_get_evalresult(self, frame):
+    def mx_get_codelist(self, fullname):
+
+        try:
+            obj = self.mx.get_object(fullname)
+            data = obj._to_attrdict(['formula'])
+        except:
+            data = None
+
+        self.send_modelx_msg('codelist', data=data)
+
+    def mx_get_evalresult(self, msgtype, frame):
 
         # The code below is based on SpyderKernel.get_value
         try:
-            self.send_modelx_msg('data', data=frame)
+            self.send_modelx_msg(msgtype, data=frame)
         except:
             # * There is no need to inform users about
             #   these errors.
             # * value = None makes Spyder to ignore
             #   petitions to display a value
-            self.send_modelx_msg('data', data=None)
+            self.send_modelx_msg(msgtype, data=None)
 
         self._do_publish_pdb_state = False
 
@@ -95,11 +105,11 @@ class ModelxKernel(SpyderKernel):
 
         if content is None:
             content = {}
-        content['modelx_msg_type'] = modelx_msg_type
+        content['mx_msgtype'] = modelx_msg_type
         self.session.send(
             self.iopub_socket,
             'modelx_msg',
             content=content,
             buffers=[cloudpickle.dumps(data, protocol=2)],
-            parent=self._parent_header,
-        )
+            parent=self._parent_header)
+

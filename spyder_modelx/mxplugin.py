@@ -58,7 +58,7 @@ except ImportError:
     from spyder.plugins.configdialog import PluginConfigPage # Spyder3
 
 from qtpy.QtCore import Qt, Signal, Slot
-from qtpy.QtWidgets import QVBoxLayout, QHBoxLayout, QLabel
+from qtpy.QtWidgets import QVBoxLayout, QHBoxLayout, QLabel, QSplitter
 
 import spyder
 from spyder.config.base import (_, DEV, get_conf_path, get_home_dir,
@@ -75,7 +75,7 @@ from spyder_modelx.mxkernelspec import MxKernelSpec
 from spyder_modelx.widgets.mxexplorer import MxExplorer, MxClientWidget
 from spyder_modelx.widgets.mxdataview import (
     MxDataWidget, MxPyExprLineEdit)
-
+from spyder_modelx.widgets.mxcodelist import MxCodeListWidget, CodeList
 
 class ModelxConfigPage(PluginConfigPage):
     """modelx plugin preferences."""
@@ -95,12 +95,28 @@ class ModelxPlugin(SpyderPluginWidget):
 
     def __init__(self, parent=None, testing=False):
         SpyderPluginWidget.__init__(self, parent)
-        self.main = parent # Spyder3
+        self.main = parent   # Spyder3
 
         # Create widget and add to dockwindow
         self.widget = MxExplorer(self)
+
+        # Create code list
+        self.codelist = MxCodeListWidget(self)
+
+        # Create splitter
+        self.splitter = QSplitter(self)
+        self.splitter.setContentsMargins(0, 0, 0, 0)
+        # self.splitter.addWidget(self.widget)
+        # self.splitter.setStretchFactor(0, 5)
+        # self.splitter.setStretchFactor(1, 1)
+
+        # Layout management
+        self.splitter.addWidget(self.widget)
+        self.splitter.addWidget(self.codelist)
+
         layout = QVBoxLayout()
-        layout.addWidget(self.widget)
+        layout.addWidget(self.splitter)
+        self.setFocusPolicy(Qt.ClickFocus)
         self.setLayout(layout)
 
         # Initialize plugin

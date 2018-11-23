@@ -48,8 +48,8 @@ import ast
 import cloudpickle
 
 from modelx.qtgui.modeltree import ModelTreeModel
-from qtpy.QtCore import QUrl, QTimer, Signal, Slot
-from qtpy.QtWidgets import (QHBoxLayout, QLabel, QMenu, QMessageBox,
+from qtpy.QtCore import QUrl, QTimer, Signal, Slot, Qt
+from qtpy.QtWidgets import (QHBoxLayout, QLabel, QMenu, QMessageBox, QAction,
                             QToolButton, QVBoxLayout, QWidget, QTreeView)
 from qtpy.QtWidgets import QTextEdit
 from spyder.config.base import _, debug_print
@@ -65,6 +65,30 @@ from spyder.utils.qthelpers import (add_actions, create_action,
 from spyder.py3compat import PY2, to_text_string
 
 
+class MxTreeView(QTreeView):
+
+    def __init__(self, parent=None):
+        super().__init__(parent)
+
+        self.shell = None
+
+        # Context menu
+        self.contextMenu = QMenu(self)
+        self.action_update_formulas = \
+            self.contextMenu.addAction("Update Formulas")
+
+    def contextMenuEvent(self, event):
+        action = self.contextMenu.exec_(self.mapToGlobal(event.pos()))
+
+        if action == self.action_update_formulas:
+            index = self.currentIndex()
+            if index.isValid():
+                item = index.internalPointer()
+                if item.getType() == 'Space':
+                    # QMessageBox(text=item.itemData['fullname']).exec()
+                    self.shell.update_codelist(item.itemData['fullname'])
+
+
 class MxExplorer(QWidget):
     """modelx widget."""
 
@@ -73,7 +97,7 @@ class MxExplorer(QWidget):
 
         self.setWindowTitle("Mx explorer") # Not visible
 
-        self.treeview = QTreeView()
+        self.treeview = treeview = MxTreeView(self)
 
         # Main layout
         layout = QVBoxLayout()
@@ -180,6 +204,7 @@ class MxClientWidget(ClientWidget):
         self.shellwidget.set_modelxbrowser(plugin.widget)
         self.shellwidget.set_mxdataview(plugin.dataview.widget,
                                         plugin.dataview.exprbox)
+        self.shellwidget.set_mxcodelist(plugin.codelist)
 
     def get_name(self):
         """Return client name"""
@@ -203,11 +228,13 @@ class MxShellWidget(ShellWidget):
 
     sig_modelx_view = Signal(object)
     sig_mx_dataview = Signal(object)
+    sig_mxcodelist = Signal(object)
 
     # ---- modelx browser ----
     def set_modelxbrowser(self, modelxbrowser):
         """Set namespace browser widget"""
         self.modelxbrowser = modelxbrowser
+        modelxbrowser.treeview.shell = self
         self.configure_modelxbrowser()
 
     def configure_modelxbrowser(self):
@@ -234,7 +261,20 @@ class MxShellWidget(ShellWidget):
     def update_mxdataview(self):
         """Update dataview"""
         expr = self.mxexprbox.get_expr()
-        method = 'get_ipython().kernel.mx_get_evalresult(%s)' % expr
+        method = "get_ipython().kernel.mx_get_evalresult('data', %s)" % expr
+        self.silent_exec_method(method)
+
+    # ---- modelx code list ----
+    def set_mxcodelist(self, codelist):
+        """Set modelx formula list"""
+        self.mxcodelist = codelist
+        self.sig_mxcodelist.connect(lambda data:
+            self.mxcodelist.process_remote_view(data))
+
+    def update_codelist(self, objname):
+        """Update codelist"""
+        objname = '"' + objname + '.cells' + '"'
+        method = 'get_ipython().kernel.mx_get_codelist(%s)' % objname
         self.silent_exec_method(method)
 
     # ---- Override NamespaceBrowserWidget ---
@@ -327,8 +367,8 @@ class MxShellWidget(ShellWidget):
         """
         Handle internal spyder messages
         """
-        modelx_msg_type = msg['content'].get('modelx_msg_type')
-        if modelx_msg_type == 'data':
+        mx_msgtype = msg['content'].get('mx_msgtype')
+        if mx_msgtype == 'data' or mx_msgtype == 'codelist':
             # Deserialize data
             try:
                 if PY2:
@@ -338,18 +378,11 @@ class MxShellWidget(ShellWidget):
             except Exception as msg:
                 value = None
 
-            self.sig_mx_dataview.emit(value)
+            if mx_msgtype == 'data':
+                self.sig_mx_dataview.emit(value)
+            else:
+                self.sig_mxcodelist.emit(value)
             return
-        # elif modelx_msg_type == 'pdb_state':
-        #     pdb_state = msg['content']['pdb_state']
-        #     if pdb_state is not None and isinstance(pdb_state, dict):
-        #         self.refresh_from_pdb(pdb_state)
-        # elif modelx_msg_type == 'pdb_continue':
-        #     # Run Pdb continue to get to the first breakpoint
-        #     # Fixes 2034
-        #     self.write_to_stdin('continue')
-        # elif modelx_msg_type == 'set_breakpoints':
-        #     self.set_spyder_breakpoints(force=True)
         else:
-            debug_print("No such modelx message type: %s" % modelx_msg_type)
+            debug_print("No such modelx message type: %s" % mx_msgtype)
 
