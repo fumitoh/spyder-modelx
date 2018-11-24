@@ -16,6 +16,7 @@ from spyder.widgets.sourcecode.codeeditor import CodeEditor
 # Editor + Class browser test
 # ===============================================================================
 
+
 class CodePane(QWidget):
 
     def __init__(self, parent, title='', code=''):
@@ -87,7 +88,7 @@ class CodeList(QWidget):
         self.layout.addWidget(codepane)
 
 
-class FormulaListModel(QAbstractListModel):
+class CodeListModel(QAbstractListModel):
 
     def __init__(self, parent=None, data=None):
         super().__init__(parent)
@@ -153,7 +154,7 @@ class MxCodeListWidget(QScrollArea, QAbstractItemView):
         if data is None:
             return
         data = CodeListDataWrapper(data)
-        self.setModel(FormulaListModel(parent=self, data=data))
+        self.setModel(CodeListModel(parent=self, data=data))
 
 
 # ---- Test MxCodeListWidget ----
@@ -198,7 +199,7 @@ def testsample():
     codewidget = MxCodeListWidget(win)
     win.setCentralWidget(codewidget)
     codewidget.setWidgetResizable(True)
-    codewidget.setModel(FormulaListModel(win, sampletexts))
+    codewidget.setModel(CodeListModel(win, sampletexts))
     win.show()
     sys.exit(app.exec_())
 

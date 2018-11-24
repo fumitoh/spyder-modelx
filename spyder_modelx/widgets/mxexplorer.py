@@ -201,7 +201,7 @@ class MxClientWidget(ClientWidget):
         self.update_time_label_visibility()
 
         # Set up modelx browser
-        self.shellwidget.set_modelxbrowser(plugin.widget)
+        self.shellwidget.set_mxexplorer(plugin.widget)
         self.shellwidget.set_mxdataview(plugin.dataview.widget,
                                         plugin.dataview.exprbox)
         self.shellwidget.set_mxcodelist(plugin.codelist)
@@ -226,22 +226,22 @@ class MxClientWidget(ClientWidget):
 class MxShellWidget(ShellWidget):
     """Custom shell widget for modelx"""
 
-    sig_modelx_view = Signal(object)
-    sig_mx_dataview = Signal(object)
+    sig_mxexplorer = Signal(object)
+    sig_mxdataview = Signal(object)
     sig_mxcodelist = Signal(object)
 
     # ---- modelx browser ----
-    def set_modelxbrowser(self, modelxbrowser):
+    def set_mxexplorer(self, mxexplorer):
         """Set namespace browser widget"""
-        self.modelxbrowser = modelxbrowser
-        modelxbrowser.treeview.shell = self
-        self.configure_modelxbrowser()
+        self.mxexplorer = mxexplorer
+        mxexplorer.treeview.shell = self
+        self.configure_mxexplorer()
 
-    def configure_modelxbrowser(self):
+    def configure_mxexplorer(self):
         """Configure associated namespace browser widget"""
         # Update namespace view
-        self.sig_modelx_view.connect(lambda data:
-            self.modelxbrowser.process_remote_view(data))
+        self.sig_mxexplorer.connect(lambda data:
+            self.mxexplorer.process_remote_view(data))
         
     # ---- modelx data view ----
     def set_mxdataview(self, mxdataview, mxexprbox):
@@ -252,7 +252,7 @@ class MxShellWidget(ShellWidget):
 
     def configure_mxdataview(self):
         """Configure mx data view widget"""
-        self.sig_mx_dataview.connect(
+        self.sig_mxdataview.connect(
             lambda data: self.mxdataview.process_remote_view(data))
 
         self.mxexprbox.editingFinished.connect(
@@ -312,7 +312,7 @@ class MxShellWidget(ShellWidget):
                         view = ast.literal_eval(literal)
                     else:
                         view = None
-                    self.sig_modelx_view.emit(view)
+                    self.sig_mxexplorer.emit(view)
                 elif 'get_namespace_view' in method:
                     if data is not None and 'text/plain' in data:
                         literal = ast.literal_eval(data['text/plain'])
@@ -379,7 +379,7 @@ class MxShellWidget(ShellWidget):
                 value = None
 
             if mx_msgtype == 'data':
-                self.sig_mx_dataview.emit(value)
+                self.sig_mxdataview.emit(value)
             else:
                 self.sig_mxcodelist.emit(value)
             return
