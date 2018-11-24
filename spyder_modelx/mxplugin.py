@@ -72,7 +72,8 @@ from spyder.utils.qthelpers import (add_actions, create_action,
 from spyder.plugins.ipythonconsole import IPythonConsole
 
 from spyder_modelx.mxkernelspec import MxKernelSpec
-from spyder_modelx.widgets.mxexplorer import MxExplorer, MxClientWidget
+from spyder_modelx.widgets.mxexplorer import MxExplorer
+from spyder_modelx.widgets.mxclient import MxClientWidget
 from spyder_modelx.widgets.mxdataview import (
     MxDataWidget, MxPyExprLineEdit)
 from spyder_modelx.widgets.mxcodelist import MxCodeListWidget, CodeList
