@@ -56,8 +56,8 @@ class ModelxKernel(SpyderKernel):
         super(ModelxKernel, self).__init__(*args, **kwargs)
 
     def get_modelx(self):
-        import modelx as mx
-        return mx.core.system
+        from modelx.core import mxsys
+        return mxsys
 
     def mx_get_models(self):
         import modelx as mx
