@@ -54,16 +54,20 @@ class ModelxKernel(SpyderKernel):
 
     def __init__(self, *args, **kwargs):
         super(ModelxKernel, self).__init__(*args, **kwargs)
+
+    def get_modelx(self):
         import modelx as mx
-        self.mx = mx
+        return mx.core.system
 
     def mx_get_models(self):
-        return repr(self.mx.cur_model().literaldict)
+        import modelx as mx
+        return repr(mx.cur_model().literaldict)
 
     def mx_get_codelist(self, fullname):
+        import modelx as mx
 
         try:
-            obj = self.mx.get_object(fullname)
+            obj = mx.get_object(fullname)
             data = obj._to_attrdict(['formula'])
         except:
             data = None

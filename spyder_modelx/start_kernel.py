@@ -92,7 +92,7 @@ def main():
 
     # Setup modelx for IPython here because
     # __IPYTHON__ is not defined before kernel.initialize()
-    kernel.kernel.mx.core.system.setup_ipython()
+    kernel.kernel.get_modelx().setup_ipython()
 
     # Set our own magics
     kernel.shell.register_magic_function(varexp)
