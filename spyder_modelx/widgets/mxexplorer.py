@@ -60,7 +60,7 @@ class MxTreeView(QTreeView):
         # Context menu
         self.contextMenu = QMenu(self)
         self.action_update_formulas = \
-            self.contextMenu.addAction("Update Formulas")
+            self.contextMenu.addAction("Show Formulas")
 
     def contextMenuEvent(self, event):
         action = self.contextMenu.exec_(self.mapToGlobal(event.pos()))
