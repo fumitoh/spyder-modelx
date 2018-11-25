@@ -10,6 +10,8 @@ from qtpy.QtGui import QFont
 from qtpy.QtWidgets import (QLabel, QVBoxLayout, QWidget,
                             QMainWindow, QScrollArea,
                             QAbstractItemView)
+
+from spyder.plugins import SpyderPluginMixin
 from spyder.widgets.sourcecode.codeeditor import CodeEditor
 
 # ===============================================================================
@@ -23,10 +25,20 @@ class CodePane(QWidget):
         QWidget.__init__(self, parent)
 
         self.editor = editor = CodeEditor(self)
+        self.plugin = plugin = parent.plugin
+
+        if self.plugin:
+            font = self.plugin.get_plugin_font()
+            color_scheme = self.plugin.get_color_scheme()
+        else:
+            font = QFont("Courier New", 10)
+            color_scheme = 'Spyder'
+
         editor.setup_editor(linenumbers=False, language='Python',
                             markers=True, tab_mode=False,
-                            font=QFont("Courier New", 10),
-                            show_blanks=True, color_scheme='Zenburn',
+                            font=font,
+                            show_blanks=False,
+                            color_scheme=color_scheme,
                             scrollflagarea=False)
 
         editor.fontMetrics().lineSpacing()
@@ -66,6 +78,7 @@ class CodeList(QWidget):
         self.layout = QVBoxLayout()
         self.layout.setContentsMargins(0, 0, 0, 0)
         self.setLayout(self.layout)
+        self.plugin = parent.plugin
 
     def insertCode(self, index, title='', code=''):
         codepane = CodePane(self, title, code)
@@ -133,6 +146,10 @@ class MxCodeListWidget(QScrollArea, QAbstractItemView):
     def __init__(self, parent):
         QScrollArea.__init__(self, parent)
         # QAbstractItemView.__init__(self, parent)
+        if isinstance(parent, SpyderPluginMixin):
+            self.plugin = parent    # parent must be plugin
+        else:
+            self.plugin = None
         self.codelist = CodeList(self)
         self.model = None
         self.setWidget(self.codelist)
