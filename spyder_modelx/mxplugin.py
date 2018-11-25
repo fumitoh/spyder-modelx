@@ -345,6 +345,7 @@ class MxDataViewPlugin(SpyderPluginWidget):
         layout_top.addWidget(expr_label)
 
         self.exprbox = MxPyExprLineEdit(self)
+        self.exprbox.setFont(self.get_plugin_font())
         layout_top.addWidget(self.exprbox)
         layout_top.addSpacing(10)
 
