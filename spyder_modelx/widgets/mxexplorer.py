@@ -62,6 +62,8 @@ class MxTreeView(QTreeView):
         self.action_update_formulas = \
             self.contextMenu.addAction("Show Formulas")
 
+        self.setAlternatingRowColors(True)
+
     def contextMenuEvent(self, event):
         action = self.contextMenu.exec_(self.mapToGlobal(event.pos()))
 
