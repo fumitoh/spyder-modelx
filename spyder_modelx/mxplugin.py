@@ -220,7 +220,12 @@ class ModelxPlugin(SpyderPluginWidget):
             show_elapsed_time=show_elapsed_time,
             reset_warning=reset_warning)
 
-        if ipyconsole.testing:
+        # Change stderr_dir if requested
+        if spyder.version_info < (3, 3, 2):
+            testing = ipyconsole.testing
+        else:
+            testing = (ipyconsole.test_dir is not None)
+        if testing:
             client.stderr_dir = ipyconsole.test_dir
         ipyconsole.add_tab(client, name=client.get_name(), filename=filename)
 
@@ -269,13 +274,16 @@ class ModelxPlugin(SpyderPluginWidget):
         connection_file = client.connection_file
 
         if ipyconsole.test_no_stderr:
-            stderr_file = None
+            stderr_file_or_handle = None
         else:
-            stderr_file = client.stderr_file
+            if spyder.version_info < (3, 3, 2):
+                stderr_file_or_handle = client.stderr_file
+            else:
+                stderr_file_or_handle = client.stderr_handle
 
         km, kc = self.create_kernel_manager_and_kernel_client(
                      connection_file,
-                     stderr_file,
+                     stderr_file_or_handle,
                      is_cython=is_cython)
 
         # An error occurred if this is True
@@ -301,21 +309,23 @@ class ModelxPlugin(SpyderPluginWidget):
         ipyconsole = self.main.ipyconsole
         # Before creating our kernel spec, we always need to
         # set this value in spyder.ini
-        if not ipyconsole.testing:
+        if spyder.version_info > (3, 3, 1) or not ipyconsole.testing:
             CONF.set('main', 'spyder_pythonpath',
                      ipyconsole.main.get_spyder_pythonpath())
         return MxKernelSpec(is_cython=is_cython)
 
 
     def create_kernel_manager_and_kernel_client(self, connection_file,
-                                                stderr_file, is_cython=False):
+                                                stderr_file_or_handle,
+                                                is_cython=False):
 
         if spyder.version_info < (3, 2, 8):
             return IPythonConsole.create_kernel_manager_and_kernel_client(
-                self, connection_file, stderr_file)
+                self, connection_file, stderr_file_or_handle)
         else:
             return IPythonConsole.create_kernel_manager_and_kernel_client(
-                self, connection_file, stderr_file, is_cython=is_cython)
+                self, connection_file, stderr_file_or_handle,
+                is_cython=is_cython)
 
 
 class MxDataViewPlugin(SpyderPluginWidget):
