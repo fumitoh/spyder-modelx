@@ -127,7 +127,7 @@ class ModelxPlugin(SpyderPluginWidget):
     # --- SpyderPluginWidget API ----------------------------------------------
     def get_plugin_title(self):
         """Return widget title."""
-        return _('Mx Explorer')
+        return _('MxExplorer')
 
     def get_focus_widget(self):
         """Return the widget to give focus to."""
@@ -146,7 +146,7 @@ class ModelxPlugin(SpyderPluginWidget):
 
         create_client_action = create_action(
                                    self,
-                                   _("Open a &modelx console"),
+                                   _("Open a &MxConsole"),
                                    icon=ima.icon('ipython_console'),
                                    triggered=self.create_new_client,
                                    context=Qt.WidgetWithChildrenShortcut)
@@ -370,7 +370,7 @@ class MxDataViewPlugin(SpyderPluginWidget):
     # --- SpyderPluginWidget API ----------------------------------------------
     def get_plugin_title(self):
         """Return widget title."""
-        return "Mx DataView"
+        return 'MxDataView'
 
     def get_focus_widget(self):
         """Return the widget to give focus to."""

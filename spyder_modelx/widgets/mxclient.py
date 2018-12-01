@@ -71,7 +71,7 @@ class MxClientWidget(ClientWidget):
                  additional_options, interpreter_versions,
                  connection_file=None, hostname=None,
                  menu_actions=None, slave=False,
-                 external_kernel=False, given_name="Mx Console",
+                 external_kernel=False, given_name="MxConsole",
                  show_elapsed_time=False,
                  reset_warning=True):
         super(ClientWidget, self).__init__(plugin)
