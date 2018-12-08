@@ -105,7 +105,7 @@ class BaseItem(object):
     def data(self, column):
 
         if column == 0:
-            return self.itemData['name']
+            return self.itemData['repr']
         elif column == self.colType:
             return self.getType()
         elif column == self.colParam:
