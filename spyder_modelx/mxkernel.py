@@ -61,7 +61,7 @@ class ModelxKernel(SpyderKernel):
 
     def mx_get_models(self):
         import modelx as mx
-        return repr(mx.cur_model().literaldict)
+        return repr(mx.cur_model()._baseattrs)
 
     def mx_get_codelist(self, fullname):
         import modelx as mx
