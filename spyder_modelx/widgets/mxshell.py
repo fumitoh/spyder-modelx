@@ -116,7 +116,7 @@ class MxShellWidget(ShellWidget):
 
         if self.namespacebrowser:
             self.silent_exec_method(
-                'get_ipython().kernel.mx_get_models()')
+                'get_ipython().kernel.mx_get_object()')
             self.update_mxdataview()
             # self.silent_exec_method(
             #     'get_ipython().kernel.mx_get_evalresult(mx.cur_space().frame)')
@@ -137,7 +137,7 @@ class MxShellWidget(ShellWidget):
                 method = self._kernel_methods[expression]
                 reply = user_exp[expression]
                 data = reply.get('data')
-                if 'mx_get_models' in method:
+                if 'mx_get_object' in method:
                     if data is not None and 'text/plain' in data:
                         literal = ast.literal_eval(data['text/plain'])
                         view = ast.literal_eval(literal)

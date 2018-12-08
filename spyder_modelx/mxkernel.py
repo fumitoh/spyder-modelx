@@ -59,9 +59,14 @@ class ModelxKernel(SpyderKernel):
         from modelx.core import mxsys
         return mxsys
 
-    def mx_get_models(self):
+    def mx_get_object(self, fullname=None):
+
         import modelx as mx
-        return repr(mx.cur_model()._baseattrs)
+        if fullname is None:
+            obj = mx.cur_model()
+        else:
+            obj = mx.get_object(fullname)
+        return repr(obj._baseattrs)
 
     def mx_get_codelist(self, fullname):
         import modelx as mx
