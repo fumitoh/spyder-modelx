@@ -239,14 +239,18 @@ class CellsItem(InterfaceItem):
         return self.itemData['params']
 
 
+class CellNodeItem(BaseItem):
+    pass
+
+
 class MxTreeModel(QAbstractItemModel):
 
-    def __init__(self, data, parent=None):
+    def __init__(self, item, parent=None):
         super(MxTreeModel, self).__init__(parent)
-        self.rootItem = ModelItem(data)
+        self.rootItem = item
 
-    def updateRoot(self, data):
-        newmodel = ModelItem(data)
+    def updateRoot(self, item):
+        newmodel = item
         self.updateItem(QModelIndex(), newmodel)
 
     def getItem(self, index):

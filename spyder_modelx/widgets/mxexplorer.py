@@ -44,7 +44,7 @@
 
 """modelx Widget."""
 
-from spyder_modelx.widgets.mxtreemodel import MxTreeModel
+from spyder_modelx.widgets.mxtreemodel import MxTreeModel, ModelItem
 from qtpy.QtCore import Signal, Slot, Qt
 from qtpy.QtWidgets import (QHBoxLayout, QLabel, QMenu, QMessageBox, QAction,
                             QToolButton, QVBoxLayout, QWidget, QTreeView)
@@ -97,10 +97,10 @@ class MxExplorer(QWidget):
             if model:
                 if model.modelid == data['id']:
                     if model.rootItem.itemData != data:
-                        model.updateRoot(data)
+                        model.updateRoot(ModelItem(data))
                 else:
-                    self.treeview.setModel(MxTreeModel(data))
+                    self.treeview.setModel(MxTreeModel(ModelItem(data)))
             else:
-                self.treeview.setModel(MxTreeModel(data))
+                self.treeview.setModel(MxTreeModel(ModelItem(data)))
         else:
             self.treeview.setModel(None)
