@@ -1202,6 +1202,8 @@ class MxPyExprLineEdit(QLineEdit):
 # ==============================================================================
 # Tests
 # ==============================================================================
+
+
 def test_edit(data, title="", parent=None):
     """Test subroutine"""
     app = qapplication()  # analysis:ignore
@@ -1248,6 +1250,7 @@ def test():
     series = Series(np.arange(10), name=0)
     out = test_edit(series)
     assert_series_equal(series, out)
+
 
 def sample_multindseries():
 

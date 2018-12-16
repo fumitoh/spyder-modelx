@@ -78,6 +78,7 @@ from spyder_modelx.widgets.mxdataview import (
     MxDataWidget, MxPyExprLineEdit)
 from spyder_modelx.widgets.mxcodelist import MxCodeListWidget, CodeList
 
+
 class ModelxConfigPage(PluginConfigPage):
     """modelx plugin preferences."""
 
@@ -169,7 +170,6 @@ class ModelxPlugin(SpyderPluginWidget):
         # This should return the actions specific to this plugin.
         return [create_client_action]
 
-
     def register_plugin(self):
         """Register plugin in Spyder's main window."""
         self.main.add_dockwidget(self)
@@ -188,7 +188,6 @@ class ModelxPlugin(SpyderPluginWidget):
     def apply_plugin_settings(self, options):
         """Apply configuration file's plugin settings."""
         pass
-
 
     @Slot()
     @Slot(bool)
@@ -263,7 +262,6 @@ class ModelxPlugin(SpyderPluginWidget):
             return
         ipyconsole.register_client(client)
 
-
     def connect_client_to_kernel(self, client, is_cython=False):
         """Connect a client to its kernel
 
@@ -300,7 +298,6 @@ class ModelxPlugin(SpyderPluginWidget):
         shellwidget.kernel_manager = km
         shellwidget.kernel_client = kc
 
-
     def create_kernel_spec(self, is_cython=False):
         """Create a kernel spec for our own kernels
 
@@ -313,7 +310,6 @@ class ModelxPlugin(SpyderPluginWidget):
             CONF.set('main', 'spyder_pythonpath',
                      ipyconsole.main.get_spyder_pythonpath())
         return MxKernelSpec(is_cython=is_cython)
-
 
     def create_kernel_manager_and_kernel_client(self, connection_file,
                                                 stderr_file_or_handle,

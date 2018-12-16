@@ -169,6 +169,7 @@ class SpaceContainerItem(InterfaceItem):
         return [SpaceItem(space, self)
                 for space in data['spaces']['items'].values()]
 
+
 class ModelItem(SpaceContainerItem):
     """Item class for a Model (root item)"""
     def __init__(self, data):

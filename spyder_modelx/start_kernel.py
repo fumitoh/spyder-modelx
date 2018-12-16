@@ -46,6 +46,7 @@ import sys
 import os.path
 import spyder
 
+
 def main():
     """Copied and modified from spyder.utils.ipython.start_kernel.py(v3.2.8)"""
 
@@ -105,6 +106,7 @@ def main():
 
     # Start the (infinite) kernel event loop.
     kernel.start()
+
 
 if __name__ == '__main__':
     main()
