@@ -186,12 +186,12 @@ class SpaceItem(SpaceContainerItem):
     """Item class for Space objects."""
     def updateChild(self):
         self.childItems.clear()
-        for space in self.itemData['static_spaces']['items'].values():
-            self.childItems.append(SpaceItem(space, self))
-
         dynspaces = self.itemData['dynamic_spaces']['items']
         if len(dynspaces) > 0:
             self.childItems.append(DynamicSpaceMapItem(dynspaces, self))
+
+        for space in self.itemData['static_spaces']['items'].values():
+            self.childItems.append(SpaceItem(space, self))
 
         cellsmap = self.itemData['cells']['items']
         for cells in cellsmap.values():
