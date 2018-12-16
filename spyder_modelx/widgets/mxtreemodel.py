@@ -196,6 +196,10 @@ class SpaceItem(SpaceContainerItem):
         for cells in cellsmap.values():
             self.childItems.append(CellsItem(cells, self))
 
+        refview = self.itemData['refs']['items']
+        for ref in refview.values():
+            self.childItems.append(RefItem(ref, self))
+
     def getType(self):
         return 'Space'
 
@@ -237,6 +241,18 @@ class CellsItem(InterfaceItem):
 
     def getParams(self):
         return self.itemData['params']
+
+
+class RefItem(InterfaceItem):
+    """Item class for references."""
+    def updateChild(self):
+        pass
+
+    def getType(self):
+        return self.itemData['type']
+
+    def getParams(self):
+        return ''
 
 
 class CellNodeItem(BaseItem):
