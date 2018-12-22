@@ -61,6 +61,10 @@ class MxShellWidget(ShellWidget):
     sig_mxdataview = Signal(object)
     sig_mxcodelist = Signal(object)
 
+    mx_msgtypes = ['dataview',
+                   'codelist',
+                   'explorer']
+
     # ---- modelx browser ----
     def set_mxexplorer(self, mxexplorer):
         """Set namespace browser widget"""
@@ -92,7 +96,7 @@ class MxShellWidget(ShellWidget):
     def update_mxdataview(self):
         """Update dataview"""
         expr = self.mxexprbox.get_expr()
-        method = "get_ipython().kernel.mx_get_evalresult('data', %s)" % expr
+        method = "get_ipython().kernel.mx_get_evalresult('dataview', %s)" % expr
         self.silent_exec_method(method)
 
     # ---- modelx code list ----
@@ -116,91 +120,20 @@ class MxShellWidget(ShellWidget):
 
         if self.namespacebrowser:
             self.silent_exec_method(
-                'get_ipython().kernel.mx_get_object()')
+                "get_ipython().kernel.mx_get_object('explorer')")
             self.update_mxdataview()
-            # self.silent_exec_method(
-            #     'get_ipython().kernel.mx_get_evalresult(mx.cur_space().frame)')
-
-    def handle_exec_method(self, msg):
-        """
-        Handle data returned by silent executions of kernel methods
-
-        This is based on the _handle_exec_callback of RichJupyterWidget.
-        Therefore this is licensed BSD.
-        """
-        user_exp = msg['content'].get('user_expressions')
-        if not user_exp:
-            return
-        for expression in user_exp:
-            if expression in self._kernel_methods:
-                # Process kernel reply
-                method = self._kernel_methods[expression]
-                reply = user_exp[expression]
-                data = reply.get('data')
-                if 'mx_get_object' in method:
-                    if data is not None and 'text/plain' in data:
-                        literal = ast.literal_eval(data['text/plain'])
-                        view = ast.literal_eval(literal)
-                    else:
-                        view = None
-                    self.sig_mxexplorer.emit(view)
-                elif 'get_namespace_view' in method:
-                    if data is not None and 'text/plain' in data:
-                        literal = ast.literal_eval(data['text/plain'])
-                        view = ast.literal_eval(literal)
-                    else:
-                        view = None
-                    self.sig_namespace_view.emit(view)
-                elif 'get_var_properties' in method:
-                    if data is not None and 'text/plain' in data:
-                        literal = ast.literal_eval(data['text/plain'])
-                        properties = ast.literal_eval(literal)
-                    else:
-                        properties = None
-                    self.sig_var_properties.emit(properties)
-                elif 'get_cwd' in method:
-                    if data is not None and 'text/plain' in data:
-                        self._cwd = ast.literal_eval(data['text/plain'])
-                        if PY2:
-                            self._cwd = encoding.to_unicode_from_fs(self._cwd)
-                    else:
-                        self._cwd = ''
-                    self.sig_change_cwd.emit(self._cwd)
-                elif 'get_syspath' in method:
-                    if data is not None and 'text/plain' in data:
-                        syspath = ast.literal_eval(data['text/plain'])
-                    else:
-                        syspath = None
-                    self.sig_show_syspath.emit(syspath)
-                elif 'get_env' in method:
-                    if data is not None and 'text/plain' in data:
-                        env = ast.literal_eval(data['text/plain'])
-                    else:
-                        env = None
-                    self.sig_show_env.emit(env)
-                elif 'getattr' in method:
-                    if data is not None and 'text/plain' in data:
-                        is_spyder_kernel = data['text/plain']
-                        if 'SpyderKernel' in is_spyder_kernel:
-                            self.sig_is_spykernel.emit(self)
-                else:
-                    if data is not None and 'text/plain' in data:
-                        self._kernel_reply = ast.literal_eval \
-                            (data['text/plain'])
-                    else:
-                        self._kernel_reply = None
-                    self.sig_got_reply.emit()
-
-                # Remove method after being processed
-                self._kernel_methods.pop(expression)
 
     # ---- Private API (defined by us) ------------------------------
     def _handle_modelx_msg(self, msg):
         """
         Handle internal spyder messages
         """
-        mx_msgtype = msg['content'].get('mx_msgtype')
-        if mx_msgtype == 'data' or mx_msgtype == 'codelist':
+        msg_id = msg['parent_header']['msg_id']
+        info = self._request_info['execute'].get(msg_id)
+
+        msgtype = msg['content'].get('mx_msgtype')
+
+        if msgtype in self.mx_msgtypes:
             # Deserialize data
             try:
                 if PY2:
@@ -210,10 +143,18 @@ class MxShellWidget(ShellWidget):
             except Exception as msg:
                 value = None
 
-            if mx_msgtype == 'data':
+            if msgtype == 'dataview':
                 self.sig_mxdataview.emit(value)
-            else:
+            elif msgtype == 'codelist':
                 self.sig_mxcodelist.emit(value)
+            elif msgtype == 'explorer':
+                self.sig_mxexplorer.emit(value)
+
+            # Copied _handle_execute_reply
+            if info and info.kind == 'silent_exec_method' and not self._hidden:
+                self._request_info['execute'].pop(msg_id)
             return
+
         else:
-            debug_print("No such modelx message type: %s" % mx_msgtype)
+            debug_print("No such modelx message type: %s" % msgtype)
+
