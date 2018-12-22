@@ -77,23 +77,23 @@ class ModelxKernel(SpyderKernel):
         except:
             data = None
 
-        self.send_modelx_msg('codelist', data=data)
+        self.send_mx_msg('codelist', data=data)
 
     def mx_get_evalresult(self, msgtype, frame):
 
         # The code below is based on SpyderKernel.get_value
         try:
-            self.send_modelx_msg(msgtype, data=frame)
+            self.send_mx_msg(msgtype, data=frame)
         except:
             # * There is no need to inform users about
             #   these errors.
             # * value = None makes Spyder to ignore
             #   petitions to display a value
-            self.send_modelx_msg(msgtype, data=None)
+            self.send_mx_msg(msgtype, data=None)
 
         self._do_publish_pdb_state = False
 
-    def send_modelx_msg(self, modelx_msg_type, content=None, data=None):
+    def send_mx_msg(self, mx_msgtype, content=None, data=None):
         """
         Publish custom messages to the Spyder frontend.
 
@@ -102,7 +102,7 @@ class ModelxKernel(SpyderKernel):
         Parameters
         ----------
 
-        modelx_msg_type: str
+        mx_msgtype: str
             The spyder message type
         content: dict
             The (JSONable) content of the message
@@ -114,7 +114,7 @@ class ModelxKernel(SpyderKernel):
 
         if content is None:
             content = {}
-        content['mx_msgtype'] = modelx_msg_type
+        content['mx_msgtype'] = mx_msgtype
         self.session.send(
             self.iopub_socket,
             'modelx_msg',
