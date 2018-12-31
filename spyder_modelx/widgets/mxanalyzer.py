@@ -283,6 +283,7 @@ class MxAnalyzerTree(QTreeView):
     def __init__(self, parent, model):
         QTreeView.__init__(self, parent)
         self.setModel(model)
+        self.setAlternatingRowColors(True)
 
     def process_remote_view(self, data):
         model = self.model()
