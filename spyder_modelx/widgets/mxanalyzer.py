@@ -67,7 +67,7 @@ from spyder.utils.qthelpers import (add_actions, create_action,
 from spyder_modelx.widgets.mxdataview import MxPyExprLineEdit
 
 
-class NodeColumns(enum.IntEnum):
+class NodeCols(enum.IntEnum):
     Node = 0
     Args = 1
     Value = 2
@@ -75,11 +75,12 @@ class NodeColumns(enum.IntEnum):
     Model = 4
 
 
-ColumnsTitles = {NodeColumns.Node: 'Cells',
-                 NodeColumns.Args: 'Args',
-                 NodeColumns.Value: 'Value',
-                 NodeColumns.Space: 'Space',
-                 NodeColumns.Model: 'Model'}
+ColAttrs = {NodeCols.Node: {'title': 'Cells',
+                            'align': None},     # Default
+            NodeCols.Args: {'title': 'Args'},
+            NodeCols.Value: {'title': 'Value'},
+            NodeCols.Space: {'title': 'Space'},
+            NodeCols.Model: {'title': 'Model'}}
 
 
 class NodeItem(object):
@@ -115,19 +116,19 @@ class NodeItem(object):
 
     def data(self, column):
         try:
-            if column == NodeColumns.Node:
+            if column == NodeCols.Node:
                 return self.node['repr']
-            elif column == NodeColumns.Args:
+            elif column == NodeCols.Args:
                 return ', '.join(str(arg) for arg in self.node['args'])
-            elif column == NodeColumns.Value:
+            elif column == NodeCols.Value:
                 return self.node['value']
-            elif column == NodeColumns.Space:
+            elif column == NodeCols.Space:
                 parents = self.node['repr_parent'].split('.')
                 if len(parents) > 1:
                     return '.'.join(parents[1:])
                 else:
                     return ''
-            elif column == NodeColumns.Model:
+            elif column == NodeCols.Model:
                 parents = self.node['repr_parent'].split('.')
                 if len(parents):
                     return parents[0]
@@ -156,18 +157,24 @@ class MxAnalyzerModel(QAbstractItemModel):
         if not self.rootItem:
             return 0
         else:
-            return len(NodeColumns)
+            return len(NodeCols)
 
     def data(self, index, role):    # Pure virtual
         if not index.isValid():
             return None
 
-        if role != Qt.DisplayRole:
-            return None
-
         item = index.internalPointer()
 
-        return item.data(index.column())
+        if role == Qt.DisplayRole:
+            return item.data(index.column())
+        elif role == Qt.TextAlignmentRole:
+            col = index.column()
+            if 'align' in ColAttrs[col]:
+                return ColAttrs[col]['align']
+            else:
+                return Qt.AlignRight
+        else:
+            return None
 
     def flags(self, index):
         if not index.isValid():
@@ -178,7 +185,7 @@ class MxAnalyzerModel(QAbstractItemModel):
     def headerData(self, section, orientation, role):
         if orientation == Qt.Horizontal and role == Qt.DisplayRole:
             if self.rootItem:
-                return ColumnsTitles[section]
+                return ColAttrs[section]['title']
 
         return None
 
@@ -189,7 +196,7 @@ class MxAnalyzerModel(QAbstractItemModel):
         else:
             parentItem = parent.internalPointer()
 
-            if row < parentItem.childCount() and column < len(NodeColumns):
+            if row < parentItem.childCount() and column < len(NodeCols):
                 childItem = parentItem.getChild(row)
             else:   # must not happen
                 raise RuntimeError
