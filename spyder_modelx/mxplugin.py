@@ -58,8 +58,8 @@ except ImportError:
     from spyder.plugins.configdialog import PluginConfigPage # Spyder3
 
 from qtpy.QtCore import Qt, Signal, Slot
-from qtpy.QtWidgets import QVBoxLayout, QHBoxLayout, QLabel, QSplitter
-
+from qtpy.QtWidgets import (QVBoxLayout, QHBoxLayout, QLabel,
+                            QSplitter, QStackedWidget)
 import spyder
 from spyder.config.base import (_, DEV, get_conf_path, get_home_dir,
                                 get_module_path)
@@ -77,6 +77,7 @@ from spyder_modelx.widgets.mxclient import MxClientWidget
 from spyder_modelx.widgets.mxdataview import (
     MxDataWidget, MxPyExprLineEdit)
 from spyder_modelx.widgets.mxcodelist import MxCodeListWidget, CodeList
+from spyder_modelx.widgets.mxanalyzer import MxAnalyzerWidget
 
 
 class ModelxConfigPage(PluginConfigPage):
@@ -89,6 +90,7 @@ class ModelxConfigPage(PluginConfigPage):
         pass
 
 
+# TODO: Split plugins into separate files and place them under plugind folder.
 class ModelxPlugin(SpyderPluginWidget):
     """modelx plugin."""
 
@@ -180,6 +182,10 @@ class ModelxPlugin(SpyderPluginWidget):
         self.dataview = MxDataViewPlugin(self.main)
         self.main.thirdparty_plugins.append(self.dataview)
         self.dataview.register_plugin()
+
+        self.analyzer = MxAnalyzerPlugin(self.main)
+        self.main.thirdparty_plugins.append(self.analyzer)
+        self.analyzer.register_plugin()
 
     def on_first_registration(self):
         """Action to be performed on first plugin registration."""
@@ -290,8 +296,8 @@ class ModelxPlugin(SpyderPluginWidget):
             client.show_kernel_error(km)
             return
 
-        kc.started_channels.connect(lambda c=client: ipyconsole.process_started(c))
-        kc.stopped_channels.connect(lambda c=client: ipyconsole.process_finished(c))
+        kc.started_channels.connect(lambda c=client: self.process_started(c))
+        kc.stopped_channels.connect(lambda c=client: self.process_finished(c))
         kc.start_channels(shell=True, iopub=True)
 
         shellwidget = client.shellwidget
@@ -323,6 +329,16 @@ class ModelxPlugin(SpyderPluginWidget):
                 self, connection_file, stderr_file_or_handle,
                 is_cython=is_cython)
 
+    def process_started(self, client):
+        self.main.ipyconsole.process_started(client)
+        if self.analyzer is not None:
+            self.analyzer.add_shellwidget(client.shellwidget)
+
+    def process_finished(self, client):
+        self.main.ipyconsole.process_finished(client)
+        if self.analyzer is not None:
+            self.analyzer.remove_shellwidget(id(client.shellwidget))
+
 
 class MxDataViewPlugin(SpyderPluginWidget):
     """modelx sub-plugin.
@@ -338,7 +354,7 @@ class MxDataViewPlugin(SpyderPluginWidget):
         self.main = parent # Spyder3
 
         # Create main widget
-        self.widget = MxDataWidget(self.main)
+        self.widget = MxDataWidget(self.main)  # TODO: self.main, not self?
 
         # Layout of the top area in the plugin widget
         layout_top = QHBoxLayout()
@@ -371,6 +387,124 @@ class MxDataViewPlugin(SpyderPluginWidget):
     def get_focus_widget(self):
         """Return the widget to give focus to."""
         return self.widget
+
+    def refresh_plugin(self):
+        """Refresh MxExplorer widget."""
+        pass
+
+    def get_plugin_actions(self):
+        """Return a list of actions related to plugin."""
+        return []
+
+    def register_plugin(self):
+        """Register plugin in Spyder's main window."""
+        self.main.add_dockwidget(self)
+
+    def on_first_registration(self):
+        """Action to be performed on first plugin registration."""
+        self.main.tabify_plugins(self.main.help, self)
+
+    def apply_plugin_settings(self, options):
+        """Apply configuration file's plugin settings."""
+        pass
+
+
+class MxAnalyzerPlugin(SpyderPluginWidget):
+    """modelx sub-plugin.
+
+    This plugin in registered by the modelx main plugin.
+    """
+
+    CONF_SECTION = 'modelx'
+
+    def __init__(self, parent=None):
+
+        SpyderPluginWidget.__init__(self, parent)
+        self.main = parent # Spyder3
+
+        # Widgets
+        self.stack = QStackedWidget(self)
+        self.shellwidgets = {}
+
+        # Layout
+        layout = QVBoxLayout()
+        layout.addWidget(self.stack)
+        self.setLayout(layout)
+
+        # Initialize plugin
+        self.initialize_plugin()
+
+        # On active tab in IPython console change
+        self.main.ipyconsole.tabwidget.currentChanged.connect(
+            self.on_ipyconsole_current_changed)
+
+    # ----- Stack accesors ----------------------------------------------------
+    # Modified from https://github.com/spyder-ide/spyder/blob/v3.3.2/spyder/plugins/variableexplorer.py#L140
+
+    def set_current_widget(self, analyzer):
+        self.stack.setCurrentWidget(analyzer)
+
+    def current_widget(self):
+        return self.stack.currentWidget()
+
+    def count(self):
+        return self.stack.count()
+
+    def remove_widget(self, analyzer):
+        self.stack.removeWidget(analyzer)
+
+    def add_widget(self, analyzer):
+        self.stack.addWidget(analyzer)
+
+    # ----- Public API --------------------------------------------------------
+    # Modified from https://github.com/spyder-ide/spyder/blob/v3.3.2/spyder/plugins/variableexplorer.py#L156
+
+    def add_shellwidget(self, shellwidget):
+        """
+        Register shell with variable explorer.
+
+        This function opens a new NamespaceBrowser for browsing the variables
+        in the shell.
+        """
+        shellwidget_id = id(shellwidget)
+        if shellwidget_id not in self.shellwidgets:
+            analyzer = MxAnalyzerWidget(self)
+            analyzer.set_shellwidget(shellwidget)
+            # analyzer.sig_option_changed.connect(self.change_option)
+            # analyzer.sig_free_memory.connect(self.free_memory)
+            self.add_widget(analyzer)
+            self.shellwidgets[shellwidget_id] = analyzer
+            self.set_shellwidget_from_id(shellwidget_id)
+            return analyzer
+
+    def remove_shellwidget(self, shellwidget_id):
+        # If shellwidget_id is not in self.shellwidgets, it simply means
+        # that shell was not a Python-based console (it was a terminal)
+        if shellwidget_id in self.shellwidgets:
+            analyzer = self.shellwidgets.pop(shellwidget_id)
+            self.remove_widget(analyzer)
+            analyzer.close()
+
+    def set_shellwidget_from_id(self, shellwidget_id):
+        if shellwidget_id in self.shellwidgets:
+            analyzer = self.shellwidgets[shellwidget_id]
+            self.set_current_widget(analyzer)
+
+    def on_ipyconsole_current_changed(self):
+        # Slot like IPythonConsole.reflesh_plugin
+        client = self.main.ipyconsole.tabwidget.currentWidget()
+        if client:
+            sw = client.shellwidget
+            self.set_shellwidget_from_id(id(sw))
+
+    # --- SpyderPluginWidget API ----------------------------------------------
+    def get_plugin_title(self):
+        """Return widget title."""
+        return 'MxAnalyzer'
+
+    def get_focus_widget(self):
+        """Return the widget to give focus to."""
+        return self.current_widget()
 
     def refresh_plugin(self):
         """Refresh MxExplorer widget."""

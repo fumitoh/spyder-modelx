@@ -42,12 +42,15 @@
 # FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
 # OTHER DEALINGS IN THE SOFTWARE.
 
+import json
 import spyder
 
 if spyder.version_info < (3, 3, 0):
     from spyder.utils.ipython.spyder_kernel import SpyderKernel
 else:
     from spyder_kernels.console.kernel import SpyderKernel
+
+from spyder_modelx.util import hinted_tuple_hook
 
 
 class ModelxKernel(SpyderKernel):
@@ -93,6 +96,17 @@ class ModelxKernel(SpyderKernel):
             self.send_mx_msg(msgtype, data=None)
 
         self._do_publish_pdb_state = False
+
+    def mx_get_adjacent(self, msgtype, obj: str,
+                        jsonargs: str, adjacency: str):
+
+        import modelx as mx
+        args = json.loads(jsonargs, object_hook=hinted_tuple_hook)
+        node = mx.get_object(obj).node(*args)
+        nodes = getattr(node, adjacency)
+        attrs = [node._baseattrs for node in nodes]
+        content = {'mx_ogj': obj, 'mx_args': args, 'mx_adjacency': adjacency}
+        self.send_mx_msg(msgtype, content=content, data=attrs)
 
     def send_mx_msg(self, mx_msgtype, content=None, data=None):
         """

@@ -46,13 +46,14 @@
 import ast
 
 import cloudpickle
-from qtpy.QtCore import Signal, Slot, Qt
+from qtpy.QtCore import Signal, Slot, Qt, QEventLoop
 
 from spyder.config.base import _, debug_print
 from spyder.widgets.ipythonconsole.client import ShellWidget
 from spyder.utils import encoding
 from spyder.py3compat import PY2
 
+from spyder_modelx.util import TupleEncoder, hinted_tuple_hook
 
 class MxShellWidget(ShellWidget):
     """Custom shell widget for modelx"""
@@ -60,10 +61,14 @@ class MxShellWidget(ShellWidget):
     sig_mxexplorer = Signal(object)
     sig_mxdataview = Signal(object)
     sig_mxcodelist = Signal(object)
+    sig_mxanalyzer = Signal(object)
 
     mx_msgtypes = ['dataview',
                    'codelist',
-                   'explorer']
+                   'explorer',
+                   'analyzer',
+                   'analyze_preds',
+                   'analyze_succs']
 
     # ---- modelx browser ----
     def set_mxexplorer(self, mxexplorer):
@@ -112,6 +117,69 @@ class MxShellWidget(ShellWidget):
         method = 'get_ipython().kernel.mx_get_codelist(%s)' % objname
         self.silent_exec_method(method)
 
+    # ---- modelx analyzer ----
+    def set_mxanalyzer(self, analyzer, objbox, argbox):
+        """Set modelx dataview widget"""
+        self.mxanalyzer = analyzer
+        self.mxobjbox = objbox
+        self.mxargbox = argbox
+        self.configure_mxanalyzer()
+
+    def configure_mxanalyzer(self):
+        """Configure mx data view widget"""
+        self.sig_mxanalyzer.connect(
+            lambda data: self.mxanalyzer.tree.process_remote_view(data))
+
+        self.mxobjbox.editingFinished.connect(
+            self.update_mxanalyzer)
+
+        self.mxargbox.editingFinished.connect(
+            self.update_mxanalyzer)
+
+    def update_mxanalyzer(self):
+        """Update dataview"""
+        objexpr = self.mxobjbox.get_expr()
+        argexpr = self.mxargbox.get_expr()
+
+        if objexpr:
+            expr = objexpr + ".node(" + argexpr + ")"
+            method = "get_ipython().kernel." + \
+                     "mx_get_evalresult('analyzer', %s._baseattrs)" % expr
+            self.silent_exec_method(method)
+
+    def get_adjacent(self, obj: str, args: tuple, adjacency: str):
+
+        jsonargs = TupleEncoder(ensure_ascii=True).encode(args)
+
+        code = "get_ipython().kernel." + \
+               "mx_get_adjacent('analyze_preds', '%s', '%s', '%s')" \
+               % (obj, jsonargs, adjacency)
+
+        if self._reading:
+            method = self.kernel_client.input
+            code = u'!' + code
+        else:
+            method = self.silent_execute
+
+        # Wait until the kernel returns the value
+        wait_loop = QEventLoop()
+        self.sig_got_reply.connect(wait_loop.quit)
+        method(code)
+        wait_loop.exec_()
+
+        # Remove loop connection and loop
+        self.sig_got_reply.disconnect(wait_loop.quit)
+        wait_loop = None
+
+        # Handle exceptions
+        if self._kernel_value is None:
+            if self._kernel_reply:
+                msg = self._kernel_reply[:]
+                self._kernel_reply = None
+                raise ValueError(msg)
+
+        return self._kernel_value
+
     # ---- Override NamespaceBrowserWidget ---
     def refresh_namespacebrowser(self):
         """Refresh namespace browser"""
@@ -149,6 +217,11 @@ class MxShellWidget(ShellWidget):
                 self.sig_mxcodelist.emit(value)
             elif msgtype == 'explorer':
                 self.sig_mxexplorer.emit(value)
+            elif msgtype == 'analyzer':
+                self.sig_mxanalyzer.emit(value)
+            elif msgtype == 'analyze_preds':
+                self._kernel_value = value
+                self.sig_got_reply.emit()
 
             # Copied _handle_execute_reply
             if info and info.kind == 'silent_exec_method' and not self._hidden:

@@ -1174,7 +1174,7 @@ class MxDataWidget(QWidget):
         # self.setup_and_check(data)
 
 
-class MxPyExprLineEdit(QLineEdit):
+class MxPyExprLineEdit(QLineEdit):  # TODO: Separate from this file.
     """A text form to enter a Python expression for MxDataWidget."""
 
     def is_empty(self):
