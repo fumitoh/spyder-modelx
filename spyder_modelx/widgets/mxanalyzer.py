@@ -69,9 +69,17 @@ from spyder_modelx.widgets.mxdataview import MxPyExprLineEdit
 
 class NodeColumns(enum.IntEnum):
     Node = 0
+    Args = 1
+    Value = 2
+    Space = 3
+    Model = 4
 
 
-ColumnsTitles = {NodeColumns.Node: 'Node'}
+ColumnsTitles = {NodeColumns.Node: 'Cells',
+                 NodeColumns.Args: 'Args',
+                 NodeColumns.Value: 'Value',
+                 NodeColumns.Space: 'Space',
+                 NodeColumns.Model: 'Model'}
 
 
 class NodeItem(object):
@@ -107,7 +115,25 @@ class NodeItem(object):
 
     def data(self, column):
         try:
-            return self.node['repr']
+            if column == NodeColumns.Node:
+                return self.node['repr']
+            elif column == NodeColumns.Args:
+                return ', '.join(str(arg) for arg in self.node['args'])
+            elif column == NodeColumns.Value:
+                return self.node['value']
+            elif column == NodeColumns.Space:
+                parents = self.node['repr_parent'].split('.')
+                if len(parents) > 1:
+                    return '.'.join(parents[1:])
+                else:
+                    return ''
+            elif column == NodeColumns.Model:
+                parents = self.node['repr_parent'].split('.')
+                if len(parents):
+                    return parents[0]
+                else:
+                    return ''
+
         except IndexError:
             return None
 
