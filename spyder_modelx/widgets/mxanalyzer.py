@@ -64,7 +64,7 @@ from qtpy.QtCore import QAbstractItemModel, QModelIndex, Qt, QObject
 from spyder.config.base import _, debug_print
 from spyder.utils.qthelpers import (add_actions, create_action,
                                     create_toolbutton, create_plugin_layout)
-from spyder_modelx.widgets.mxdataview import MxPyExprLineEdit
+from spyder_modelx.widgets.mxlineedit import MxPyExprLineEdit
 
 
 class NodeCols(enum.IntEnum):

@@ -42,7 +42,6 @@ Pandas DataFrame Editor Dialog
 """
 
 # Standard library imports
-import ast
 import time
 
 # Third party imports
@@ -1173,35 +1172,6 @@ class MxDataWidget(QWidget):
         self.setModel(MxDataModel(data, parent=self))
         # self.setup_and_check(data)
 
-
-class MxPyExprLineEdit(QLineEdit):  # TODO: Separate from this file.
-    """A text form to enter a Python expression for MxDataWidget."""
-
-    def __init__(self, parent, font):
-        super().__init__(parent)
-        self.setFont(font)
-
-    def is_empty(self):
-        """Check if the text is empty."""
-        return not bool(self.text())
-
-    def is_valid_expr(self):
-        """Check if the text is a valid Python expression."""
-        try:
-            ast.parse(self.text(), mode='eval')
-        except SyntaxError:
-            return False
-
-        return True
-
-    def get_expr(self):
-        """Return the entered expression, or 'None' if empty or invalid."""
-        if self.is_empty():
-            return 'None'
-        elif self.is_valid_expr():
-            return self.text()
-        else:
-            return 'None'
 
 # ==============================================================================
 # Tests
