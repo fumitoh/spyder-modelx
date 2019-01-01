@@ -95,7 +95,10 @@ class NodeItem(object):
             self.model = model
 
     def childCount(self):
-        return self.node['predslen']
+        if self.isChildLoaded:
+            return len(self.childItems)
+        else:
+            return self.node['predslen']
 
     def hasChildren(self):
         return bool(self.childCount())
@@ -147,10 +150,31 @@ class MxAnalyzerModel(QAbstractItemModel):
     def __init__(self, root=None, parent=None):
         super(MxAnalyzerModel, self).__init__(parent)
 
+        self.rootItem = None
+        self.setRoot(root)
+
+    def setRoot(self, root):
+
+        rows = self.rowCount(QModelIndex())
+
+        if rows:
+            self.removeRows(0, rows, QModelIndex())
+            self.rootItem = None
+
         if root is not None:
-            self.rootItem = NodeItem(root, parent=None, model=self)
+            self.insertRows([0], NodeItem(root, None, self), QModelIndex())
         else:
             self.rootItem = None
+
+    def rowCount(self, parent) -> int:  # Pure virtual
+
+        if parent.isValid():
+            parentItem = parent.internalPointer()
+            return parentItem.childCount()
+        elif self.rootItem is not None:
+            return 1
+        else:
+            return 0
 
     def columnCount(self, parent) -> int:  # Pure virtual
 
@@ -199,7 +223,7 @@ class MxAnalyzerModel(QAbstractItemModel):
             if row < parentItem.childCount() and column < len(NodeCols):
                 childItem = parentItem.getChild(row)
             else:   # must not happen
-                raise RuntimeError
+                raise RuntimeError('must not happen')
 
         return self.createIndex(row, column, childItem)
 
@@ -215,31 +239,28 @@ class MxAnalyzerModel(QAbstractItemModel):
         else:
             return self.createIndex(0, 0, parentItem)
 
-    def rowCount(self, parent) -> int:  # Pure virtual
-
-        if self.rootItem is None:
-            return 0
-
-        elif not parent.isValid():
-            return 1
-        else:
-            parentItem = parent.internalPointer()
-            return parentItem.childCount()
-
     def insertRows(self, rows, newitem, parent):
+        # Currently called only when setting root (parent is invalid)
         # Signature is different from the base method.
+
+        if len(rows) < 1:
+            return
 
         self.beginInsertRows(parent, rows[0], rows[-1])
 
         if parent.isValid():
-            for row in rows:
-                parent.internalPointer().childItems.append(row)
+            # for row in rows:
+            #     parent.internalPointer().childItems.append(row)
+            raise RuntimeError('not implemented')
         else:
             self.rootItem = newitem
 
         self.endInsertRows()
 
     def removeRows(self, position, rows, parent=QModelIndex()):
+
+        if rows < 1:
+            return
 
         self.beginRemoveRows(parent, position, position + rows - 1)
 
@@ -250,12 +271,6 @@ class MxAnalyzerModel(QAbstractItemModel):
             self.rootItem = None
 
         self.endRemoveRows()
-
-    def updateRoot(self, root):
-        self.removeRows(0, 1, QModelIndex())
-        if root is not None:
-            self.insertRows(
-                [0], NodeItem(root, None, self), QModelIndex())
 
 
 class MxAnalyzerWidget(QWidget):
@@ -321,9 +336,9 @@ class MxAnalyzerTree(QTreeView):
     def process_remote_view(self, data):
         model = self.model()
         if data:
-            model.updateRoot(data)
+            model.setRoot(data)
         else:
-            model.updateRoot(None)
+            model.setRoot(None)
 
 
 if __name__ == '__main__':
