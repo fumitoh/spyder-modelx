@@ -354,7 +354,7 @@ class MxDataViewPlugin(SpyderPluginWidget):
         self.main = parent # Spyder3
 
         # Create main widget
-        self.widget = MxDataWidget(self.main)  # TODO: self.main, not self?
+        self.widget = MxDataWidget(self)
 
         # Layout of the top area in the plugin widget
         layout_top = QHBoxLayout()
