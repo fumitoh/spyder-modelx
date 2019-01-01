@@ -298,8 +298,7 @@ class MxAnalyzerWidget(QWidget):
             obj_label = QLabel(txt)
         layout_top.addWidget(obj_label)
 
-        self.objbox = MxPyExprLineEdit(self)
-        self.objbox.setFont(parent.get_plugin_font())  # TODO: Set in MxPyExpr..
+        self.objbox = MxPyExprLineEdit(self, font=parent.get_plugin_font())
         layout_top.addWidget(self.objbox)
         layout_top.addSpacing(10)
 
@@ -311,8 +310,7 @@ class MxAnalyzerWidget(QWidget):
             arg_label = QLabel(txt)
         layout_top.addWidget(arg_label)
 
-        self.argbox = MxPyExprLineEdit(self)
-        self.argbox.setFont(parent.get_plugin_font())  # TODO: Set in MxPyExpr..
+        self.argbox = MxPyExprLineEdit(self, font=parent.get_plugin_font())
         layout_top.addWidget(self.argbox)
         layout_top.addSpacing(10)
 

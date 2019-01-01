@@ -1177,6 +1177,10 @@ class MxDataWidget(QWidget):
 class MxPyExprLineEdit(QLineEdit):  # TODO: Separate from this file.
     """A text form to enter a Python expression for MxDataWidget."""
 
+    def __init__(self, parent, font):
+        super().__init__(parent)
+        self.setFont(font)
+
     def is_empty(self):
         """Check if the text is empty."""
         return not bool(self.text())
