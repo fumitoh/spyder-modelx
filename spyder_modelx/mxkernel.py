@@ -83,11 +83,11 @@ class ModelxKernel(SpyderKernel):
 
         self.send_mx_msg('codelist', data=data)
 
-    def mx_get_evalresult(self, msgtype, frame):
+    def mx_get_evalresult(self, msgtype, data):
 
         # The code below is based on SpyderKernel.get_value
         try:
-            self.send_mx_msg(msgtype, data=frame)
+            self.send_mx_msg(msgtype, data=data)
         except:
             # * There is no need to inform users about
             #   these errors.
