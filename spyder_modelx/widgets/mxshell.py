@@ -141,6 +141,10 @@ class MxShellWidget(ShellWidget):
         objexpr = self.mxobjbox.get_expr()
         argexpr = self.mxargbox.get_expr()
 
+        # Invalid expression
+        if objexpr is None or argexpr is None:
+            return
+
         if objexpr:
             expr = objexpr + ".node(" + argexpr + ")"
             method = "get_ipython().kernel." + \

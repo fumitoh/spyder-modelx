@@ -42,11 +42,11 @@ class MxPyExprLineEdit(QLineEdit):
         return True
 
     def get_expr(self):
-        """Return the entered expression, or 'None' if empty or invalid."""
+        """Return the entered expression, or None if invalid."""
         if self.is_empty():
-            return 'None'
+            return ''
         elif self.is_valid_expr():
             return self.text()
         else:
-            return 'None'
+            return None
 
