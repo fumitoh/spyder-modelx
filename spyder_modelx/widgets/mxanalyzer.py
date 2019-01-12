@@ -187,12 +187,12 @@ class MxAnalyzerModel(QAbstractItemModel):
         if not index.isValid():
             return None
 
-        item = index.internalPointer()
+        row, col = index.row(), index.column()
+        item = self.index(row, 0, index.parent()).internalPointer()
 
         if role == Qt.DisplayRole:
-            return item.data(index.column())
+            return item.data(col)
         elif role == Qt.TextAlignmentRole:
-            col = index.column()
             if 'align' in ColAttrs[col]:
                 return ColAttrs[col]['align']
             else:
