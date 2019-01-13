@@ -44,7 +44,7 @@ def get_description():
     return data
 
 
-REQUIREMENTS = ['spyder>=3.2.5', 'modelx>=0.0.18']
+REQUIREMENTS = ['spyder>=3.2.5', 'modelx>=0.0.19']
 
 
 setup(
@@ -70,5 +70,6 @@ setup(
         'Operating System :: Microsoft :: Windows',
         'Operating System :: POSIX :: Linux',
         'Programming Language :: Python :: 3.5',
-        'Programming Language :: Python :: 3.6'
+        'Programming Language :: Python :: 3.6',
+        'Programming Language :: Python :: 3.7'
     ])
