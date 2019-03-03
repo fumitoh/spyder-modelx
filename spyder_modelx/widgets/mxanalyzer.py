@@ -188,7 +188,7 @@ class MxAnalyzerModel(QAbstractItemModel):
             return None
 
         row, col = index.row(), index.column()
-        item = self.index(row, 0, index.parent()).internalPointer()
+        item = index.internalPointer()
 
         if role == Qt.DisplayRole:
             return item.data(col)
