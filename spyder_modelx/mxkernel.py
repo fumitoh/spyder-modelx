@@ -101,10 +101,17 @@ class ModelxKernel(SpyderKernel):
                         jsonargs: str, adjacency: str):
 
         import modelx as mx
+        from modelx.core.base import Interface
+
         args = json.loads(jsonargs, object_hook=hinted_tuple_hook)
         node = mx.get_object(obj).node(*args)
         nodes = getattr(node, adjacency)
         attrs = [node._baseattrs for node in nodes]
+
+        for node in attrs:
+            if isinstance(node["value"], Interface):
+                node["value"] = repr(node["value"])
+
         content = {'mx_ogj': obj, 'mx_args': args, 'mx_adjacency': adjacency}
         self.send_mx_msg(msgtype, content=content, data=attrs)
 
