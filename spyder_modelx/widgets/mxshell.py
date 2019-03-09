@@ -62,6 +62,8 @@ class MxShellWidget(ShellWidget):
     sig_mxdataview = Signal(object)
     sig_mxcodelist = Signal(object)
     sig_mxanalyzer = Signal(object)
+    sig_mxanalyze_preds = Signal()
+    sig_mxanalyze_succs = Signal()
 
     mx_msgtypes = ['dataview',
                    'codelist',
@@ -69,6 +71,8 @@ class MxShellWidget(ShellWidget):
                    'analyzer',
                    'analyze_preds',
                    'analyze_succs']
+
+    _mx_value = None
 
     # ---- modelx browser ----
     def set_mxexplorer(self, mxexplorer):
@@ -159,30 +163,35 @@ class MxShellWidget(ShellWidget):
                "mx_get_adjacent('analyze_preds', '%s', '%s', '%s')" \
                % (obj, jsonargs, adjacency)
 
-        if self._reading:
-            method = self.kernel_client.input
-            code = u'!' + code
-        else:
-            method = self.silent_execute
+        # The code below is replaced with silent_exec_method
+
+        # if self._reading:
+        #     method = self.kernel_client.input
+        #     code = u'!' + code
+        # else:
+        #     method = self.silent_execute
 
         # Wait until the kernel returns the value
         wait_loop = QEventLoop()
-        self.sig_got_reply.connect(wait_loop.quit)
-        method(code)
+        self.sig_mxanalyze_preds.connect(wait_loop.quit)
+        self.silent_exec_method(code)
         wait_loop.exec_()
 
         # Remove loop connection and loop
-        self.sig_got_reply.disconnect(wait_loop.quit)
+        self.sig_mxanalyze_preds.disconnect(wait_loop.quit)
         wait_loop = None
 
         # Handle exceptions
-        if self._kernel_value is None:
+        if self._mx_value is None:
             if self._kernel_reply:
                 msg = self._kernel_reply[:]
                 self._kernel_reply = None
                 raise ValueError(msg)
 
-        return self._kernel_value
+        result = self._mx_value
+        self._mx_value = None
+
+        return result
 
     # ---- Override NamespaceBrowserWidget ---
     def refresh_namespacebrowser(self):
@@ -214,6 +223,7 @@ class MxShellWidget(ShellWidget):
                     value = cloudpickle.loads(bytes(msg['buffers'][0]))
             except Exception as msg:
                 value = None
+                self._kernel_reply = repr(msg)
 
             if msgtype == 'dataview':
                 self.sig_mxdataview.emit(value)
@@ -224,8 +234,8 @@ class MxShellWidget(ShellWidget):
             elif msgtype == 'analyzer':
                 self.sig_mxanalyzer.emit(value)
             elif msgtype == 'analyze_preds':
-                self._kernel_value = value
-                self.sig_got_reply.emit()
+                self._mx_value = value
+                self.sig_mxanalyze_preds.emit()
 
             # Copied _handle_execute_reply
             if info and info.kind == 'silent_exec_method' and not self._hidden:
