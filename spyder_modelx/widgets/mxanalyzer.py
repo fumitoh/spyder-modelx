@@ -150,8 +150,9 @@ class MxAnalyzerModel(QAbstractItemModel):
     def __init__(self, root=None, parent=None):
         super(MxAnalyzerModel, self).__init__(parent)
 
-        self.rootItem = None
-        self.setRoot(root)
+        self.rootItem = root
+        if root:
+            self.setRoot(root)
 
     def setRoot(self, root):
 
@@ -168,10 +169,12 @@ class MxAnalyzerModel(QAbstractItemModel):
 
     def rowCount(self, parent) -> int:  # Pure virtual
 
-        if parent.isValid():
+        if not self.rootItem:
+            return 0
+        elif parent.isValid():
             parentItem = parent.internalPointer()
             return parentItem.childCount()
-        elif self.rootItem is not None:
+        elif self.rootItem:
             return 1
         else:
             return 0
@@ -215,17 +218,21 @@ class MxAnalyzerModel(QAbstractItemModel):
 
     def index(self, row, column, parent):   # Pure virtual
 
-        if not parent.isValid():
-            childItem = self.rootItem
-        else:
-            parentItem = parent.internalPointer()
+        if row < 0 or column < 0 or not self.rootItem or parent.column() > 0:
+            return QModelIndex()
 
-            if row < parentItem.childCount() and column < len(NodeCols):
+        if row < self.rowCount(parent) and column < self.columnCount(parent):
+
+            if not parent.isValid():
+                childItem = self.rootItem
+            else:
+                parentItem = parent.internalPointer()
                 childItem = parentItem.getChild(row)
-            else:   # must not happen
-                raise RuntimeError('must not happen')
 
-        return self.createIndex(row, column, childItem)
+            return self.createIndex(row, column, childItem)
+
+        else:
+            return QModelIndex()
 
     def parent(self, index):    # Pure virtual
         if not index.isValid():
@@ -282,6 +289,8 @@ class MxAnalyzerWidget(QWidget):
 
         # Create main widget
         self.model = MxAnalyzerModel(root=None, parent=self)
+        # from .modeltest import ModelTest
+        # self.modeltest = ModelTest(self.model, self)
         self.tree = MxAnalyzerTree(self, self.model)
         self.shellwidget = None
 
