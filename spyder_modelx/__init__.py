@@ -22,6 +22,6 @@ from ._version import __version__
 
 # The following statements are required to register this 3rd party plugin:
 
-from .mxplugin import ModelxPlugin
+from .plugins.mxplugin import ModelxPlugin
 
 PLUGIN_CLASS = ModelxPlugin

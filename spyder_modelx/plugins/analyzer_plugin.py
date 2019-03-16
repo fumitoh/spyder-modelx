@@ -14,8 +14,8 @@
 # You should have received a copy of the GNU Lesser General Public
 # License along with this library.  If not, see <http://www.gnu.org/licenses/>.
 
-# The source code is originated from:
-# https://github.com/spyder-ide/spyder-plugin-cookiecutter
+# The source code contains parts copied and modified from Spyder project:
+# https://github.com/spyder-ide/spyder
 # See below for the original copyright notice.
 
 #
@@ -42,29 +42,63 @@
 # FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
 # OTHER DEALINGS IN THE SOFTWARE.
 
-"""Tests for the plugin.""" # Test library imports
-import pytest
+try:
+    from spyder.api.plugins import SpyderPluginWidget
+except ImportError:
+    from spyder.plugins import SpyderPluginWidget # Spyder3
 
-# Local imports
-from spyder_modelx.plugins.mxplugin import ModelxPlugin
+from qtpy.QtWidgets import QVBoxLayout
 
+from spyder_modelx.widgets.mxanalyzer import MxAnalyzerWidget
+from .stacked_mixin import MxStackedMixin
 
-@pytest.fixture
-def setup_modelx(qtbot):
-    """Set up the ModelxPlugin plugin."""
-    modelx = ModelxPlugin(parent=None, testing=True)
-    qtbot.addWidget(modelx)
-    modelx.show()
-    return modelx
+class MxAnalyzerPlugin(MxStackedMixin, SpyderPluginWidget):
+    """modelx sub-plugin.
 
+    This plugin in registered by the modelx main plugin.
+    """
 
-def test_basic_initialization(qtbot):
-    """Test ModelxPlugin initialization."""
-    modelx = setup_modelx(qtbot)
+    CONF_SECTION = 'modelx'
+    MX_WIDGET_CLASS = MxAnalyzerWidget
 
-    # Assert that plugin object exist
-    assert modelx is not None
+    def __init__(self, parent=None):
 
+        SpyderPluginWidget.__init__(self, parent)
+        MxStackedMixin.__init__(self, parent)
 
-if __name__ == "__main__":
-    pytest.main()
+        # Layout
+        layout = QVBoxLayout()
+        layout.addWidget(self.stack)
+        self.setLayout(layout)
+
+        # Initialize plugin
+        self.initialize_plugin()
+
+    # --- SpyderPluginWidget API ----------------------------------------------
+    def get_plugin_title(self):
+        """Return widget title."""
+        return 'MxAnalyzer'
+
+    def get_focus_widget(self):
+        """Return the widget to give focus to."""
+        return self.current_widget()
+
+    def refresh_plugin(self):
+        """Refresh MxExplorer widget."""
+        pass
+
+    def get_plugin_actions(self):
+        """Return a list of actions related to plugin."""
+        return []
+
+    def register_plugin(self):
+        """Register plugin in Spyder's main window."""
+        self.main.add_dockwidget(self)
+
+    def on_first_registration(self):
+        """Action to be performed on first plugin registration."""
+        self.main.tabify_plugins(self.main.help, self)
+
+    def apply_plugin_settings(self, options):
+        """Apply configuration file's plugin settings."""
+        pass
