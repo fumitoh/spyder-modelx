@@ -70,10 +70,11 @@ from spyder.utils.qthelpers import (add_actions, create_action,
 from spyder.plugins.ipythonconsole import IPythonConsole
 
 from spyder_modelx.mxkernelspec import MxKernelSpec
-from spyder_modelx.widgets.mxexplorer import MxExplorer
+from spyder_modelx.widgets.mxexplorer import MxMainWidget
 from spyder_modelx.widgets.mxclient import MxClientWidget
 
 from spyder_modelx.widgets.mxcodelist import MxCodeListWidget, CodeList
+from .stacked_mixin import MxStackedMixin
 from .dataview_plugin import MxDataViewPlugin
 from .analyzer_plugin import MxAnalyzerPlugin
 
@@ -89,36 +90,21 @@ class ModelxConfigPage(PluginConfigPage):
 
 
 # TODO: Split plugins into separate files and place them under plugind folder.
-class ModelxPlugin(SpyderPluginWidget):
+class ModelxPlugin(MxStackedMixin, SpyderPluginWidget):
     """modelx plugin."""
 
     CONF_SECTION = 'modelx'
     CONFIGWIDGET_CLASS = ModelxConfigPage
+    MX_WIDGET_CLASS = MxMainWidget
 
     def __init__(self, parent=None, testing=False):
         SpyderPluginWidget.__init__(self, parent)
-        self.main = parent   # Spyder3
+        MxStackedMixin.__init__(self, parent)
 
-        # Create widget and add to dockwindow
-        self.widget = MxExplorer(self)
-
-        # Create code list
-        self.codelist = MxCodeListWidget(self)
-
-        # Create splitter
-        self.splitter = QSplitter(self)
-        self.splitter.setContentsMargins(0, 0, 0, 0)
-        # self.splitter.addWidget(self.widget)
-        # self.splitter.setStretchFactor(0, 5)
-        # self.splitter.setStretchFactor(1, 1)
-
-        # Layout management
-        self.splitter.addWidget(self.widget)
-        self.splitter.addWidget(self.codelist)
-
+        # Layout
         layout = QVBoxLayout()
-        layout.addWidget(self.splitter)
-        self.setFocusPolicy(Qt.ClickFocus)
+        layout.setContentsMargins(0, 0, 0, 0)
+        layout.addWidget(self.stack)
         self.setLayout(layout)
 
         # Initialize plugin
@@ -132,7 +118,7 @@ class ModelxPlugin(SpyderPluginWidget):
 
     def get_focus_widget(self):
         """Return the widget to give focus to."""
-        return self.widget
+        return self.current_widget()
 
     def refresh_plugin(self):
         """Refresh MxExplorer widget."""
@@ -329,11 +315,13 @@ class ModelxPlugin(SpyderPluginWidget):
 
     def process_started(self, client):
         self.main.ipyconsole.process_started(client)
+        self.add_shellwidget(client.shellwidget)
         if self.analyzer is not None:
             self.analyzer.add_shellwidget(client.shellwidget)
 
     def process_finished(self, client):
         self.main.ipyconsole.process_finished(client)
+        self.remove_shellwidget(id(client.shellwidget))
         if self.analyzer is not None:
             self.analyzer.remove_shellwidget(id(client.shellwidget))
 

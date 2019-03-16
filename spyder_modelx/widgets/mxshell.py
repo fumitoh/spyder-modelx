@@ -85,8 +85,8 @@ class MxShellWidget(ShellWidget):
     def configure_mxexplorer(self):
         """Configure associated namespace browser widget"""
         # Update namespace view
-        self.sig_mxexplorer.connect(lambda data:
-                                    self.mxexplorer.process_remote_view(data))
+        self.sig_mxexplorer.connect(
+            lambda data: self.mxexplorer.process_remote_view(data))
 
     # ---- modelx data view ----
     def set_mxdataview(self, mxdataview, mxexprbox):

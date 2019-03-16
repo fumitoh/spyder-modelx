@@ -47,8 +47,9 @@
 from spyder_modelx.widgets.mxtreemodel import MxTreeModel, ModelItem
 from qtpy.QtCore import Signal, Slot, Qt
 from qtpy.QtWidgets import (QHBoxLayout, QLabel, QMenu, QMessageBox, QAction,
-                            QToolButton, QVBoxLayout, QWidget, QTreeView)
-
+                            QToolButton, QVBoxLayout, QWidget, QTreeView,
+                            QSplitter)
+from spyder_modelx.widgets.mxcodelist import MxCodeListWidget
 
 class MxTreeView(QTreeView):
 
@@ -88,6 +89,7 @@ class MxExplorer(QWidget):
 
         # Main layout
         layout = QVBoxLayout()
+        layout.setContentsMargins(0, 0, 0, 0)
         layout.addWidget(self.treeview)
         self.setLayout(layout)
 
@@ -104,3 +106,39 @@ class MxExplorer(QWidget):
                 self.treeview.setModel(MxTreeModel(ModelItem(data)))
         else:
             self.treeview.setModel(None)
+
+
+class MxMainWidget(QWidget):
+
+    def __init__(self, parent):
+        QWidget.__init__(self, parent)
+
+        self.main = parent   # Spyder3
+
+        # Create widget and add to dockwindow
+        self.explorer = MxExplorer(self)
+
+        # Create code list
+        self.codelist = MxCodeListWidget(self)
+
+        # Create splitter
+        self.splitter = QSplitter(self)
+        self.splitter.setContentsMargins(0, 0, 0, 0)
+        # self.splitter.addWidget(self.widget)
+        # self.splitter.setStretchFactor(0, 5)
+        # self.splitter.setStretchFactor(1, 1)
+
+        # Layout management
+        self.splitter.addWidget(self.explorer)
+        self.splitter.addWidget(self.codelist)
+
+        layout = QVBoxLayout()
+        layout.addWidget(self.splitter)
+        self.setFocusPolicy(Qt.ClickFocus)
+        self.setLayout(layout)
+
+    def set_shellwidget(self, shellwidget):
+        """Bind shellwidget instance to namespace browser"""
+        self.shellwidget = shellwidget
+        self.shellwidget.set_mxexplorer(self.explorer)
+        self.shellwidget.set_mxcodelist(self.codelist)

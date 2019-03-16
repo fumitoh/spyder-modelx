@@ -141,10 +141,8 @@ class MxClientWidget(ClientWidget):
         self.update_time_label_visibility()
 
         # Set up modelx browser
-        self.shellwidget.set_mxexplorer(plugin.widget)
         self.shellwidget.set_mxdataview(plugin.dataview.widget,
                                         plugin.dataview.exprbox)
-        self.shellwidget.set_mxcodelist(plugin.codelist)
 
     def get_name(self):
         """Return client name"""
