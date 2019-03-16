@@ -59,7 +59,7 @@
 import sys
 import enum
 from qtpy.QtWidgets import (QApplication, QTreeView, QWidget, QHBoxLayout,
-                            QLabel)
+                            QLabel, QTabWidget)
 from qtpy.QtCore import QAbstractItemModel, QModelIndex, Qt, QObject
 from spyder.config.base import _, debug_print
 from spyder.utils.qthelpers import (add_actions, create_action,
@@ -84,7 +84,7 @@ ColAttrs = {NodeCols.Node: {'title': 'Cells',
 
 
 class NodeItem(object):
-    def __init__(self, data, parent=None, model=None):
+    def __init__(self, data, parent=None, model=None, adjacency=None):
         self.parentItem = parent
         self.node = data
         self.isChildLoaded = False
@@ -94,20 +94,25 @@ class NodeItem(object):
         else:
             self.model = model
 
+        if adjacency:
+            self.adjacency = adjacency
+        else:
+            self.adjacency = parent.adjacency
+
     def childCount(self):
         if self.isChildLoaded:
             return len(self.childItems)
         else:
-            return self.node['predslen']
+            return self.node[self.adjacency + "len"]
 
     def hasChildren(self):
         return bool(self.childCount())
 
     def _reloadChildren(self):
         self.childItems.clear()
-        sw = QObject.parent(self.model).shellwidget
+        sw = self.model.get_shell()
         nodes = sw.get_adjacent(self.node['obj']['fullname'],
-                                self.node['args'], 'preds')
+                                self.node['args'], self.adjacency)
         items = [NodeItem(node, self) for node in nodes]
         self.childItems.extend(items)
         self.isChildLoaded = True
@@ -147,12 +152,17 @@ class NodeItem(object):
 
 class MxAnalyzerModel(QAbstractItemModel):
 
-    def __init__(self, root=None, parent=None):
+    def __init__(self, adjacency, root=None, parent=None):
         super(MxAnalyzerModel, self).__init__(parent)
 
+        self.tab = parent
+        self.adjacency = adjacency
         self.rootItem = root
         if root:
             self.setRoot(root)
+
+    def get_shell(self):
+        return self.tab.shellwidget
 
     def setRoot(self, root):
 
@@ -163,7 +173,10 @@ class MxAnalyzerModel(QAbstractItemModel):
             self.rootItem = None
 
         if root is not None:
-            self.insertRows([0], NodeItem(root, None, self), QModelIndex())
+            self.insertRows(
+                [0],
+                NodeItem(root, None, self, adjacency=self.adjacency),
+                QModelIndex())
         else:
             self.rootItem = None
 
@@ -280,19 +293,23 @@ class MxAnalyzerModel(QAbstractItemModel):
         self.endRemoveRows()
 
 
-class MxAnalyzerWidget(QWidget):
+class MxAnalyzerTab(QWidget):
 
-    def __init__(self, parent=None):
+    def __init__(self, parent, adjacency):
 
         QWidget.__init__(self, parent)
         # self.main = parent # Spyder3
 
         # Create main widget
-        self.model = MxAnalyzerModel(root=None, parent=self)
+        self.model = MxAnalyzerModel(
+            adjacency=adjacency,
+            root=None,
+            parent=self
+        )
         # from .modeltest import ModelTest
         # self.modeltest = ModelTest(self.model, self)
         self.tree = MxAnalyzerTree(self, self.model)
-        self.shellwidget = None
+        self.shellwidget = None # Set by parent
 
         # Layout of the top area in the plugin widget
         layout_top = QHBoxLayout()
@@ -307,7 +324,8 @@ class MxAnalyzerWidget(QWidget):
             obj_label = QLabel(txt)
         layout_top.addWidget(obj_label)
 
-        self.objbox = MxPyExprLineEdit(self, font=parent.get_plugin_font())
+        self.objbox = MxPyExprLineEdit(
+            self, font=parent.plugin.get_plugin_font())
         layout_top.addWidget(self.objbox)
         layout_top.addSpacing(10)
 
@@ -319,7 +337,8 @@ class MxAnalyzerWidget(QWidget):
             arg_label = QLabel(txt)
         layout_top.addWidget(arg_label)
 
-        self.argbox = MxPyExprLineEdit(self, font=parent.get_plugin_font())
+        self.argbox = MxPyExprLineEdit(
+            self, font=parent.plugin.get_plugin_font())
         layout_top.addWidget(self.argbox)
         layout_top.addSpacing(10)
 
@@ -327,10 +346,33 @@ class MxAnalyzerWidget(QWidget):
         layout = create_plugin_layout(layout_top, self.tree)
         self.setLayout(layout)
 
+
+class MxAnalyzerWidget(QTabWidget):
+
+    def __init__(self, parent):
+
+        QTabWidget.__init__(self, parent=parent)
+
+        self.plugin = parent
+        self.preds = MxAnalyzerTab(parent=self, adjacency='preds')
+        self.succs = MxAnalyzerTab(parent=self, adjacency='succs')
+        self.tabs = {'preds': self.preds,
+                     'succs': self.succs}
+
+        self.addTab(self.preds, 'Predecessors')
+        self.addTab(self.succs, 'Successors')
+
     def set_shellwidget(self, shellwidget):
         """Bind shellwidget instance to namespace browser"""
         self.shellwidget = shellwidget
-        shellwidget.set_mxanalyzer(self, self.objbox, self.argbox)
+        for tab in self.tabs.values():
+            tab.shellwidget = shellwidget
+        shellwidget.set_mxanalyzer(self)
+
+    # Slot
+    def update_node(self, adjacency, data):
+        tab = self.tabs[adjacency]
+        tab.tree.process_remote_view(data)
 
 
 class MxAnalyzerTree(QTreeView):

@@ -61,14 +61,15 @@ class MxShellWidget(ShellWidget):
     sig_mxexplorer = Signal(object)
     sig_mxdataview = Signal(object)
     sig_mxcodelist = Signal(object)
-    sig_mxanalyzer = Signal(object)
+    sig_mxanalyzer = Signal(str, object)
     sig_mxanalyze_preds = Signal()
     sig_mxanalyze_succs = Signal()
 
     mx_msgtypes = ['dataview',
                    'codelist',
                    'explorer',
-                   'analyzer',
+                   'analyze_preds_setnode',
+                   'analyze_succs_setnode',
                    'analyze_preds',
                    'analyze_succs']
 
@@ -122,28 +123,39 @@ class MxShellWidget(ShellWidget):
         self.silent_exec_method(method)
 
     # ---- modelx analyzer ----
-    def set_mxanalyzer(self, analyzer, objbox, argbox):
+    def set_mxanalyzer(self, analyzer):
         """Set modelx dataview widget"""
         self.mxanalyzer = analyzer
-        self.mxobjbox = objbox
-        self.mxargbox = argbox
         self.configure_mxanalyzer()
 
     def configure_mxanalyzer(self):
         """Configure mx data view widget"""
-        self.sig_mxanalyzer.connect(
-            lambda data: self.mxanalyzer.tree.process_remote_view(data))
+        self.sig_mxanalyzer.connect(self.mxanalyzer.update_node)
 
-        self.mxobjbox.editingFinished.connect(
-            self.update_mxanalyzer)
+        tab = self.mxanalyzer.tabs['preds']
 
-        self.mxargbox.editingFinished.connect(
-            self.update_mxanalyzer)
+        tab.objbox.editingFinished.connect(
+            lambda: self.update_mxanalyzer('preds')
+        )
+        tab.argbox.editingFinished.connect(
+            lambda: self.update_mxanalyzer('preds')
+        )
 
-    def update_mxanalyzer(self):
+        tab = self.mxanalyzer.tabs['succs']
+
+        tab.objbox.editingFinished.connect(
+            lambda: self.update_mxanalyzer('succs')
+        )
+        tab.argbox.editingFinished.connect(
+            lambda: self.update_mxanalyzer('succs')
+        )
+
+    def update_mxanalyzer(self, adjacency):
         """Update dataview"""
-        objexpr = self.mxobjbox.get_expr()
-        argexpr = self.mxargbox.get_expr()
+
+        tab = self.mxanalyzer.tabs[adjacency]
+        objexpr = tab.objbox.get_expr()
+        argexpr = tab.argbox.get_expr()
 
         # Invalid expression
         if objexpr is None or argexpr is None:
@@ -151,17 +163,22 @@ class MxShellWidget(ShellWidget):
 
         if objexpr:
             expr = objexpr + ".node(" + argexpr + ")"
-            method = "get_ipython().kernel." + \
-                     "mx_get_evalresult('analyzer', %s._baseattrs)" % expr
+            msgtype = "\"analyze_" + adjacency + "_setnode\""
+            method = (
+                "get_ipython().kernel.mx_get_evalresult(%s, %s._baseattrs)"
+                % (msgtype, expr)
+            )
             self.silent_exec_method(method)
 
     def get_adjacent(self, obj: str, args: tuple, adjacency: str):
 
         jsonargs = TupleEncoder(ensure_ascii=True).encode(args)
+        msgtype = "analyze_" + adjacency
 
-        code = "get_ipython().kernel." + \
-               "mx_get_adjacent('analyze_preds', '%s', '%s', '%s')" \
-               % (obj, jsonargs, adjacency)
+        code = (
+            "get_ipython().kernel.mx_get_adjacent('%s', '%s', '%s', '%s')"
+            % (msgtype, obj, jsonargs, adjacency)
+        )
 
         # The code below is replaced with silent_exec_method
 
@@ -172,13 +189,20 @@ class MxShellWidget(ShellWidget):
         #     method = self.silent_execute
 
         # Wait until the kernel returns the value
+        if adjacency == 'preds':
+            sig = self.sig_mxanalyze_preds
+        elif adjacency == 'succs':
+            sig = self.sig_mxanalyze_succs
+        else:
+            raise RuntimeError("must not happen")
+
         wait_loop = QEventLoop()
-        self.sig_mxanalyze_preds.connect(wait_loop.quit)
+        sig.connect(wait_loop.quit)
         self.silent_exec_method(code)
         wait_loop.exec_()
 
         # Remove loop connection and loop
-        self.sig_mxanalyze_preds.disconnect(wait_loop.quit)
+        sig.disconnect(wait_loop.quit)
         wait_loop = None
 
         # Handle exceptions
@@ -231,11 +255,16 @@ class MxShellWidget(ShellWidget):
                 self.sig_mxcodelist.emit(value)
             elif msgtype == 'explorer':
                 self.sig_mxexplorer.emit(value)
-            elif msgtype == 'analyzer':
-                self.sig_mxanalyzer.emit(value)
+            elif msgtype == 'analyze_preds_setnode':
+                self.sig_mxanalyzer.emit('preds', value)
+            elif msgtype == 'analyze_succs_setnode':
+                self.sig_mxanalyzer.emit('succs', value)
             elif msgtype == 'analyze_preds':
                 self._mx_value = value
                 self.sig_mxanalyze_preds.emit()
+            elif msgtype == 'analyze_succs':
+                self._mx_value = value
+                self.sig_mxanalyze_succs.emit()
 
             # Copied _handle_execute_reply
             if info and info.kind == 'silent_exec_method' and not self._hidden:
