@@ -37,12 +37,9 @@
 # Licensed under the terms of the MIT License
 #
 
-"""
-Pandas DataFrame Editor Dialog
-"""
 
 # Standard library imports
-import time
+import sys, time
 
 # Third party imports
 from qtpy.compat import from_qvariant, to_qvariant
@@ -53,7 +50,7 @@ from qtpy.QtWidgets import (QApplication, QCheckBox, QDialog, QGridLayout,
                             QHBoxLayout, QInputDialog, QLineEdit, QMenu,
                             QMessageBox, QPushButton, QTableView,
                             QScrollBar, QTableWidget, QFrame,
-                            QItemDelegate, QWidget)
+                            QItemDelegate, QWidget, QLabel)
 
 from pandas import DataFrame, Index, Series, MultiIndex
 
@@ -86,6 +83,9 @@ from spyder.utils import icon_manager as ima
 from spyder.utils.qthelpers import (add_actions, create_action,
                                     keybinding, qapplication)
 from spyder.widgets.variableexplorer.arrayeditor import get_idx_rect
+
+from spyder.utils.qthelpers import create_plugin_layout
+from spyder_modelx.widgets.mxlineedit import MxPyExprLineEdit
 
 # Supported Numbers and complex numbers
 REAL_NUMBER_TYPES = (float, int, np.int64, np.int32)
@@ -404,7 +404,7 @@ class MxDataModel(QAbstractTableModel):
         self.endResetModel()
 
 
-class MxDataView(QTableView):
+class MxDataTable(QTableView):
     """
     Data Frame view class.
 
@@ -874,7 +874,7 @@ class MxDataWidget(QWidget):
 
     def create_data_table(self):
         """Create the QTableView that will hold the data model."""
-        self.dataTable = MxDataView(self, self.dataModel,
+        self.dataTable = MxDataTable(self, self.dataModel,
                                          self.table_header.horizontalHeader(),
                                          self.hscroll, self.vscroll)
         self.dataTable.verticalHeader().hide()
@@ -1172,6 +1172,40 @@ class MxDataWidget(QWidget):
         self.setModel(MxDataModel(data, parent=self))
         # self.setup_and_check(data)
 
+
+class MxDataViewWidget(QWidget):
+
+    def __init__(self, parent):
+        QWidget.__init__(self, parent)
+
+        self.plugin = parent
+        # Create main widget
+        self.widget = MxDataWidget(self)
+
+        # Layout of the top area in the plugin widget
+        layout_top = QHBoxLayout()
+        layout_top.setContentsMargins(0, 0, 0, 0)
+        txt = _("Expression")
+        if sys.platform == 'darwin':
+            expr_label = QLabel("  " + txt)
+        else:
+            expr_label = QLabel(txt)
+        layout_top.addWidget(expr_label)
+
+        self.exprbox = MxPyExprLineEdit(
+            self, font=self.plugin.get_plugin_font())
+        layout_top.addWidget(self.exprbox)
+        layout_top.addSpacing(10)
+
+        # Main layout of this widget
+
+        layout = create_plugin_layout(layout_top, self.widget)
+        self.setLayout(layout)
+
+    def set_shellwidget(self, shellwidget):
+        """Bind shellwidget instance to namespace browser"""
+        self.shellwidget = shellwidget
+        self.shellwidget.set_mxdataview(self.widget, self.exprbox)
 
 # ==============================================================================
 # Tests

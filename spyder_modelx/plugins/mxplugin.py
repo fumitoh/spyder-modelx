@@ -73,7 +73,6 @@ from spyder_modelx.mxkernelspec import MxKernelSpec
 from spyder_modelx.widgets.mxexplorer import MxMainWidget
 from spyder_modelx.widgets.mxclient import MxClientWidget
 
-from spyder_modelx.widgets.mxcodelist import MxCodeListWidget, CodeList
 from .stacked_mixin import MxStackedMixin
 from .dataview_plugin import MxDataViewPlugin
 from .analyzer_plugin import MxAnalyzerPlugin
@@ -318,12 +317,16 @@ class ModelxPlugin(MxStackedMixin, SpyderPluginWidget):
         self.add_shellwidget(client.shellwidget)
         if self.analyzer is not None:
             self.analyzer.add_shellwidget(client.shellwidget)
+        if self.dataview is not None:
+            self.dataview.add_shellwidget(client.shellwidget)
 
     def process_finished(self, client):
         self.main.ipyconsole.process_finished(client)
         self.remove_shellwidget(id(client.shellwidget))
         if self.analyzer is not None:
             self.analyzer.remove_shellwidget(id(client.shellwidget))
+        if self.dataview is not None:
+            self.dataview.remove_shellwidget(id(client.shellwidget))
 
 
 

@@ -44,52 +44,35 @@
 
 import sys
 
-from qtpy.QtWidgets import (QVBoxLayout, QHBoxLayout, QLabel,
-                            QSplitter, QStackedWidget)
+from qtpy.QtWidgets import QVBoxLayout
+
 try:
     from spyder.api.plugins import SpyderPluginWidget
 except ImportError:
-    from spyder.plugins import SpyderPluginWidget # Spyder3
+    from spyder.plugins import SpyderPluginWidget  # Spyder3
 
-from spyder.config.base import _
-from spyder.utils.qthelpers import create_plugin_layout
-from spyder_modelx.widgets.mxdataview import MxDataWidget
-from spyder_modelx.widgets.mxlineedit import MxPyExprLineEdit
+from spyder_modelx.widgets.mxdataview import MxDataViewWidget
+from .stacked_mixin import MxStackedMixin
 
 
-class MxDataViewPlugin(SpyderPluginWidget):
+class MxDataViewPlugin(MxStackedMixin, SpyderPluginWidget):
     """modelx sub-plugin.
 
     This plugin in registered by the modelx main plugin.
     """
 
     CONF_SECTION = 'modelx'
+    MX_WIDGET_CLASS = MxDataViewWidget
 
     def __init__(self, parent=None):
 
         SpyderPluginWidget.__init__(self, parent)
-        self.main = parent # Spyder3
+        MxStackedMixin.__init__(self, parent)
 
-        # Create main widget
-        self.widget = MxDataWidget(self)
-
-        # Layout of the top area in the plugin widget
-        layout_top = QHBoxLayout()
-        layout_top.setContentsMargins(0, 0, 0, 0)
-        txt = _("Expression")
-        if sys.platform == 'darwin':
-            expr_label = QLabel("  " + txt)
-        else:
-            expr_label = QLabel(txt)
-        layout_top.addWidget(expr_label)
-
-        self.exprbox = MxPyExprLineEdit(self, font=self.get_plugin_font())
-        layout_top.addWidget(self.exprbox)
-        layout_top.addSpacing(10)
-
-        # Main layout of this widget
-
-        layout = create_plugin_layout(layout_top, self.widget)
+        # Layout
+        layout = QVBoxLayout()
+        layout.setContentsMargins(0, 0, 0, 0)
+        layout.addWidget(self.stack)
         self.setLayout(layout)
 
         # Initialize plugin
@@ -102,7 +85,7 @@ class MxDataViewPlugin(SpyderPluginWidget):
 
     def get_focus_widget(self):
         """Return the widget to give focus to."""
-        return self.widget
+        return self.current_widget()
 
     def refresh_plugin(self):
         """Refresh MxExplorer widget."""

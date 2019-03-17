@@ -113,7 +113,7 @@ class MxMainWidget(QWidget):
     def __init__(self, parent):
         QWidget.__init__(self, parent)
 
-        self.main = parent   # Spyder3
+        self.plugin = parent
 
         # Create widget and add to dockwindow
         self.explorer = MxExplorer(self)

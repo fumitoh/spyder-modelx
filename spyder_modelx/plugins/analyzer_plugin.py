@@ -52,6 +52,7 @@ from qtpy.QtWidgets import QVBoxLayout
 from spyder_modelx.widgets.mxanalyzer import MxAnalyzerWidget
 from .stacked_mixin import MxStackedMixin
 
+
 class MxAnalyzerPlugin(MxStackedMixin, SpyderPluginWidget):
     """modelx sub-plugin.
 
