@@ -91,9 +91,13 @@ def main():
         pass
     kernel.initialize()
 
-    # Setup modelx for IPython here because
-    # __IPYTHON__ is not defined before kernel.initialize()
-    kernel.kernel.get_modelx().setup_ipython()
+    # The comment below seems to be false for at least Spyder v3.3.2
+    # __IPYTHON___ is indeed defined when modelx system is created.
+    #
+    # (Setup modelx for IPython here because
+    # __IPYTHON__ is not defined before kernel.initialize())
+    #
+    # kernel.kernel.get_modelx().setup_ipython()
 
     # Set our own magics
     kernel.shell.register_magic_function(varexp)
