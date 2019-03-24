@@ -14,5 +14,5 @@
 # You should have received a copy of the GNU Lesser General Public
 # License along with this library.  If not, see <http://www.gnu.org/licenses/>.
 
-version_info = (0, 0, 9)
+version_info = (0, 0, 10, "dev")
 __version__ = '.'.join(map(str, version_info))
