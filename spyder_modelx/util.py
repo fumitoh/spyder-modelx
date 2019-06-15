@@ -47,6 +47,7 @@ def hinted_tuple_hook(obj):
 def test_tuple_encoder():
 
     sample = (1, 2, '藍上夫', (3, 4.33), [5, 6, (7, 8, [9, 10], 'ABC')])
+
     enc = TupleEncoder(ensure_ascii=False)
     encoded = enc.encode(sample)
     print(encoded)
