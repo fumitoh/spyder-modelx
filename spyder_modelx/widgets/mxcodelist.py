@@ -48,7 +48,12 @@ from qtpy.QtWidgets import (QLabel, QVBoxLayout, QWidget,
                             QMainWindow, QScrollArea,
                             QAbstractItemView)
 
-from spyder.widgets.sourcecode.codeeditor import CodeEditor
+import spyder
+if spyder.version_info < (4,):
+    from spyder.widgets.sourcecode.codeeditor import CodeEditor
+else:
+    from spyder.plugins.editor.widgets.codeeditor import CodeEditor
+
 
 class CodePane(QWidget):
 

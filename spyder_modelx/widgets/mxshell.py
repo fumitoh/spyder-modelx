@@ -48,8 +48,12 @@ import ast
 import cloudpickle
 from qtpy.QtCore import Signal, Slot, Qt, QEventLoop
 
+import spyder
 from spyder.config.base import _, debug_print
-from spyder.widgets.ipythonconsole.client import ShellWidget
+if spyder.version_info < (4,):
+    from spyder.widgets.ipythonconsole.client import ShellWidget
+else:
+    from spyder.plugins.ipythonconsole.widgets.client import ShellWidget
 from spyder.utils import encoding
 from spyder.py3compat import PY2
 

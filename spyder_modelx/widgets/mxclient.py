@@ -44,11 +44,19 @@
 
 """modelx Widget."""
 
+import time
+
 from qtpy.QtCore import QTimer, Signal, Slot, Qt
 from qtpy.QtWidgets import (QHBoxLayout, QLabel, QMenu, QMessageBox, QAction,
                             QToolButton, QVBoxLayout, QWidget, QTreeView)
+import spyder
 from spyder.config.base import _, debug_print
-from spyder.widgets.ipythonconsole.client import ClientWidget
+if spyder.version_info < (4,):
+    from spyder.widgets.ipythonconsole.client import ClientWidget
+else:
+    from spyder.plugins.ipythonconsole.widgets.client import (
+        ClientWidget,
+        CSS_PATH)
 from spyder.widgets.mixins import SaveHistoryMixin
 from spyder.widgets.browser import WebView
 from spyder.utils import icon_manager as ima
@@ -57,6 +65,11 @@ from spyder.utils.qthelpers import (add_actions, create_action,
                                     MENU_SEPARATOR)
 
 from spyder_modelx.widgets.mxshell import MxShellWidget
+
+try:
+    time.monotonic  # time.monotonic new in 3.3
+except AttributeError:
+    time.monotonic = time.time
 
 
 class MxClientWidget(ClientWidget):
@@ -73,7 +86,8 @@ class MxClientWidget(ClientWidget):
                  menu_actions=None, slave=False,
                  external_kernel=False, given_name="MxConsole",
                  show_elapsed_time=False,
-                 reset_warning=True):
+                 reset_warning=True,
+                 **kwargs):
         super(ClientWidget, self).__init__(plugin)
         SaveHistoryMixin.__init__(self, history_filename)
 
@@ -87,15 +101,26 @@ class MxClientWidget(ClientWidget):
         self.given_name = given_name
         self.show_elapsed_time = show_elapsed_time
         self.reset_warning = reset_warning
+        if "ask_before_restart" in kwargs:
+            self.ask_before_restart = kwargs["ask_before_restart"]
 
         # --- Other attrs
-        self.options_button = None
+        if spyder.version_info > (4,) and "options_button" in kwargs:
+            self.options_button = kwargs["options_button"]
+        else:
+            self.options_button = None
         self.stop_button = None
         self.reset_button = None
         self.stop_icon = ima.icon('stop')
         self.history = []
         self.allow_rename = True
         self.stderr_dir = None
+
+        if "css_path" in kwargs:
+            if kwargs["css_path"] is None:
+                self.css_path = CSS_PATH
+            else:
+                self.css_path = kwargs["css_path"]
 
         # --- Widgets
         self.shellwidget = MxShellWidget(
@@ -105,18 +130,32 @@ class MxClientWidget(ClientWidget):
             interpreter_versions=interpreter_versions,
             external_kernel=external_kernel,
             local_kernel=True)
-        self.infowidget = WebView(self)
-        self.set_infowidget_font()
+
+        if spyder.version_info < (4,):
+            self.infowidget = WebView(self)
+            self.set_infowidget_font()
+        else:
+            self.infowidget = plugin.infowidget
+            self.blank_page = self._create_blank_page()
+
         self.loading_page = self._create_loading_page()
+        # To keep a reference to the page to be displayed
+        # in infowidget
+        self.info_page = None
         self._show_loading_page()
 
         # Elapsed time
         self.time_label = None
-        self.t0 = None
+        if spyder.version_info < (4,):
+            self.t0 = None
+        else:
+            self.t0 = time.monotonic()
         self.timer = QTimer(self)
-
+        if spyder.version_info > (4,):
+            self.show_time_action = create_action(self, _("Show elapsed time"),
+                                             toggled=self.set_elapsed_time_visible)
         # --- Layout
-        vlayout = QVBoxLayout()
+        self.layout = QVBoxLayout()
         toolbar_buttons = self.get_toolbar_buttons()
 
         hlayout = QHBoxLayout()
@@ -125,11 +164,11 @@ class MxClientWidget(ClientWidget):
         for button in toolbar_buttons:
             hlayout.addWidget(button)
 
-        vlayout.addLayout(hlayout)
-        vlayout.setContentsMargins(0, 0, 0, 0)
-        vlayout.addWidget(self.shellwidget)
-        vlayout.addWidget(self.infowidget)
-        self.setLayout(vlayout)
+        self.layout.addLayout(hlayout)
+        self.layout.setContentsMargins(0, 0, 0, 0)
+        self.layout.addWidget(self.shellwidget)
+        self.layout.addWidget(self.infowidget)
+        self.setLayout(self.layout)
 
         # --- Exit function
         self.exit_callback = lambda: plugin.close_client(client=self)

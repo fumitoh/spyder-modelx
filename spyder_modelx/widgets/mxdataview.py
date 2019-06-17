@@ -82,7 +82,10 @@ else:
 from spyder.utils import icon_manager as ima
 from spyder.utils.qthelpers import (add_actions, create_action,
                                     keybinding, qapplication)
-from spyder.widgets.variableexplorer.arrayeditor import get_idx_rect
+if spyder.version_info < (4,):
+    from spyder.widgets.variableexplorer.arrayeditor import get_idx_rect
+else:
+    from spyder.plugins.variableexplorer.widgets.arrayeditor import get_idx_rect
 
 from spyder.utils.qthelpers import create_plugin_layout
 from spyder_modelx.widgets.mxlineedit import MxPyExprLineEdit

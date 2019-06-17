@@ -45,8 +45,10 @@
 import os.path
 
 import spyder
-from spyder.utils.ipython.kernelspec import SpyderKernelSpec
-
+if spyder.version_info < (4,):
+    from spyder.utils.ipython.kernelspec import SpyderKernelSpec
+else:
+    from spyder.plugins.ipythonconsole.utils.kernelspec import SpyderKernelSpec
 
 class MxKernelSpec(SpyderKernelSpec):
 

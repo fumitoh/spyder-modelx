@@ -46,6 +46,7 @@ import sys
 
 from qtpy.QtWidgets import QVBoxLayout
 
+import spyder
 try:
     from spyder.api.plugins import SpyderPluginWidget
 except ImportError:
@@ -73,7 +74,10 @@ class MxDataViewPlugin(MxStackedMixin, SpyderPluginWidget):
         layout = QVBoxLayout()
         layout.setContentsMargins(0, 0, 0, 0)
         layout.addWidget(self.stack)
+        if spyder.version_info > (4,):
+            self.options_button.setVisible(False)
         self.setLayout(layout)
+        self.setMinimumSize(400, 300)
 
         # Initialize plugin
         self.initialize_plugin()

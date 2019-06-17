@@ -67,7 +67,10 @@ from spyder.config.main import CONF
 from spyder.utils import encoding, programs, sourcecode
 from spyder.utils.qthelpers import (add_actions, create_action,
                                     create_toolbutton, create_plugin_layout)
-from spyder.plugins.ipythonconsole import IPythonConsole
+if spyder.version_info < (4,):
+    from spyder.plugins.ipythonconsole import IPythonConsole
+else:
+    from spyder.plugins.ipythonconsole.plugin import IPythonConsole
 
 from spyder_modelx.mxkernelspec import MxKernelSpec
 from spyder_modelx.widgets.mxexplorer import MxMainWidget
@@ -104,7 +107,10 @@ class ModelxPlugin(MxStackedMixin, SpyderPluginWidget):
         layout = QVBoxLayout()
         layout.setContentsMargins(0, 0, 0, 0)
         layout.addWidget(self.stack)
+        if spyder.version_info > (4,):
+            self.options_button.setVisible(False)
         self.setLayout(layout)
+        self.setMinimumSize(400, 300)
 
         # Initialize plugin
         if not testing:
@@ -184,7 +190,8 @@ class ModelxPlugin(MxStackedMixin, SpyderPluginWidget):
     @Slot(bool, str)
     @Slot(bool, bool)
     @Slot(bool, str, bool)
-    def create_new_client(self, give_focus=True, filename='', is_cython=False):
+    def create_new_client(self, give_focus=True, filename='', is_cython=False,
+                          **kwargs):
         """Create a new client
 
         Copied and modified from spyder.plugins.ipythonconsole.IPythonConsole
@@ -197,7 +204,18 @@ class ModelxPlugin(MxStackedMixin, SpyderPluginWidget):
         cf = ipyconsole._new_connection_file()
         show_elapsed_time = ipyconsole.get_option('show_elapsed_time')
         reset_warning = ipyconsole.get_option('show_reset_namespace_warning')
-        client = MxClientWidget(self,
+        if spyder.version_info > (4,):
+            client_kwargs = {
+                "ask_before_restart": ipyconsole.get_option('ask_before_restart'),
+                "options_button": ipyconsole.options_button,
+                "css_path": ipyconsole.css_path
+            }
+            if "given_name" in kwargs:
+                client_kwargs["given_name"] = kwargs["given_name"]
+        else:
+            client_kwargs = {}
+
+        client = MxClientWidget(self.main.ipyconsole,
             id_=client_id,
             history_filename=get_conf_path('history.py'),
             config_options=ipyconsole.config_options(),
@@ -206,7 +224,8 @@ class ModelxPlugin(MxStackedMixin, SpyderPluginWidget):
             connection_file=cf,
             menu_actions=self.menu_actions,
             show_elapsed_time=show_elapsed_time,
-            reset_warning=reset_warning)
+            reset_warning=reset_warning,
+            **client_kwargs)
 
         # Change stderr_dir if requested
         if spyder.version_info < (3, 3, 2):
@@ -287,7 +306,7 @@ class ModelxPlugin(MxStackedMixin, SpyderPluginWidget):
         shellwidget.kernel_manager = km
         shellwidget.kernel_client = kc
 
-    def create_kernel_spec(self, is_cython=False):
+    def create_kernel_spec(self, is_cython=False, **kwargs):
         """Create a kernel spec for our own kernels
 
         Copied and modified from spyder.plugins.ipythonconsole.IPythonConsole

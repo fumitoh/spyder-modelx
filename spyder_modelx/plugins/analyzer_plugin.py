@@ -42,6 +42,7 @@
 # FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
 # OTHER DEALINGS IN THE SOFTWARE.
 
+import spyder
 try:
     from spyder.api.plugins import SpyderPluginWidget
 except ImportError:
@@ -70,7 +71,10 @@ class MxAnalyzerPlugin(MxStackedMixin, SpyderPluginWidget):
         # Layout
         layout = QVBoxLayout()
         layout.addWidget(self.stack)
+        if spyder.version_info > (4,):
+            self.options_button.setVisible(False)
         self.setLayout(layout)
+        self.setMinimumSize(400, 300)
 
         # Initialize plugin
         self.initialize_plugin()
