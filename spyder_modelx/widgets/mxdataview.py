@@ -89,6 +89,7 @@ else:
 
 from spyder.utils.qthelpers import create_plugin_layout
 from spyder_modelx.widgets.mxlineedit import MxPyExprLineEdit
+from spyder_modelx.widgets.mxtoolbar import MxToolBarMixin
 
 # Supported Numbers and complex numbers
 REAL_NUMBER_TYPES = (float, int, np.int64, np.int32)
@@ -1176,39 +1177,50 @@ class MxDataWidget(QWidget):
         # self.setup_and_check(data)
 
 
-class MxDataViewWidget(QWidget):
+class MxDataViewWidget(MxToolBarMixin, QWidget):
 
-    def __init__(self, parent):
+    def __init__(self, parent, **kwargs):
         QWidget.__init__(self, parent)
 
         self.plugin = parent
+
+        # Create tool bar
+        if "options_button" in kwargs:
+            self.options_button = kwargs["options_button"]
+        else:
+            self.options_button = None
+        self.plugin_actions = []
+        MxToolBarMixin.__init__(
+            self,
+            options_button=self.options_button,
+            plugin_actions=self.plugin_actions
+        )
+
         # Create main widget
         self.widget = MxDataWidget(self)
 
-        # Layout of the top area in the plugin widget
-        layout_top = QHBoxLayout()
-        layout_top.setContentsMargins(0, 0, 0, 0)
-        txt = _("Expression")
-        if sys.platform == 'darwin':
-            expr_label = QLabel("  " + txt)
-        else:
-            expr_label = QLabel(txt)
-        layout_top.addWidget(expr_label)
-
-        self.exprbox = MxPyExprLineEdit(
-            self, font=self.plugin.get_plugin_font())
-        layout_top.addWidget(self.exprbox)
-        layout_top.addSpacing(10)
-
         # Main layout of this widget
-
-        layout = create_plugin_layout(layout_top, self.widget)
+        layout = create_plugin_layout(self.tools_layout, self.widget)
         self.setLayout(layout)
 
     def set_shellwidget(self, shellwidget):
         """Bind shellwidget instance to namespace browser"""
         self.shellwidget = shellwidget
         self.shellwidget.set_mxdataview(self.widget, self.exprbox)
+
+    # MxToolBarMixin interface method
+    def setup_toolbar(self):
+
+        txt = _("Expression")
+        if sys.platform == 'darwin':
+            expr_label = QLabel("  " + txt)
+        else:
+            expr_label = QLabel(txt)
+
+        self.exprbox = MxPyExprLineEdit(
+            self, font=self.plugin.get_plugin_font())
+
+        return [expr_label, self.exprbox]
 
 # ==============================================================================
 # Tests

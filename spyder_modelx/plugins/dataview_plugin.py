@@ -65,7 +65,7 @@ class MxDataViewPlugin(MxStackedMixin, SpyderPluginWidget):
     CONF_SECTION = 'modelx'
     MX_WIDGET_CLASS = MxDataViewWidget
 
-    def __init__(self, parent=None):
+    def __init__(self, parent=None, **kwargs):
 
         SpyderPluginWidget.__init__(self, parent)
         MxStackedMixin.__init__(self, parent)

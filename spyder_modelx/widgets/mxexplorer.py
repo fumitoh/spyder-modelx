@@ -49,7 +49,10 @@ from qtpy.QtCore import Signal, Slot, Qt
 from qtpy.QtWidgets import (QHBoxLayout, QLabel, QMenu, QMessageBox, QAction,
                             QToolButton, QVBoxLayout, QWidget, QTreeView,
                             QSplitter)
+import spyder
+from spyder.utils.qthelpers import create_plugin_layout
 from spyder_modelx.widgets.mxcodelist import MxCodeListWidget
+from spyder_modelx.widgets.mxtoolbar import MxToolBarMixin
 
 class MxTreeView(QTreeView):
 
@@ -108,12 +111,24 @@ class MxExplorer(QWidget):
             self.treeview.setModel(None)
 
 
-class MxMainWidget(QWidget):
+class MxMainWidget(MxToolBarMixin, QWidget):
 
-    def __init__(self, parent):
+    def __init__(self, parent, **kwargs):
         QWidget.__init__(self, parent)
 
         self.plugin = parent
+
+        # Create tool bar
+        if "options_button" in kwargs:
+            self.options_button = kwargs["options_button"]
+        else:
+            self.options_button = None
+        self.plugin_actions = []
+        MxToolBarMixin.__init__(
+            self,
+            options_button=self.options_button,
+            plugin_actions=self.plugin_actions
+        )
 
         # Create widget and add to dockwindow
         self.explorer = MxExplorer(self)
@@ -132,8 +147,8 @@ class MxMainWidget(QWidget):
         self.splitter.addWidget(self.explorer)
         self.splitter.addWidget(self.codelist)
 
-        layout = QVBoxLayout()
-        layout.addWidget(self.splitter)
+        layout = create_plugin_layout(self.tools_layout, self.splitter)
+
         self.setFocusPolicy(Qt.ClickFocus)
         self.setLayout(layout)
 

@@ -61,11 +61,13 @@ import enum
 from qtpy.QtWidgets import (QApplication, QTreeView, QWidget, QHBoxLayout,
                             QLabel, QTabWidget)
 from qtpy.QtCore import QAbstractItemModel, QModelIndex, Qt, QObject
+
+import spyder
 from spyder.config.base import _, debug_print
 from spyder.utils.qthelpers import (add_actions, create_action,
                                     create_toolbutton, create_plugin_layout)
 from spyder_modelx.widgets.mxlineedit import MxPyExprLineEdit
-
+from spyder_modelx.widgets.mxtoolbar import MxToolBarMixin
 
 class NodeCols(enum.IntEnum):
     Node = 0
@@ -347,20 +349,38 @@ class MxAnalyzerTab(QWidget):
         self.setLayout(layout)
 
 
-class MxAnalyzerWidget(QTabWidget):
+class MxAnalyzerWidget(MxToolBarMixin, QWidget):
 
-    def __init__(self, parent):
-
-        QTabWidget.__init__(self, parent=parent)
+    def __init__(self, parent, **kwargs):
+        QWidget.__init__(self, parent)
 
         self.plugin = parent
+
+        # Create tool bar
+        if "options_button" in kwargs:
+            self.options_button = kwargs["options_button"]
+        else:
+            self.options_button = None
+        self.plugin_actions = []
+        MxToolBarMixin.__init__(
+            self,
+            options_button=self.options_button,
+            plugin_actions=self.plugin_actions
+        )
+
+        # Create main widget
+        self.tabwidget = QTabWidget(parent=parent)
         self.preds = MxAnalyzerTab(parent=self, adjacency='preds')
         self.succs = MxAnalyzerTab(parent=self, adjacency='succs')
         self.tabs = {'preds': self.preds,
                      'succs': self.succs}
 
-        self.addTab(self.preds, 'Predecessors')
-        self.addTab(self.succs, 'Successors')
+        self.tabwidget.addTab(self.preds, 'Predecessors')
+        self.tabwidget.addTab(self.succs, 'Successors')
+
+        layout = create_plugin_layout(self.tools_layout, self.tabwidget)
+        self.setFocusPolicy(Qt.ClickFocus)
+        self.setLayout(layout)
 
     def set_shellwidget(self, shellwidget):
         """Bind shellwidget instance to namespace browser"""

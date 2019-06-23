@@ -43,9 +43,16 @@
 # OTHER DEALINGS IN THE SOFTWARE.
 
 from qtpy.QtWidgets import QStackedWidget
+import spyder
 
 
 class MxStackedMixin:
+    """Mixin to Plugin classes to stacked child widgets.
+
+    The stacked child widgets are of MX_WIDGET_CLASS.
+    Each of the stacked child widgets is connected to each MxShellWidget.
+
+    """
     MX_WIDGET_CLASS = None  # To be defined in sub class
 
     def __init__(self, parent):
@@ -65,6 +72,8 @@ class MxStackedMixin:
 
     def set_current_widget(self, mxwidget):
         self.stack.setCurrentWidget(mxwidget)
+        # self.refresh_actions()
+        mxwidget.setup_options_button()
 
     def current_widget(self):
         return self.stack.currentWidget()
@@ -90,7 +99,12 @@ class MxStackedMixin:
         """
         shellwidget_id = id(shellwidget)
         if shellwidget_id not in self.shellwidgets:
-            mxwidget = self.MX_WIDGET_CLASS(self)
+            if spyder.version_info < (4,):
+                mxwidget = self.MX_WIDGET_CLASS(self, options_button=None)
+            else:
+                self.options_button.setVisible(True)
+                mxwidget = self.MX_WIDGET_CLASS(
+                        self, options_button=self.options_button)
             mxwidget.set_shellwidget(shellwidget)
             # analyzer.sig_option_changed.connect(self.change_option)
             # analyzer.sig_free_memory.connect(self.free_memory)
