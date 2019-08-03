@@ -260,7 +260,9 @@ class MxDataModel(QAbstractTableModel):
             column = index.column()
             row = index.row()
             value = self.get_value(row, column)
-            if np.isnan(value):
+            if value is None:
+                return ''
+            elif np.isnan(value):
                 return ''
             elif isinstance(value, float):
                 try:
