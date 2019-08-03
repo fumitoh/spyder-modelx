@@ -1219,8 +1219,12 @@ class MxDataViewWidget(MxToolBarMixin, QWidget):
         else:
             expr_label = QLabel(txt)
 
-        self.exprbox = MxPyExprLineEdit(
-            self, font=self.plugin.get_plugin_font())
+        if spyder.version_info < (4,):
+            font = self.plugin.get_plugin_font()
+        else:
+            font = self.plugin.get_font()
+
+        self.exprbox = MxPyExprLineEdit(self, font=font)
 
         return [expr_label, self.exprbox]
 

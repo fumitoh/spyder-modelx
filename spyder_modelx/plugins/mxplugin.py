@@ -63,7 +63,10 @@ from spyder.config.base import (_, DEV, get_conf_path, get_home_dir,
                                 get_module_path)
 from spyder.utils import icon_manager as ima
 from spyder.py3compat import is_string, PY2, to_text_string
-from spyder.config.main import CONF
+if spyder.version_info < (4,):
+    from spyder.config.main import CONF # Spyder 3
+else:
+    from spyder.config.manager import CONF
 from spyder.utils import encoding, programs, sourcecode
 from spyder.utils.qthelpers import (add_actions, create_action,
                                     create_toolbutton, create_plugin_layout)
@@ -112,9 +115,10 @@ class ModelxPlugin(MxStackedMixin, SpyderPluginWidget):
         self.setLayout(layout)
         self.setMinimumSize(400, 300)
 
-        # Initialize plugin
-        if not testing:
-            self.initialize_plugin()
+        if spyder.version_info < (4,):
+            # Initialize plugin
+            if not testing:
+                self.initialize_plugin()
 
     # --- SpyderPluginWidget API ----------------------------------------------
     def get_plugin_title(self):
@@ -163,7 +167,10 @@ class ModelxPlugin(MxStackedMixin, SpyderPluginWidget):
 
     def register_plugin(self):
         """Register plugin in Spyder's main window."""
-        self.main.add_dockwidget(self)
+        if spyder.version_info < (4,):
+            self.main.add_dockwidget(self)
+        else:
+            self.add_dockwidget()
         self.register_subplugin()
 
     def register_subplugin(self):

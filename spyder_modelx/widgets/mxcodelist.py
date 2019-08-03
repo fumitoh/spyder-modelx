@@ -64,7 +64,11 @@ class CodePane(QWidget):
         self.plugin = plugin = parent.plugin
 
         if self.plugin:
-            font = self.plugin.get_plugin_font()
+            if spyder.version_info < (4,):
+                font = self.plugin.get_plugin_font()
+            else:
+                font = self.plugin.get_font()
+
             color_scheme = self.plugin.get_color_scheme()
         else:
             font = QFont("Courier New", 10)

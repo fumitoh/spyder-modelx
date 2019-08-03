@@ -79,8 +79,9 @@ class MxDataViewPlugin(MxStackedMixin, SpyderPluginWidget):
         self.setLayout(layout)
         self.setMinimumSize(400, 300)
 
-        # Initialize plugin
-        self.initialize_plugin()
+        if spyder.version_info < (4,):
+            # Initialize plugin
+            self.initialize_plugin()
 
     # --- SpyderPluginWidget API ----------------------------------------------
     def get_plugin_title(self):
@@ -101,7 +102,10 @@ class MxDataViewPlugin(MxStackedMixin, SpyderPluginWidget):
 
     def register_plugin(self):
         """Register plugin in Spyder's main window."""
-        self.main.add_dockwidget(self)
+        if spyder.version_info < (4,):
+            self.main.add_dockwidget(self)
+        else:
+            self.add_dockwidget()
 
     def on_first_registration(self):
         """Action to be performed on first plugin registration."""

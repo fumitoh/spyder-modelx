@@ -326,8 +326,12 @@ class MxAnalyzerTab(QWidget):
             obj_label = QLabel(txt)
         layout_top.addWidget(obj_label)
 
-        self.objbox = MxPyExprLineEdit(
-            self, font=parent.plugin.get_plugin_font())
+        if spyder.version_info < (4,):
+            font = parent.plugin.get_plugin_font()
+        else:
+            font = parent.plugin.get_font()
+
+        self.objbox = MxPyExprLineEdit(self, font=font)
         layout_top.addWidget(self.objbox)
         layout_top.addSpacing(10)
 
@@ -339,8 +343,7 @@ class MxAnalyzerTab(QWidget):
             arg_label = QLabel(txt)
         layout_top.addWidget(arg_label)
 
-        self.argbox = MxPyExprLineEdit(
-            self, font=parent.plugin.get_plugin_font())
+        self.argbox = MxPyExprLineEdit(self, font=font)
         layout_top.addWidget(self.argbox)
         layout_top.addSpacing(10)
 
