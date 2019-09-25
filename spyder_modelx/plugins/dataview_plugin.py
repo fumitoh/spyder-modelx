@@ -62,7 +62,7 @@ class MxDataViewPlugin(MxStackedMixin, SpyderPluginWidget):
     This plugin in registered by the modelx main plugin.
     """
 
-    CONF_SECTION = 'modelx'
+    CONF_SECTION = 'modelx_dataview'
     MX_WIDGET_CLASS = MxDataViewWidget
 
     def __init__(self, parent=None, **kwargs):
