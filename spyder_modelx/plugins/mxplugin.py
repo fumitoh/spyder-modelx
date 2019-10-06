@@ -113,7 +113,6 @@ class ModelxPlugin(MxStackedMixin, SpyderPluginWidget):
         if spyder.version_info > (4,):
             self.options_button.setVisible(False)
         self.setLayout(layout)
-        self.setMinimumSize(400, 300)
 
         if spyder.version_info < (4,):
             # Initialize plugin
