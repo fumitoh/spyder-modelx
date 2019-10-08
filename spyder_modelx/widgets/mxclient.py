@@ -115,6 +115,7 @@ class MxClientWidget(ClientWidget):
         self.history = []
         self.allow_rename = True
         self.stderr_dir = None
+        self.is_error_shown = False
 
         if "css_path" in kwargs:
             if kwargs["css_path"] is None:
