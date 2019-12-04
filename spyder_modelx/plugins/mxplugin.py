@@ -218,6 +218,9 @@ class ModelxPlugin(MxStackedMixin, SpyderPluginWidget):
             }
             if "given_name" in kwargs:
                 client_kwargs["given_name"] = kwargs["given_name"]
+        elif spyder.version_info > (3, 3, 5):
+            client_kwargs = {
+                "ask_before_restart": ipyconsole.get_option('ask_before_restart')}
         else:
             client_kwargs = {}
 
