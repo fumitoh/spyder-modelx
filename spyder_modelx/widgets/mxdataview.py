@@ -64,7 +64,12 @@ import numpy as np
 import spyder
 from spyder.config.base import _
 from spyder.config.fonts import DEFAULT_SMALL_DELTA
-from spyder.config.gui import get_font, config_shortcut
+if spyder.version_info > (4,):
+    from spyder.config.manager import CONF
+    config_shortcut = CONF.config_shortcut
+else:
+    from spyder.config.gui import config_shortcut
+from spyder.config.gui import get_font
 from spyder.py3compat import io, is_text_string, PY2, to_text_string
 if spyder.version_info > (3, 2, 5):
     from spyder.py3compat import is_type_text_string
