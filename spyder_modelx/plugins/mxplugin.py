@@ -312,8 +312,13 @@ class ModelxPlugin(MxStackedMixin, SpyderPluginWidget):
         kc.start_channels(shell=True, iopub=True)
 
         shellwidget = client.shellwidget
-        shellwidget.kernel_manager = km
-        shellwidget.kernel_client = kc
+        if spyder.version_info > (4,):
+            shellwidget.set_kernel_client_and_manager(kc, km)
+            shellwidget.sig_exception_occurred.connect(
+                self.main.console.exception_occurred)
+        else:
+            shellwidget.kernel_manager = km
+            shellwidget.kernel_client = kc
 
     def create_kernel_spec(self, is_cython=False, **kwargs):
         """Create a kernel spec for our own kernels
