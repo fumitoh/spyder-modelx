@@ -59,10 +59,16 @@ from spyder.py3compat import PY2
 
 from spyder_modelx.util import TupleEncoder, hinted_tuple_hook
 
+if spyder.version_info > (4,):
+    from spyder.plugins.ipythonconsole.widgets.namespacebrowser import (
+        CALL_KERNEL_TIMEOUT
+    )
+
 class MxShellWidget(ShellWidget):
     """Custom shell widget for modelx"""
 
     sig_mxexplorer = Signal(object)
+    sig_mxmodellist = Signal()
     sig_mxdataview = Signal(object)
     sig_mxcodelist = Signal(object)
     sig_mxanalyzer = Signal(str, object)
@@ -72,6 +78,7 @@ class MxShellWidget(ShellWidget):
     mx_msgtypes = ['dataview',
                    'codelist',
                    'explorer',
+                   'modellist',
                    'analyze_preds_setnode',
                    'analyze_succs_setnode',
                    'analyze_preds',
@@ -80,17 +87,24 @@ class MxShellWidget(ShellWidget):
     _mx_value = None
 
     # ---- modelx browser ----
-    def set_mxexplorer(self, mxexplorer):
+    def set_mxexplorer(self, mxexplorer, mxmodelselector):
         """Set namespace browser widget"""
         self.mxexplorer = mxexplorer
+        self.mxmodelselector = mxmodelselector
         mxexplorer.treeview.shell = self
         self.configure_mxexplorer()
 
     def configure_mxexplorer(self):
         """Configure associated namespace browser widget"""
         # Update namespace view
+
         self.sig_mxexplorer.connect(
             lambda data: self.mxexplorer.process_remote_view(data))
+        self.mxmodelselector.activated.connect(
+            lambda : self.update_modeltree(
+                self.mxmodelselector.get_selected_model()
+            )
+        )
 
     # ---- modelx data view ----
     def set_mxdataview(self, mxdataview, mxexprbox):
@@ -200,6 +214,10 @@ class MxShellWidget(ShellWidget):
         else:
             raise RuntimeError("must not happen")
 
+        return self._mx_wait_reply(code, sig)
+
+    def _mx_wait_reply(self, code, sig):
+
         wait_loop = QEventLoop()
         sig.connect(wait_loop.quit)
         self.silent_exec_method(code)
@@ -221,6 +239,30 @@ class MxShellWidget(ShellWidget):
 
         return result
 
+    def get_modellist(self):
+
+        if spyder.version_info > (4,):
+            mlist = self.call_kernel(
+                interrupt=True,
+                blocking=True,
+                timeout=CALL_KERNEL_TIMEOUT).mx_get_modellist()
+        else:
+            code = "get_ipython().kernel.mx_get_modellist()"
+            mlist = self._mx_wait_reply(code, self.sig_mxmodellist)
+
+        return mlist
+
+    def update_modeltree(self, name):
+
+        if name:
+            arg = "'%s'" % name
+        else:
+            arg = "None"
+
+        self.silent_exec_method(
+            "get_ipython().kernel.mx_get_object('explorer', %s)" % arg)
+        self.update_mxdataview()
+
     # ---- Override NamespaceBrowserWidget ---
     def refresh_namespacebrowser(self):
         """Refresh namespace browser"""
@@ -228,8 +270,10 @@ class MxShellWidget(ShellWidget):
         super(MxShellWidget, self).refresh_namespacebrowser()
 
         if self.namespacebrowser:
-            self.silent_exec_method(
-                "get_ipython().kernel.mx_get_object('explorer')")
+
+            mlist = self.get_modellist()
+            name = self.mxmodelselector.get_selected_model(mlist)
+            self.update_modeltree(name)
             self.update_mxdataview()
 
     # ---- Private API (defined by us) ------------------------------
@@ -259,6 +303,9 @@ class MxShellWidget(ShellWidget):
                 self.sig_mxcodelist.emit(value)
             elif msgtype == 'explorer':
                 self.sig_mxexplorer.emit(value)
+            elif msgtype == 'modellist':
+                self._mx_value = value
+                self.sig_mxmodellist.emit()
             elif msgtype == 'analyze_preds_setnode':
                 self.sig_mxanalyzer.emit('preds', value)
             elif msgtype == 'analyze_succs_setnode':

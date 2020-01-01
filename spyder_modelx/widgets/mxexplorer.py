@@ -43,16 +43,19 @@
 # OTHER DEALINGS IN THE SOFTWARE.
 
 """modelx Widget."""
+import sys
 
 from spyder_modelx.widgets.mxtreemodel import MxTreeModel, ModelItem
-from qtpy.QtCore import Signal, Slot, Qt
+from qtpy.QtCore import Signal, Slot, Qt, QStringListModel
 from qtpy.QtWidgets import (QHBoxLayout, QLabel, QMenu, QMessageBox, QAction,
                             QToolButton, QVBoxLayout, QWidget, QTreeView,
-                            QSplitter)
+                            QSplitter, QComboBox)
 import spyder
+from spyder.config.base import _
 from spyder.utils.qthelpers import create_plugin_layout
 from spyder_modelx.widgets.mxcodelist import MxCodeListWidget
 from spyder_modelx.widgets.mxtoolbar import MxToolBarMixin
+
 
 class MxTreeView(QTreeView):
 
@@ -155,5 +158,109 @@ class MxMainWidget(MxToolBarMixin, QWidget):
     def set_shellwidget(self, shellwidget):
         """Bind shellwidget instance to namespace browser"""
         self.shellwidget = shellwidget
-        self.shellwidget.set_mxexplorer(self.explorer)
+        self.shellwidget.set_mxexplorer(self.explorer, self.model_selector)
         self.shellwidget.set_mxcodelist(self.codelist)
+
+    # MxToolBarMixin interface method
+    def setup_toolbar(self):
+
+        txt = _("Model")
+        if sys.platform == 'darwin':
+            expr_label = QLabel("  " + txt)
+        else:
+            expr_label = QLabel(txt)
+
+        if spyder.version_info < (4,):
+            font = self.plugin.get_plugin_font()
+        else:
+            font = self.plugin.get_font()
+
+        self.model_selector = MxModelSelector(self)
+
+        return [expr_label, self.model_selector]
+
+
+class MxModelSelector(QComboBox):
+
+    sig_mxmodelselected = Signal()
+
+    def __init__(self, parent):
+        QComboBox.__init__(self, parent=parent)
+
+        # modellist is a list of dicts that contains basic model attributes.
+        # The first element represents the current model,
+        # and it can be None if no current model is set.
+        self.modellist = []
+
+
+    def get_selected_model(self, modellist=None):
+        """Gets the name of the selected model."""
+
+        if modellist:
+            self.update_modellist(modellist)
+
+        idx = self.currentIndex()
+        if idx < 0:
+            return ""
+        elif idx == 0 and not self.modellist[idx]:
+            return ""
+        else:
+            m = self.modellist[idx]
+            return m["name"]
+
+    def update_modellist(self, modellist):
+        """Update the list of models.
+
+        modellist can be [None, ...]
+
+        if the current model is previously selected, select the current model
+        after updating.
+        if the previously selected model does not exist after updating,
+        the current model is selected.
+        """
+
+        if not self.is_modellist_updated(modellist):
+            return
+
+        idx = self.currentIndex()
+
+        if idx > 0:
+            modelid = self.modellist[idx]["id"]
+
+        textlist = []
+        newidx = 0
+        for i, m in enumerate(modellist):
+            if not i:   # Current model
+                modelname = m["name"] if m else "None"
+                textlist.append("Current Model - %s" % modelname)
+            else:
+                if idx > 0 and m["id"] == modelid:
+                    newidx = i
+                textlist.append(m["name"])
+
+        self.clear()
+        self.addItems(textlist)
+
+        if idx > 0:
+            self.setCurrentIndex(newidx)
+
+        self.modellist = modellist
+
+    def is_modellist_updated(self, modellist):
+
+        if len(self.modellist) != len(modellist):
+            return True
+
+        for cur, oth in zip(self.modellist, modellist):
+            if cur is None:
+                if oth is None:
+                    continue
+                else:
+                    return True
+            if cur["name"] == oth["name"] and cur["id"] == oth["id"]:
+                continue
+            else:
+                return True
+
+        return False
+

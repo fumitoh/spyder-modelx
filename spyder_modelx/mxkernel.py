@@ -58,6 +58,12 @@ class ModelxKernel(SpyderKernel):
     def __init__(self, *args, **kwargs):
         super(ModelxKernel, self).__init__(*args, **kwargs)
 
+        if spyder.version_info > (4,):
+            self.frontend_comm.register_call_handler(
+                'mx_get_modellist',
+                self.mx_get_modellist
+            )
+
     def get_modelx(self):
         from modelx.core import mxsys
         return mxsys
@@ -71,6 +77,31 @@ class ModelxKernel(SpyderKernel):
             obj = mx.get_object(fullname)
 
         self.send_mx_msg(msgtype, data=obj._baseattrs)
+
+    def mx_get_modellist(self):
+        """Returns a list of model info.
+
+         Returns a list of dicts of basic model attributes.
+         The first element of the list is the current model info.
+         None if not current model is set.
+         """
+
+        import modelx as mx
+        from modelx.core.base import Interface
+
+        data = [Interface._baseattrs.fget(m) for m in mx.get_models().values()]
+
+        if mx.cur_model():
+            cur = Interface._baseattrs.fget(mx.cur_model())
+        else:
+            cur = None
+
+        data.insert(0, cur)
+
+        if spyder.version_info > (4,):
+            return data
+        else:
+            self.send_mx_msg("modellist", data=data)
 
     def mx_get_codelist(self, fullname):
         import modelx as mx
