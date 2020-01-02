@@ -42,7 +42,8 @@
 # FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
 # OTHER DEALINGS IN THE SOFTWARE.
 
-from qtpy.QtWidgets import QStackedWidget
+from qtpy.QtCore import Qt
+from qtpy.QtWidgets import QStackedWidget, QWidget, QLabel
 import spyder
 
 
@@ -62,6 +63,12 @@ class MxStackedMixin:
         # Widgets
         self.stack = QStackedWidget(self)
         self.shellwidgets = {}
+
+        # Fallback widget when no MxConsole available.
+        # Spyder 4 output internal error message without this.
+        self.blankwidget = QLabel(text="No MxConsole Available")
+        self.blankwidget.setAlignment(Qt.AlignCenter)
+        self.stack.addWidget(self.blankwidget)
 
         # On active tab in IPython console change
         self.main.ipyconsole.tabwidget.currentChanged.connect(

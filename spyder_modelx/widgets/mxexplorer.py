@@ -49,7 +49,7 @@ from spyder_modelx.widgets.mxtreemodel import MxTreeModel, ModelItem
 from qtpy.QtCore import Signal, Slot, Qt, QStringListModel
 from qtpy.QtWidgets import (QHBoxLayout, QLabel, QMenu, QMessageBox, QAction,
                             QToolButton, QVBoxLayout, QWidget, QTreeView,
-                            QSplitter, QComboBox)
+                            QSplitter, QComboBox, QSizePolicy)
 import spyder
 from spyder.config.base import _
 from spyder.utils.qthelpers import create_plugin_layout
@@ -169,6 +169,8 @@ class MxMainWidget(MxToolBarMixin, QWidget):
             expr_label = QLabel("  " + txt)
         else:
             expr_label = QLabel(txt)
+
+        expr_label.setAlignment(Qt.AlignCenter | Qt.AlignRight)
 
         if spyder.version_info < (4,):
             font = self.plugin.get_plugin_font()
