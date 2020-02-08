@@ -180,6 +180,8 @@ class MxClientWidget(ClientWidget):
         # Show timer
         self.update_time_label_visibility()
 
+        # Fix error while run file
+        self.plugin = plugin
 
     def get_name(self):
         """Return client name"""
