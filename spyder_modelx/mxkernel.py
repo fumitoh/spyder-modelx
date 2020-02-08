@@ -76,7 +76,7 @@ class ModelxKernel(SpyderKernel):
         else:
             obj = mx.get_object(fullname)
 
-        self.send_mx_msg(msgtype, data=obj._baseattrs)
+        self.send_mx_msg(msgtype, data=obj._baseattrs if obj else None)
 
     def mx_get_modellist(self):
         """Returns a list of model info.

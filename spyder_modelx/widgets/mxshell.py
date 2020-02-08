@@ -124,8 +124,9 @@ class MxShellWidget(ShellWidget):
     def update_mxdataview(self):
         """Update dataview"""
         expr = self.mxexprbox.get_expr()
-        method = "get_ipython().kernel.mx_get_evalresult('dataview', %s)" % expr
-        self.silent_exec_method(method)
+        if expr:
+            method = "get_ipython().kernel.mx_get_evalresult('dataview', %s)" % expr
+            self.silent_exec_method(method)
 
     # ---- modelx code list ----
     def set_mxcodelist(self, codelist):
