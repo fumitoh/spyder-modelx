@@ -64,6 +64,7 @@ class MxDataViewPlugin(MxStackedMixin, SpyderPluginWidget):
 
     CONF_SECTION = 'modelx_dataview'
     MX_WIDGET_CLASS = MxDataViewWidget
+    CONF_FILE = False
 
     def __init__(self, parent=None, **kwargs):
 

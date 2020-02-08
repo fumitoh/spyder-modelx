@@ -62,6 +62,7 @@ class MxAnalyzerPlugin(MxStackedMixin, SpyderPluginWidget):
 
     CONF_SECTION = 'modelx_analyzer'
     MX_WIDGET_CLASS = MxAnalyzerWidget
+    CONF_FILE = False
 
     def __init__(self, parent=None):
 

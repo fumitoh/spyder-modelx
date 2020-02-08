@@ -101,6 +101,7 @@ class ModelxPlugin(MxStackedMixin, SpyderPluginWidget):
     CONF_SECTION = 'modelx'
     CONFIGWIDGET_CLASS = ModelxConfigPage
     MX_WIDGET_CLASS = MxMainWidget
+    CONF_FILE = False
 
     def __init__(self, parent=None, testing=False):
         SpyderPluginWidget.__init__(self, parent)
