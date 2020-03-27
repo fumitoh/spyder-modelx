@@ -63,6 +63,10 @@ class ModelxKernel(SpyderKernel):
                 'mx_get_modellist',
                 self.mx_get_modellist
             )
+            self.frontend_comm.register_call_handler(
+                'mx_get_adjacent',
+                self.mx_get_adjacent
+            )
 
     def get_modelx(self):
         from modelx.core import mxsys
@@ -143,8 +147,11 @@ class ModelxKernel(SpyderKernel):
             if isinstance(node["value"], Interface):
                 node["value"] = repr(node["value"])
 
-        content = {'mx_ogj': obj, 'mx_args': args, 'mx_adjacency': adjacency}
-        self.send_mx_msg(msgtype, content=content, data=attrs)
+        if spyder.version_info > (4,):
+            return attrs
+        else:
+            content = {'mx_obj': obj, 'mx_args': args, 'mx_adjacency': adjacency}
+            self.send_mx_msg(msgtype, content=content, data=attrs)
 
     def send_mx_msg(self, mx_msgtype, content=None, data=None):
         """

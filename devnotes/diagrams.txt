@@ -1,0 +1,20 @@
+
+
+blockdiag {
+   orientation = portrait
+   ConsoleWidget <- HistoryConsoleWidget <- FrontendWidget [hstyle = generalization];
+   BaseFrontendMixin <- FrontendWidget [hstyle = generalization];
+   FrontendWidget <- NamepaceBrowserWidget [hstyle = generalization];
+   NamepaceBrowserWidget <- ShellWidget [hstyle = generalization];
+
+}
+
+blockdiag {
+   ShellWidget <- KernelComm [hstyle = aggregation, folded];
+   CommBase <- KernelComm [hstyle = generalization, folded];
+   CommBase -> RemoteCallFactory [style = dotted];
+   RemoteCallFactory -> RemoteCall [style = dotted];
+   CommBase <- FrontendComm [hstyle = generalization, folded];
+   FrontendComm -> SpyderKernel [hstyle = aggregation, folded];
+   SpyderKernel -> IPythonKernel[hstyle = generalization, folded];
+}

@@ -194,28 +194,37 @@ class MxShellWidget(ShellWidget):
         jsonargs = TupleEncoder(ensure_ascii=True).encode(args)
         msgtype = "analyze_" + adjacency
 
-        code = (
-            "get_ipython().kernel.mx_get_adjacent('%s', '%s', '%s', '%s')"
-            % (msgtype, obj, jsonargs, adjacency)
-        )
-
-        # The code below is replaced with silent_exec_method
-
-        # if self._reading:
-        #     method = self.kernel_client.input
-        #     code = u'!' + code
-        # else:
-        #     method = self.silent_execute
-
-        # Wait until the kernel returns the value
-        if adjacency == 'preds':
-            sig = self.sig_mxanalyze_preds
-        elif adjacency == 'succs':
-            sig = self.sig_mxanalyze_succs
+        if spyder.version_info > (4,):
+            result = self.call_kernel(
+                interrupt=True,
+                blocking=True,
+                timeout=CALL_KERNEL_TIMEOUT).mx_get_adjacent(
+                msgtype, obj, jsonargs, adjacency
+            )
+            return result
         else:
-            raise RuntimeError("must not happen")
+            code = (
+                "get_ipython().kernel.mx_get_adjacent('%s', '%s', '%s', '%s')"
+                % (msgtype, obj, jsonargs, adjacency)
+            )
 
-        return self._mx_wait_reply(code, sig)
+            # The code below is replaced with silent_exec_method
+
+            # if self._reading:
+            #     method = self.kernel_client.input
+            #     code = u'!' + code
+            # else:
+            #     method = self.silent_execute
+
+            # Wait until the kernel returns the value
+            if adjacency == 'preds':
+                sig = self.sig_mxanalyze_preds
+            elif adjacency == 'succs':
+                sig = self.sig_mxanalyze_succs
+            else:
+                raise RuntimeError("must not happen")
+
+            return self._mx_wait_reply(code, sig)
 
     def _mx_wait_reply(self, code, sig):
 
