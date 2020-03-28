@@ -44,7 +44,7 @@
 
 """modelx Widget."""
 import ast
-
+import uuid
 import cloudpickle
 from qtpy.QtCore import Signal, Slot, Qt, QEventLoop
 
@@ -55,7 +55,7 @@ if spyder.version_info < (4,):
 else:
     from spyder.plugins.ipythonconsole.widgets.client import ShellWidget
 from spyder.utils import encoding
-from spyder.py3compat import PY2
+from spyder.py3compat import PY2, to_text_string
 
 from spyder_modelx.util import TupleEncoder, hinted_tuple_hook
 
@@ -126,7 +126,7 @@ class MxShellWidget(ShellWidget):
         expr = self.mxexprbox.get_expr()
         if expr:
             method = "get_ipython().kernel.mx_get_evalresult('dataview', %s)" % expr
-            self.silent_exec_method(method)
+            self.mx_silent_exec_method(method)
 
     # ---- modelx code list ----
     def set_mxcodelist(self, codelist):
@@ -139,7 +139,7 @@ class MxShellWidget(ShellWidget):
         """Update codelist"""
         objname = '"' + objname + '.cells' + '"'
         method = 'get_ipython().kernel.mx_get_codelist(%s)' % objname
-        self.silent_exec_method(method)
+        self.mx_silent_exec_method(method)
 
     # ---- modelx analyzer ----
     def set_mxanalyzer(self, analyzer):
@@ -187,7 +187,7 @@ class MxShellWidget(ShellWidget):
                 "get_ipython().kernel.mx_get_evalresult(%s, %s._baseattrs)"
                 % (msgtype, expr)
             )
-            self.silent_exec_method(method)
+            self.mx_silent_exec_method(method)
 
     def get_adjacent(self, obj: str, args: tuple, adjacency: str):
 
@@ -230,7 +230,7 @@ class MxShellWidget(ShellWidget):
 
         wait_loop = QEventLoop()
         sig.connect(wait_loop.quit)
-        self.silent_exec_method(code)
+        self.mx_silent_exec_method(code)
         wait_loop.exec_()
 
         # Remove loop connection and loop
@@ -269,7 +269,7 @@ class MxShellWidget(ShellWidget):
         else:
             arg = "None"
 
-        self.silent_exec_method(
+        self.mx_silent_exec_method(
             "get_ipython().kernel.mx_get_object('explorer', %s)" % arg)
         self.update_mxdataview()
 
@@ -287,6 +287,42 @@ class MxShellWidget(ShellWidget):
             self.update_mxdataview()
 
     # ---- Private API (defined by us) ------------------------------
+    def mx_silent_exec_method(self, code):
+        """Silently execute a kernel method and save its reply
+
+        The methods passed here **don't** involve getting the value
+        of a variable but instead replies that can be handled by
+        ast.literal_eval.
+
+        To get a value see `get_value`
+
+        Parameters
+        ----------
+        code : string
+            Code that contains the kernel method as part of its
+            string
+
+        See Also
+        --------
+        handle_exec_method : Method that deals with the reply
+
+        Note
+        ----
+        This is based on the _silent_exec_callback method of
+        RichJupyterWidget. Therefore this is licensed BSD
+        """
+        # Generate uuid, which would be used as an indication of whether or
+        # not the unique request originated from here
+        local_uuid = to_text_string(uuid.uuid1())
+        if self.kernel_client is None:
+            return
+
+        msg_id = self.kernel_client.execute('', silent=True,
+                                            user_expressions={local_uuid: code})
+
+        self._request_info['execute'][msg_id] = self._ExecutionRequest(msg_id,
+                                                        'silent_exec_method')
+
     def _handle_modelx_msg(self, msg):
         """
         Handle internal spyder messages

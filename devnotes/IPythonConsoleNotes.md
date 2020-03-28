@@ -15,7 +15,7 @@
 
 | Package          | Class        | Method        |
 | ---------------- | ------------ | ------------- |
-| `spyder_kernels` | CommBase     | `remote_call` |
+| `spyder_kernels` | `CommBase`   | `remote_call` |
 | `spyder`         | `KernelComm` |               |
 |                  |              |               |
 

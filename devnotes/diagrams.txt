@@ -18,3 +18,10 @@ blockdiag {
    FrontendComm -> SpyderKernel [hstyle = aggregation, folded];
    SpyderKernel -> IPythonKernel[hstyle = generalization, folded];
 }
+
+blockdiag {
+  orientation=portrait;
+  node_width = 254
+  ShellWidget.silent_exec_method -> KernelClient.execute;
+  NamespaceWidget._handle_execute_reply -> ShellWidget.handle_exec_method;
+}
