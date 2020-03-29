@@ -45,6 +45,7 @@
 """modelx Widget."""
 import ast
 import uuid
+import time
 import cloudpickle
 from qtpy.QtCore import Signal, Slot, Qt, QEventLoop
 
@@ -273,14 +274,37 @@ class MxShellWidget(ShellWidget):
             "get_ipython().kernel.mx_get_object('explorer', %s)" % arg)
         self.update_mxdataview()
 
+    def new_model(self, name=None):
+
+        if spyder.version_info > (4,):
+            self.call_kernel(
+                interrupt=True,
+                blocking=True,
+                timeout=CALL_KERNEL_TIMEOUT).mx_new_model(name)
+        else:
+            if name:
+                name = "'%s'" % name
+            else:
+                name = ""
+
+            code = "get_ipython().kernel.mx_new_model(%s)" % name
+            self._mx_wait_reply(
+                code,
+                self.sig_mxmodellist
+            )
+        self.refresh_namespacebrowser()
+
     # ---- Override NamespaceBrowserWidget ---
     def refresh_namespacebrowser(self):
         """Refresh namespace browser"""
 
-        super(MxShellWidget, self).refresh_namespacebrowser()
-
+        if spyder.version_info < (4,):
+            super(MxShellWidget, self).refresh_namespacebrowser()
+        else:
+            super(MxShellWidget, self).refresh_namespacebrowser(
+                interrupt=True
+            )
         if self.namespacebrowser:
-
             mlist = self.get_modellist()
             name = self.mxmodelselector.get_selected_model(mlist)
             self.update_modeltree(name)
@@ -320,8 +344,39 @@ class MxShellWidget(ShellWidget):
         msg_id = self.kernel_client.execute('', silent=True,
                                             user_expressions={local_uuid: code})
 
-        self._request_info['execute'][msg_id] = self._ExecutionRequest(msg_id,
-                                                        'silent_exec_method')
+        self._request_info['execute'][msg_id] = self._ExecutionRequest(
+            msg_id,
+            'mx_silent_exec_method')
+
+    def _handle_execute_reply(self, msg):
+        """
+        Reimplemented to handle communications between Spyder
+        and the kernel
+        """
+        msg_id = msg['parent_header']['msg_id']
+        info = self._request_info['execute'].get(msg_id)
+        # unset reading flag, because if execute finished, raw_input can't
+        # still be pending.
+        self._reading = False
+
+        # Refresh namespacebrowser after the kernel starts running
+        exec_count = msg['content'].get('execution_count', '')
+        if exec_count == 0 and self._kernel_is_starting:
+            if self.namespacebrowser is not None:
+                self.set_namespace_view_settings()
+                self.refresh_namespacebrowser()
+            self._kernel_is_starting = False
+            self.ipyclient.t0 = time.monotonic()
+
+        # Handle silent execution of kernel methods
+        if info and info.kind == 'mx_silent_exec_method' and not self._hidden:
+            for usrexp in msg['content']['user_expressions'].values():
+                if usrexp['status'] == 'error':
+                    traceback = ''.join(usrexp['traceback'])
+                    self._append_plain_text(traceback)
+            self._request_info['execute'].pop(msg_id)
+        else:
+            super(MxShellWidget, self)._handle_execute_reply(msg)
 
     def _handle_modelx_msg(self, msg):
         """

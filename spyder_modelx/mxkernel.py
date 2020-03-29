@@ -59,18 +59,26 @@ class ModelxKernel(SpyderKernel):
         super(ModelxKernel, self).__init__(*args, **kwargs)
 
         if spyder.version_info > (4,):
-            self.frontend_comm.register_call_handler(
-                'mx_get_modellist',
-                self.mx_get_modellist
-            )
-            self.frontend_comm.register_call_handler(
-                'mx_get_adjacent',
-                self.mx_get_adjacent
-            )
+
+            for call_id, handler in [
+                ('mx_get_modellist', self.mx_get_modellist),
+                ('mx_get_adjacent', self.mx_get_adjacent),
+                ('mx_new_model', self.mx_new_model)
+
+            ]:
+                self.frontend_comm.register_call_handler(
+                    call_id,
+                    handler
+                )
 
     def get_modelx(self):
         from modelx.core import mxsys
         return mxsys
+
+    def mx_new_model(self, name=None):
+        import modelx as mx
+        mx.new_model(name)
+        self.mx_get_modellist()
 
     def mx_get_object(self, msgtype, fullname=None):
 

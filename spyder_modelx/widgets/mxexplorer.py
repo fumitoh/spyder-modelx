@@ -68,6 +68,12 @@ class MxTreeView(QTreeView):
         self.contextMenu = QMenu(self)
         self.action_update_formulas = \
             self.contextMenu.addAction("Show Formulas")
+        self.action_new_model = \
+            self.contextMenu.addAction("Create New Model")
+        self.action_new_space = \
+            self.contextMenu.addAction("Create New Space")
+        self.action_new_cells = \
+            self.contextMenu.addAction("Create New Cells")
 
         self.setAlternatingRowColors(True)
 
@@ -81,6 +87,8 @@ class MxTreeView(QTreeView):
                 if item.getType() == 'Space':
                     # QMessageBox(text=item.itemData['fullname']).exec()
                     self.shell.update_codelist(item.itemData['fullname'])
+        elif action == self.action_new_model:
+            self.shell.new_model("TempSpace")
 
 
 class MxExplorer(QWidget):
