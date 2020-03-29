@@ -46,10 +46,12 @@
 import sys
 
 from spyder_modelx.widgets.mxtreemodel import MxTreeModel, ModelItem
-from qtpy.QtCore import Signal, Slot, Qt, QStringListModel
+from qtpy.QtCore import Signal, Slot, Qt, QStringListModel, QEventLoop
 from qtpy.QtWidgets import (QHBoxLayout, QLabel, QMenu, QMessageBox, QAction,
                             QToolButton, QVBoxLayout, QWidget, QTreeView,
-                            QSplitter, QComboBox, QSizePolicy)
+                            QSplitter, QComboBox, QSizePolicy, QDialog,
+                            QGridLayout,
+                            QDialogButtonBox, QLineEdit)
 import spyder
 from spyder.config.base import _
 from spyder.utils.qthelpers import create_plugin_layout
@@ -63,6 +65,7 @@ class MxTreeView(QTreeView):
         super().__init__(parent)
 
         self.shell = None
+        self.reply = None  # To write dialog box result
 
         # Context menu
         self.contextMenu = QMenu(self)
@@ -88,7 +91,15 @@ class MxTreeView(QTreeView):
                     # QMessageBox(text=item.itemData['fullname']).exec()
                     self.shell.update_codelist(item.itemData['fullname'])
         elif action == self.action_new_model:
-            self.shell.new_model("TempSpace")
+            dialog = NewModelDialg(self)
+            dialog.exec()
+
+            if self.reply['accepted']:
+                name = self.reply['name']
+                self.reply = None
+                self.shell.new_model(name)
+            else:
+                self.reply = None
 
 
 class MxExplorer(QWidget):
@@ -274,3 +285,50 @@ class MxModelSelector(QComboBox):
 
         return False
 
+
+class NewModelDialg(QDialog):
+
+    def __init__(self, parent=None):
+        QDialog.__init__(
+            self, parent, flags=Qt.WindowSystemMenuHint | Qt.WindowTitleHint)
+        self.setWindowTitle('Create New Model')
+        self.treeview = parent
+        self.setAttribute(Qt.WA_DeleteOnClose)
+
+        namelabel = QLabel(_("Model Name"))
+        self.nameedit = QLineEdit(self)
+
+        self.buttonBox = QDialogButtonBox(self)
+        self.buttonBox.setOrientation(Qt.Horizontal)
+        self.buttonBox.setStandardButtons(
+            QDialogButtonBox.Cancel|QDialogButtonBox.Ok)
+        self.buttonBox.accepted.connect(self.accept)
+        self.buttonBox.rejected.connect(self.reject)
+
+        mainLayout = QGridLayout(self)
+        mainLayout.addWidget(namelabel, 0, 0)
+        mainLayout.addWidget(self.nameedit, 0, 1)
+        mainLayout.addWidget(self.buttonBox, 1, 0, 1, 2)
+        self.setLayout(mainLayout)
+
+    def accept(self) -> None:
+        self.treeview.reply = {
+            'accepted': True,
+            'name': self.nameedit.text()
+        }
+        super().accept()
+
+    def reject(self) -> None:
+        self.treeview.reply = {'accepted': False}
+        super().reject()
+
+
+if __name__ == '__main__':
+
+    import sys
+    from qtpy.QtWidgets import QApplication
+    app = QApplication(sys.argv)
+    dialog = NewModelDialg()
+    dialog.show()
+
+    sys.exit(app.exec_())

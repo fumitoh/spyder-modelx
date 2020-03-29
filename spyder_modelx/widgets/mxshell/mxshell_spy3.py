@@ -48,6 +48,8 @@ import uuid
 import time
 import cloudpickle
 from qtpy.QtCore import Signal, Slot, Qt, QEventLoop
+from qtpy.QtWidgets import QMessageBox
+from spyder.widgets.reporterror import SpyderErrorDialog
 
 import spyder
 from spyder.config.base import _, debug_print
@@ -227,11 +229,11 @@ class MxShellWidget(ShellWidget):
 
             return self._mx_wait_reply(code, sig)
 
-    def _mx_wait_reply(self, code, sig):
+    def _mx_wait_reply(self, usrexp, sig, code=''):
 
         wait_loop = QEventLoop()
         sig.connect(wait_loop.quit)
-        self.mx_silent_exec_method(code)
+        self.mx_silent_exec_method(usrexp, code)
         wait_loop.exec_()
 
         # Remove loop connection and loop
@@ -289,8 +291,9 @@ class MxShellWidget(ShellWidget):
 
             code = "get_ipython().kernel.mx_new_model(%s)" % name
             self._mx_wait_reply(
-                code,
-                self.sig_mxmodellist
+                None,
+                self.sig_mxmodellist,
+                code
             )
         self.refresh_namespacebrowser()
 
@@ -311,7 +314,7 @@ class MxShellWidget(ShellWidget):
             self.update_mxdataview()
 
     # ---- Private API (defined by us) ------------------------------
-    def mx_silent_exec_method(self, code):
+    def mx_silent_exec_method(self, usrexp=None, code=''):
         """Silently execute a kernel method and save its reply
 
         The methods passed here **don't** involve getting the value
@@ -337,16 +340,24 @@ class MxShellWidget(ShellWidget):
         """
         # Generate uuid, which would be used as an indication of whether or
         # not the unique request originated from here
-        local_uuid = to_text_string(uuid.uuid1())
+        if usrexp:
+            local_uuid = to_text_string(uuid.uuid1())
+            usrexp = {local_uuid: usrexp}
+        else:
+            usrexp = {}
+
         if self.kernel_client is None:
             return
 
-        msg_id = self.kernel_client.execute('', silent=True,
-                                            user_expressions={local_uuid: code})
-
+        msg_id = self.kernel_client.execute(
+            code,
+            silent=True,
+            user_expressions=usrexp
+        )
         self._request_info['execute'][msg_id] = self._ExecutionRequest(
             msg_id,
-            'mx_silent_exec_method')
+            'mx_silent_exec_method'
+        )
 
     def _handle_execute_reply(self, msg):
         """
@@ -370,10 +381,6 @@ class MxShellWidget(ShellWidget):
 
         # Handle silent execution of kernel methods
         if info and info.kind == 'mx_silent_exec_method' and not self._hidden:
-            for usrexp in msg['content']['user_expressions'].values():
-                if usrexp['status'] == 'error':
-                    traceback = ''.join(usrexp['traceback'])
-                    self._append_plain_text(traceback)
             self._request_info['execute'].pop(msg_id)
         else:
             super(MxShellWidget, self)._handle_execute_reply(msg)
