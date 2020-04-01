@@ -169,6 +169,22 @@ class SpaceContainerItem(InterfaceItem):
         return [SpaceItem(space, self)
                 for space in data['spaces']['items'].values()]
 
+    def getSpaceContainerList(self):
+        result = []
+        result.append(self.itemData['fullname'])
+        for child in self.childItems:
+            if isinstance(child, SpaceContainerItem):
+                result.extend(child.getSpaceContainerList())
+        return result
+
+    def getChildSpaceList(self):
+        result = []
+        for child in self.childItems:
+            if isinstance(child, SpaceContainerItem):
+                result.append(child.itemData['namedid'])
+                result.extend(child.getChildSpaceList())
+        return result
+
 
 class ModelItem(SpaceContainerItem):
     """Item class for a Model (root item)"""

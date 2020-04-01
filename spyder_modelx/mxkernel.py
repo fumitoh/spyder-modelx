@@ -80,6 +80,34 @@ class ModelxKernel(SpyderKernel):
         mx.new_model(name)
         self.mx_get_modellist()
 
+    def mx_new_space(self, model, parent, name, bases):
+        """
+        if model is blank, current model is used if exits, otherwise new model
+        is created.
+        """
+        import modelx as mx
+
+        if model:
+            model = mx.get_models()[model]
+        else:
+            model = mx.cur_model() if mx.cur_model() else mx.new_model()
+
+        if parent:
+            parent = mx.get_object(parent)
+        else:
+            parent = model
+
+        if not name:
+            name = None
+
+        if bases:
+            bases = [model._get_from_name(b.strip()) for b in bases.split(",")]
+        else:
+            bases = None
+
+        parent.new_space(name=name, bases=bases)
+        self.mx_get_modellist()
+
     def mx_get_object(self, msgtype, fullname=None):
 
         import modelx as mx

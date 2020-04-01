@@ -297,6 +297,18 @@ class MxShellWidget(ShellWidget):
             )
         self.refresh_namespacebrowser()
 
+    def new_space(self, model, parent, name, bases):
+
+        code = "get_ipython().kernel.mx_new_space('%s', '%s', '%s', '%s')" % (
+            model, parent, name, bases
+        )
+        self._mx_wait_reply(
+                None,
+                self.sig_mxmodellist,
+                code
+            )
+        self.refresh_namespacebrowser()
+
     # ---- Override NamespaceBrowserWidget ---
     def refresh_namespacebrowser(self):
         """Refresh namespace browser"""

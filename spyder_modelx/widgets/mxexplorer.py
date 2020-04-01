@@ -50,8 +50,9 @@ from qtpy.QtCore import Signal, Slot, Qt, QStringListModel, QEventLoop
 from qtpy.QtWidgets import (QHBoxLayout, QLabel, QMenu, QMessageBox, QAction,
                             QToolButton, QVBoxLayout, QWidget, QTreeView,
                             QSplitter, QComboBox, QSizePolicy, QDialog,
-                            QGridLayout,
+                            QGridLayout, QListWidget, QPushButton,
                             QDialogButtonBox, QLineEdit)
+from qtpy.QtGui import QPalette
 import spyder
 from spyder.config.base import _
 from spyder.utils.qthelpers import create_plugin_layout
@@ -90,6 +91,7 @@ class MxTreeView(QTreeView):
                 if item.getType() == 'Space':
                     # QMessageBox(text=item.itemData['fullname']).exec()
                     self.shell.update_codelist(item.itemData['fullname'])
+
         elif action == self.action_new_model:
             dialog = NewModelDialg(self)
             dialog.exec()
@@ -98,6 +100,40 @@ class MxTreeView(QTreeView):
                 name = self.reply['name']
                 self.reply = None
                 self.shell.new_model(name)
+            else:
+                self.reply = None
+
+        elif action == self.action_new_space:
+            if self.model():
+                parentList = self.model().rootItem.getSpaceContainerList()
+            else:
+                parentList = []
+
+            # Find current item
+            index = self.currentIndex()
+            if index.isValid():
+                name = index.internalPointer().itemData['fullname']
+                try:
+                    currIndex = parentList.index(name)
+                except ValueError:
+                    currIndex = 0
+            else:
+                currIndex = 0
+
+            if self.model():
+                model = self.model().rootItem.itemData['name']
+            else:
+                model = ''
+
+            dialog = NewSpaceDialog(self, parentList, currIndex)
+            dialog.exec()
+
+            if self.reply['accepted']:
+                name = self.reply['name']
+                parent = self.reply['parent']
+                bases = self.reply['bases']
+                self.reply = None
+                self.shell.new_space(model, parent, name, bases)
             else:
                 self.reply = None
 
@@ -323,12 +359,203 @@ class NewModelDialg(QDialog):
         super().reject()
 
 
+class NewSpaceDialog(QDialog):
+
+    def __init__(self, parent=None, parentList=(), currIndex=0):
+        QDialog.__init__(
+            self, parent, flags=Qt.WindowSystemMenuHint | Qt.WindowTitleHint)
+
+        self.setAttribute(Qt.WA_DeleteOnClose)
+        self.setWindowTitle('Create New Space')
+        self.treeview = parent
+        self.reply = None
+
+        parentLabel = QLabel(_("Parent"))
+        self.parentBox = QComboBox(self)
+        self.parentBox.addItems(parentList)
+        self.parentBox.setCurrentIndex(currIndex)
+
+        nameLabel = QLabel(_("Space Name"))
+        self.nameedit = QLineEdit(self)
+
+        basesTitle = QLabel(_("Base Spaces"))
+        self.basesLine = QLineEdit()
+        self.basesLine.setReadOnly(True)
+        self.basesEditButton = QPushButton(_("Edit"))
+        self.basesEditButton.clicked.connect(self.on_base_edit)
+
+        # Change background color to gray
+        pallete = self.basesLine.palette()
+        color = self.palette().color(QPalette.Window)
+        pallete.setColor(
+            QPalette.Base,
+            color
+        )
+        self.basesLine.setPalette(pallete)
+
+        self.buttonBox = QDialogButtonBox(self)
+        self.buttonBox.setOrientation(Qt.Horizontal)
+        self.buttonBox.setStandardButtons(
+            QDialogButtonBox.Cancel|QDialogButtonBox.Ok)
+        self.buttonBox.accepted.connect(self.accept)
+        self.buttonBox.rejected.connect(self.reject)
+
+        mainLayout = QGridLayout(self)
+        mainLayout.addWidget(parentLabel, 0, 0)
+        mainLayout.addWidget(self.parentBox, 0, 1)
+        mainLayout.addWidget(nameLabel, 1, 0)
+        mainLayout.addWidget(self.nameedit, 1, 1)
+        mainLayout.addWidget(basesTitle, 2, 0)
+        mainLayout.addWidget(self.basesLine, 2, 1)
+        mainLayout.addWidget(self.basesEditButton, 2, 2)
+        mainLayout.addWidget(self.buttonBox, 3, 0, 1, 2)
+        self.setLayout(mainLayout)
+
+    def accept(self) -> None:
+        self.treeview.reply = {
+            'accepted': True,
+            'parent': self.parentBox.currentText(),
+            'name': self.nameedit.text(),
+            'bases': self.basesLine.text()
+        }
+        super().accept()
+
+    def reject(self) -> None:
+        self.treeview.reply = {'accepted': False}
+        super().reject()
+
+    def on_base_edit(self):
+        selected = self.basesLine.text().strip()
+        if selected:
+            selected = [base.strip() for base in selected.split(",")]
+        else:
+            selected = []
+
+        if self.treeview.model():
+            allItems = self.treeview.model().rootItem.getChildSpaceList()
+        else:
+            allItems = []
+
+        dialog = SelectBaseSpacesDialog(
+            self,
+            allItems=allItems,
+            selectedItems=selected
+        )
+        dialog.exec()
+        if self.reply['accepted']:
+            self.basesLine.setText(self.reply['value'])
+
+
+class SelectFromListDialog(QDialog):
+    """Dialog box for selecting multiple items.
+
+    The original order of items are preserved in the candidate list.
+    """
+
+    def __init__(self, parent=None, allItems=(), selectedItems=()):
+        QDialog.__init__(
+            self, parent, flags=Qt.WindowSystemMenuHint | Qt.WindowTitleHint)
+
+        self.allItems = allItems
+
+        self.fromKeys = list(range(len(allItems)))
+        self.selectedKeys = []
+        for item in selectedItems:
+            key = allItems.index(item)
+            self.fromKeys.remove(key)
+            self.selectedKeys.append(key)
+
+        self.setAttribute(Qt.WA_DeleteOnClose)
+
+        fromLabel = QLabel(_("Select from"))
+        self.fromList = QListWidget(self)
+        self.fromList.addItems(allItems[key] for key in self.fromKeys)
+
+        selectedLabel = QLabel(_("Selected"))
+        self.selectedList = QListWidget(self)
+        self.selectedList.addItems(allItems[key] for key in self.selectedKeys)
+
+        self.selectButton = QPushButton(_("Select"))
+        self.deselectButton = QPushButton(_("Deselect"))
+        self.selectBox = QDialogButtonBox(Qt.Vertical)
+        self.selectBox.addButton(self.selectButton, QDialogButtonBox.ActionRole)
+        self.selectBox.addButton(self.deselectButton, QDialogButtonBox.ActionRole)
+        self.selectButton.clicked.connect(self.on_select)
+        self.deselectButton.clicked.connect(self.on_deselect)
+
+        self.buttonBox = QDialogButtonBox(self)
+        self.buttonBox.setOrientation(Qt.Horizontal)
+        self.buttonBox.setStandardButtons(
+            QDialogButtonBox.Cancel|QDialogButtonBox.Ok)
+        self.buttonBox.accepted.connect(self.accept)
+        self.buttonBox.rejected.connect(self.reject)
+
+        mainLayout = QGridLayout(self)
+        mainLayout.addWidget(fromLabel, 0, 0)
+        mainLayout.addWidget(selectedLabel, 0, 2)
+        mainLayout.addWidget(self.fromList, 1, 0)
+        mainLayout.addWidget(self.selectBox, 1, 1)
+        mainLayout.addWidget(self.selectedList, 1, 2)
+        mainLayout.addWidget(self.buttonBox, 2, 0, 1, 3)
+        mainLayout.setAlignment(self.selectBox, Qt.AlignCenter)
+        self.setLayout(mainLayout)
+
+    def on_select(self):
+        if len(self.fromList.selectedItems()):
+            idx = self.fromList.currentRow()
+            key = self.fromKeys.pop(idx)
+            self.selectedKeys.append(key)
+            item = self.fromList.takeItem(idx)
+            self.selectedList.addItem(item)
+
+    def on_deselect(self):
+        if len(self.selectedList.selectedItems()):
+            idx = self.selectedList.currentRow()
+            item = self.selectedList.takeItem(idx)
+            key = self.selectedKeys.pop(idx)
+            idx = next((i for i, v in enumerate(self.fromKeys) if v > key),
+                       len(self.fromKeys))
+            self.fromKeys.insert(idx, key)
+            self.fromList.insertItem(idx, item)
+
+
+class SelectBaseSpacesDialog(SelectFromListDialog):
+
+    def __init__(self, parent=None, allItems=(), selectedItems=()):
+        super().__init__(parent, allItems, selectedItems)
+        self.setWindowTitle('Create New Space')
+        self.parent = parent
+
+    def getSelectedAsString(self):
+        result = []
+        for idx in range(len(self.selectedKeys)):
+            val = self.allItems[self.selectedKeys[idx]]
+            result.append(val)
+
+        return ", ".join(result)
+
+    def accept(self) -> None:
+        self.parent.reply = {
+            'accepted': True,
+            'value': self.getSelectedAsString()
+        }
+        super().accept()
+
+    def reject(self) -> None:
+        self.parent.reply = {'accepted': False}
+        super().reject()
+
+
+
 if __name__ == '__main__':
 
     import sys
     from qtpy.QtWidgets import QApplication
     app = QApplication(sys.argv)
-    dialog = NewModelDialg()
+    dialog = SelectFromListDialog(
+        allItems=('foo', 'bar', 'baz'),
+        selectedItems=('bar',)
+    )
     dialog.show()
 
     sys.exit(app.exec_())
