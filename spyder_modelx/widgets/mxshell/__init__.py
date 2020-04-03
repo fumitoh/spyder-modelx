@@ -47,4 +47,4 @@ import spyder
 if spyder.version_info < (4,):
     from .mxshell_spy3 import MxShellWidget
 else:
-    from .mxshell_spy4 import MxShellWidget
+    from .mxshell_spy3 import MxShellWidget

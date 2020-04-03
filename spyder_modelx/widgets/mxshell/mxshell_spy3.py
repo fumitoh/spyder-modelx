@@ -61,6 +61,8 @@ from spyder.utils import encoding
 from spyder.py3compat import PY2, to_text_string
 
 from spyder_modelx.util import TupleEncoder, hinted_tuple_hook
+from spyder_modelx.utility.formula import (
+    is_funcdef, has_lambda, replace_funcname, get_funcname)
 
 if spyder.version_info > (4,):
     from spyder.plugins.ipythonconsole.widgets.namespacebrowser import (
@@ -77,8 +79,10 @@ class MxShellWidget(ShellWidget):
     sig_mxanalyzer = Signal(str, object)
     sig_mxanalyze_preds = Signal()
     sig_mxanalyze_succs = Signal()
+    sig_mxupdated = Signal()
 
-    mx_msgtypes = ['dataview',
+    mx_msgtypes = ['mxupdated',
+                   'dataview',
                    'codelist',
                    'explorer',
                    'modellist',
@@ -86,6 +90,8 @@ class MxShellWidget(ShellWidget):
                    'analyze_succs_setnode',
                    'analyze_preds',
                    'analyze_succs']
+
+    mx_nondata_msgs = ['mxupdated']
 
     _mx_value = None
 
@@ -240,17 +246,19 @@ class MxShellWidget(ShellWidget):
         sig.disconnect(wait_loop.quit)
         wait_loop = None
 
-        # Handle exceptions
-        if self._mx_value is None:
-            if self._kernel_reply:
-                msg = self._kernel_reply[:]
-                self._kernel_reply = None
-                raise ValueError(msg)
+        if spyder.version_info < (4,):
+            # Handle exceptions
+            if sig not in self.mx_nondata_msgs:
+                if self._mx_value is None:
+                    if self._kernel_reply:
+                        msg = self._kernel_reply[:]
+                        self._kernel_reply = None
+                        raise ValueError(msg)
 
-        result = self._mx_value
-        self._mx_value = None
+                result = self._mx_value
+                self._mx_value = None
 
-        return result
+                return result
 
     def get_modellist(self):
 
@@ -292,7 +300,7 @@ class MxShellWidget(ShellWidget):
             code = "get_ipython().kernel.mx_new_model(%s)" % name
             self._mx_wait_reply(
                 None,
-                self.sig_mxmodellist,
+                self.sig_mxupdated,
                 code
             )
         self.refresh_namespacebrowser()
@@ -304,9 +312,41 @@ class MxShellWidget(ShellWidget):
         )
         self._mx_wait_reply(
                 None,
-                self.sig_mxmodellist,
+                self.sig_mxupdated,
                 code
             )
+        self.refresh_namespacebrowser()
+
+    def new_cells(self, model, parent, name, formula):
+
+        if formula:
+
+            try:
+                if is_funcdef(formula):
+                    if not name:
+                        name = get_funcname(formula)
+                    formula = replace_funcname(formula, "__mx_temp")
+                elif has_lambda(formula):
+                    formula = "__mx_temp = " + formula.lstrip()
+                else:
+                    QMessageBox.critical(self,
+                                         title="Error",
+                                         text="Invalid formula")
+
+            except SystemError:
+                QMessageBox.critical(self, title="Error", text="Syntax error")
+                return
+
+        code = "get_ipython().kernel.mx_new_cells('%s', '%s', '%s')" % (
+            model, parent, name
+        )
+        code = formula + "\n" + code
+
+        self._mx_wait_reply(
+            None,
+            self.sig_mxupdated,
+            code
+        )
         self.refresh_namespacebrowser()
 
     # ---- Override NamespaceBrowserWidget ---
@@ -417,7 +457,9 @@ class MxShellWidget(ShellWidget):
                 value = None
                 self._kernel_reply = repr(msg)
 
-            if msgtype == 'dataview':
+            if msgtype == 'mxupdated':
+                self.sig_mxupdated.emit()
+            elif msgtype == 'dataview':
                 self.sig_mxdataview.emit(value)
             elif msgtype == 'codelist':
                 self.sig_mxcodelist.emit(value)

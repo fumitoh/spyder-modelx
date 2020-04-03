@@ -55,7 +55,7 @@ else:
     from spyder.plugins.editor.widgets.codeeditor import CodeEditor
 
 
-class CodePane(QWidget):
+class BaseCodePane(QWidget):
 
     def __init__(self, parent, title='', code=''):
         QWidget.__init__(self, parent)
@@ -82,7 +82,6 @@ class CodePane(QWidget):
                             scrollflagarea=False)
 
         editor.fontMetrics().lineSpacing()
-        editor.setReadOnly(True)
 
         layout = QVBoxLayout()
         layout.setContentsMargins(0, 0, 0, 0)
@@ -90,6 +89,13 @@ class CodePane(QWidget):
         layout.addWidget(editor)  # , stretch=1)
         self.setLayout(layout)
 
+
+class CodePane(BaseCodePane):
+
+    def __init__(self, parent, title='', code=''):
+        super().__init__(parent, title, code)
+
+        self.editor.setReadOnly(True)
         self.setCode(code)
 
     def setCode(self, code):

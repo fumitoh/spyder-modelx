@@ -48,7 +48,7 @@ import uuid
 import time
 import cloudpickle
 from qtpy.QtCore import Signal, Slot, Qt, QEventLoop
-
+from qtpy.QtWidgets import QMessageBox
 import spyder
 from spyder.config.base import _, debug_print
 if spyder.version_info < (4,):
@@ -59,6 +59,8 @@ from spyder.utils import encoding
 from spyder.py3compat import PY2, to_text_string
 
 from spyder_modelx.util import TupleEncoder, hinted_tuple_hook
+from spyder_modelx.utility.formula import (
+    is_funcdef, has_lambda, replace_funcname, get_funcname)
 
 if spyder.version_info > (4,):
     from spyder.plugins.ipythonconsole.widgets.namespacebrowser import (
@@ -276,22 +278,54 @@ class MxShellWidget(ShellWidget):
 
     def new_model(self, name=None):
 
-        if spyder.version_info > (4,):
-            self.call_kernel(
-                interrupt=True,
-                blocking=True,
-                timeout=CALL_KERNEL_TIMEOUT).mx_new_model(name)
-        else:
-            if name:
-                name = "'%s'" % name
-            else:
-                name = ""
+        self.call_kernel(
+            interrupt=True,
+            blocking=True,
+            timeout=CALL_KERNEL_TIMEOUT).mx_new_model(name)
 
-            code = "get_ipython().kernel.mx_new_model(%s)" % name
-            self._mx_wait_reply(
-                code,
-                self.sig_mxmodellist
+        self.refresh_namespacebrowser()
+
+    def new_space(self, model, parent, name, bases):
+
+        code = "get_ipython().kernel.mx_new_space('%s', '%s', '%s', '%s')" % (
+            model, parent, name, bases
+        )
+        self._mx_wait_reply(
+                None,
+                self.sig_mxmodellist,
+                code
             )
+        self.refresh_namespacebrowser()
+
+    def new_cells(self, model, parent, name, formula):
+
+        if formula:
+            try:
+                if is_funcdef(formula):
+                    if not name:
+                        name = get_funcname(formula)
+                    formula = replace_funcname(formula, "__mx_temp")
+                elif has_lambda(formula):
+                    formula = "__mx_temp = " + formula.lstrip()
+                else:
+                    QMessageBox.critical(self,
+                                         title="Error",
+                                         text="Invalid formula")
+
+            except SystemError:
+                QMessageBox.critical(self, title="Error", text="Syntax error")
+                return
+
+        code = "get_ipython().kernel.mx_new_cells('%s', '%s', '%s')" % (
+            model, parent, name
+        )
+        code = formula + "\n" + code
+
+        self._mx_wait_reply(
+            None,
+            self.sig_mxmodellist,
+            code
+        )
         self.refresh_namespacebrowser()
 
     # ---- Override NamespaceBrowserWidget ---

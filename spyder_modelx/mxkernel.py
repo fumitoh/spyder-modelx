@@ -78,19 +78,12 @@ class ModelxKernel(SpyderKernel):
     def mx_new_model(self, name=None):
         import modelx as mx
         mx.new_model(name)
-        self.mx_get_modellist()
+        self.send_mx_msg("mxupdated")
 
     def mx_new_space(self, model, parent, name, bases):
-        """
-        if model is blank, current model is used if exits, otherwise new model
-        is created.
-        """
         import modelx as mx
 
-        if model:
-            model = mx.get_models()[model]
-        else:
-            model = mx.cur_model() if mx.cur_model() else mx.new_model()
+        model = self._get_or_create_model(model)
 
         if parent:
             parent = mx.get_object(parent)
@@ -106,7 +99,54 @@ class ModelxKernel(SpyderKernel):
             bases = None
 
         parent.new_space(name=name, bases=bases)
-        self.mx_get_modellist()
+        self.send_mx_msg("mxupdated")
+
+    def mx_new_cells(self, model, parent, name):
+        """
+        If name is blank and formula is blank, cells is auto-named.
+        If name is blank and formula is func def, name is func name.
+        If name is given and formula is blank, formula is lambda: None.
+        If name is given and formula is given, formula is renamed to given name.
+
+        Args:
+            model: model name or blank
+            parent: parent named id or blank
+            name: cells name or blank
+            formula: function def or lambda expression blank
+        """
+        model = self._get_or_create_model(model)
+        if parent:
+            parent = model._get_from_name(parent)
+        else:
+            parent = model.cur_space() if model.cur_space() else model.new_space()
+
+        if not name:
+            name = None
+
+        ns = self._mglobals()
+        if "__mx_temp" in ns:
+            formula = ns["__mx_temp"]
+            del ns["__mx_temp"]
+        else:
+            formula = None
+
+        cells = parent.new_cells(
+            name=name,
+            formula=formula
+        )
+        self.send_mx_msg("mxupdated")
+
+    def _get_or_create_model(self, model):
+        """
+        if model is blank, current model is used if exits, otherwise new model
+        is created.
+        """
+        import modelx as mx
+
+        if model:
+            return mx.get_models()[model]
+        else:
+            return mx.cur_model() if mx.cur_model() else mx.new_model()
 
     def mx_get_object(self, msgtype, fullname=None):
 

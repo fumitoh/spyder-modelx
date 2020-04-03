@@ -58,6 +58,7 @@ from spyder.config.base import _
 from spyder.utils.qthelpers import create_plugin_layout
 from spyder_modelx.widgets.mxcodelist import MxCodeListWidget
 from spyder_modelx.widgets.mxtoolbar import MxToolBarMixin
+from spyder_modelx.widgets.mxcodelist import BaseCodePane
 
 
 class MxTreeView(QTreeView):
@@ -65,6 +66,7 @@ class MxTreeView(QTreeView):
     def __init__(self, parent=None):
         super().__init__(parent)
 
+        self.plugin = parent.plugin
         self.shell = None
         self.reply = None  # To write dialog box result
 
@@ -93,7 +95,7 @@ class MxTreeView(QTreeView):
                     self.shell.update_codelist(item.itemData['fullname'])
 
         elif action == self.action_new_model:
-            dialog = NewModelDialg(self)
+            dialog = NewModelDialog(self)
             dialog.exec()
 
             if self.reply['accepted']:
@@ -137,6 +139,41 @@ class MxTreeView(QTreeView):
             else:
                 self.reply = None
 
+        elif action == self.action_new_cells:
+            if self.model():
+                parentList = self.model().rootItem.getChildSpaceList()
+            else:
+                parentList = []
+
+            # Find current item
+            index = self.currentIndex()
+            if index.isValid():
+                name = index.internalPointer().itemData['namedid']
+                try:
+                    currIndex = parentList.index(name)
+                except ValueError:
+                    currIndex = 0
+            else:
+                currIndex = 0
+
+            if self.model():
+                model = self.model().rootItem.itemData['name']
+            else:
+                model = ''
+
+            dialog = NewCellsDialog(self, parentList, currIndex)
+            dialog.exec()
+
+            if self.reply['accepted']:
+                name = self.reply['name']
+                parent = self.reply['parent']
+                formula = self.reply['formula']
+                self.reply = None
+
+                self.shell.new_cells(model, parent, name, formula)
+            else:
+                self.reply = None
+
 
 class MxExplorer(QWidget):
     """modelx widget."""
@@ -144,6 +181,7 @@ class MxExplorer(QWidget):
     def __init__(self, parent):
         QWidget.__init__(self, parent)
 
+        self.plugin = parent.plugin
         self.setWindowTitle("Mx explorer") # Not visible
 
         self.treeview = treeview = MxTreeView(self)
@@ -322,7 +360,7 @@ class MxModelSelector(QComboBox):
         return False
 
 
-class NewModelDialg(QDialog):
+class NewModelDialog(QDialog):
 
     def __init__(self, parent=None):
         QDialog.__init__(
@@ -545,6 +583,59 @@ class SelectBaseSpacesDialog(SelectFromListDialog):
         self.parent.reply = {'accepted': False}
         super().reject()
 
+
+class NewCellsDialog(QDialog):
+
+    def __init__(self, parent=None, parentList=(), currIndex=0):
+        QDialog.__init__(
+            self, parent, flags=Qt.WindowSystemMenuHint | Qt.WindowTitleHint)
+
+        self.setAttribute(Qt.WA_DeleteOnClose)
+        self.setWindowTitle('Create New Cells')
+        self.treeview = parent
+
+        parentLabel = QLabel(_("Parent"))
+        self.parentBox = QComboBox(self)
+        self.parentBox.addItems(parentList)
+        self.parentBox.setCurrentIndex(currIndex)
+
+        nameLabel = QLabel(_("Cells Name"))
+        self.nameedit = QLineEdit(self)
+
+        self.fomulapane = BaseCodePane(parent, title='Formula')
+        self.fomulapane.editor.setReadOnly(False)
+
+        self.buttonBox = QDialogButtonBox(self)
+        self.buttonBox.setOrientation(Qt.Horizontal)
+        self.buttonBox.setStandardButtons(
+            QDialogButtonBox.Cancel|QDialogButtonBox.Ok)
+        self.buttonBox.accepted.connect(self.accept)
+        self.buttonBox.rejected.connect(self.reject)
+
+        mainLayout = QGridLayout(self)
+        mainLayout.addWidget(parentLabel, 0, 0)
+        mainLayout.addWidget(self.parentBox, 0, 1)
+        mainLayout.addWidget(nameLabel, 1, 0)
+        mainLayout.addWidget(self.nameedit, 1, 1)
+        mainLayout.addWidget(self.fomulapane, 2, 0, 1, 2)
+        mainLayout.addWidget(self.buttonBox, 3, 0, 1, 2)
+        mainLayout.setRowStretch(2, 1)
+        self.setLayout(mainLayout)
+
+    def accept(self) -> None:
+        self.treeview.reply = {
+            'accepted': True,
+            'name': self.nameedit.text(),
+            'parent': self.parentBox.currentText(),
+            'formula': self.fomulapane.editor.toPlainText()
+        }
+        super().accept()
+
+    def reject(self) -> None:
+        self.treeview.reply = {
+            'accepted': False
+        }
+        super().reject()
 
 
 if __name__ == '__main__':
