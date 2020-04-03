@@ -311,10 +311,10 @@ class MxShellWidget(ShellWidget):
             )
         self.refresh_namespacebrowser()
 
-    def new_space(self, model, parent, name, bases):
+    def new_space(self, model, parent, name, bases, varname):
 
-        code = "get_ipython().kernel.mx_new_space('%s', '%s', '%s', '%s')" % (
-            model, parent, name, bases
+        code = "get_ipython().kernel.mx_new_space('%s', '%s', '%s', '%s', '%s')" % (
+            model, parent, name, bases, varname
         )
         self._mx_wait_reply(
                 None,
@@ -323,7 +323,7 @@ class MxShellWidget(ShellWidget):
             )
         self.refresh_namespacebrowser()
 
-    def new_cells(self, model, parent, name, formula):
+    def new_cells(self, model, parent, name, formula, varname):
 
         if formula:
 
@@ -343,8 +343,8 @@ class MxShellWidget(ShellWidget):
                 QMessageBox.critical(self, title="Error", text="Syntax error")
                 return
 
-        code = "get_ipython().kernel.mx_new_cells('%s', '%s', '%s')" % (
-            model, parent, name
+        code = "get_ipython().kernel.mx_new_cells('%s', '%s', '%s', '%s')" % (
+            model, parent, name, varname
         )
         code = formula + "\n" + code
 

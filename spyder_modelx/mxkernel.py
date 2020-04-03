@@ -84,7 +84,7 @@ class ModelxKernel(SpyderKernel):
 
         self.send_mx_msg("mxupdated")
 
-    def mx_new_space(self, model, parent, name, bases):
+    def mx_new_space(self, model, parent, name, bases, varname):
         import modelx as mx
 
         model = self._get_or_create_model(model)
@@ -102,10 +102,12 @@ class ModelxKernel(SpyderKernel):
         else:
             bases = None
 
-        parent.new_space(name=name, bases=bases)
+        space = parent.new_space(name=name, bases=bases)
+        if varname:
+            self._mglobals()[varname] = space
         self.send_mx_msg("mxupdated")
 
-    def mx_new_cells(self, model, parent, name):
+    def mx_new_cells(self, model, parent, name, varname):
         """
         If name is blank and formula is blank, cells is auto-named.
         If name is blank and formula is func def, name is func name.
@@ -138,6 +140,8 @@ class ModelxKernel(SpyderKernel):
             name=name,
             formula=formula
         )
+        if varname:
+            self._mglobals()[varname] = cells
         self.send_mx_msg("mxupdated")
 
     def _get_or_create_model(self, model):

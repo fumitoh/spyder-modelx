@@ -138,8 +138,12 @@ class MxTreeView(QTreeView):
                 name = self.reply['name']
                 parent = self.reply['parent']
                 bases = self.reply['bases']
+                if self.reply['should_import']:
+                    varname = self.reply['varname']
+                else:
+                    varname = ''
                 self.reply = None
-                self.shell.new_space(model, parent, name, bases)
+                self.shell.new_space(model, parent, name, bases, varname)
             else:
                 self.reply = None
 
@@ -172,9 +176,12 @@ class MxTreeView(QTreeView):
                 name = self.reply['name']
                 parent = self.reply['parent']
                 formula = self.reply['formula']
+                if self.reply['should_import']:
+                    varname = self.reply['varname']
+                else:
+                    varname = ''
                 self.reply = None
-
-                self.shell.new_cells(model, parent, name, formula)
+                self.shell.new_cells(model, parent, name, formula, varname)
             else:
                 self.reply = None
 
@@ -393,6 +400,7 @@ class ImportAsWidget(QWidget):
         self.layout = QHBoxLayout(self)
         self.layout.addWidget(self.shouldImport)
         self.layout.addWidget(self.nameEdit)
+        self.layout.setContentsMargins(0, 0, 0, 0)
 
         # https://forum.qt.io/topic/87226/synchronize-2-qlineedit
 
@@ -424,7 +432,7 @@ class NewModelDialog(QDialog):
 
         namelabel = QLabel(_("Model Name"))
         self.nameEdit = QLineEdit(self)
-        self.importwidget = ImportAsWidget(self, self.nameEdit)
+        self.importWidget = ImportAsWidget(self, self.nameEdit)
 
         self.buttonBox = QDialogButtonBox(self)
         self.buttonBox.setOrientation(Qt.Horizontal)
@@ -436,7 +444,7 @@ class NewModelDialog(QDialog):
         mainLayout = QGridLayout(self)
         mainLayout.addWidget(namelabel, 0, 0)
         mainLayout.addWidget(self.nameEdit, 0, 1)
-        mainLayout.addWidget(self.importwidget, 1, 0, 1, 2)
+        mainLayout.addWidget(self.importWidget, 1, 0, 1, 2)
         mainLayout.addWidget(self.buttonBox, 2, 0, 1, 2)
         self.setLayout(mainLayout)
 
@@ -444,8 +452,8 @@ class NewModelDialog(QDialog):
         reply = {
             'accepted': True,
             'name': self.nameEdit.text(),
-            'should_import': self.importwidget.shouldImport.isChecked(),
-            'varname': self.importwidget.nameEdit.text()
+            'should_import': self.importWidget.shouldImport.isChecked(),
+            'varname': self.importWidget.nameEdit.text()
         }
         if reply['should_import']:
             if not reply['varname'].isidentifier():
@@ -480,7 +488,8 @@ class NewSpaceDialog(QDialog):
         self.parentBox.setCurrentIndex(currIndex)
 
         nameLabel = QLabel(_("Space Name"))
-        self.nameedit = QLineEdit(self)
+        self.nameEdit = QLineEdit(self)
+        self.importWidget = ImportAsWidget(self, self.nameEdit)
 
         basesTitle = QLabel(_("Base Spaces"))
         self.basesLine = QLineEdit()
@@ -508,19 +517,22 @@ class NewSpaceDialog(QDialog):
         mainLayout.addWidget(parentLabel, 0, 0)
         mainLayout.addWidget(self.parentBox, 0, 1)
         mainLayout.addWidget(nameLabel, 1, 0)
-        mainLayout.addWidget(self.nameedit, 1, 1)
-        mainLayout.addWidget(basesTitle, 2, 0)
-        mainLayout.addWidget(self.basesLine, 2, 1)
-        mainLayout.addWidget(self.basesEditButton, 2, 2)
-        mainLayout.addWidget(self.buttonBox, 3, 0, 1, 2)
+        mainLayout.addWidget(self.nameEdit, 1, 1)
+        mainLayout.addWidget(self.importWidget, 2, 0, 1, 2)
+        mainLayout.addWidget(basesTitle, 3, 0)
+        mainLayout.addWidget(self.basesLine, 3, 1)
+        mainLayout.addWidget(self.basesEditButton, 3, 2)
+        mainLayout.addWidget(self.buttonBox, 4, 0, 1, 2)
         self.setLayout(mainLayout)
 
     def accept(self) -> None:
         self.treeview.reply = {
             'accepted': True,
             'parent': self.parentBox.currentText(),
-            'name': self.nameedit.text(),
-            'bases': self.basesLine.text()
+            'name': self.nameEdit.text(),
+            'bases': self.basesLine.text(),
+            'should_import': self.importWidget.shouldImport.isChecked(),
+            'varname': self.importWidget.nameEdit.text()
         }
         super().accept()
 
@@ -666,7 +678,8 @@ class NewCellsDialog(QDialog):
         self.parentBox.setCurrentIndex(currIndex)
 
         nameLabel = QLabel(_("Cells Name"))
-        self.nameedit = QLineEdit(self)
+        self.nameEdit = QLineEdit(self)
+        self.importWidget = ImportAsWidget(self, self.nameEdit)
 
         self.fomulapane = BaseCodePane(parent, title='Formula')
         self.fomulapane.editor.setReadOnly(False)
@@ -682,18 +695,21 @@ class NewCellsDialog(QDialog):
         mainLayout.addWidget(parentLabel, 0, 0)
         mainLayout.addWidget(self.parentBox, 0, 1)
         mainLayout.addWidget(nameLabel, 1, 0)
-        mainLayout.addWidget(self.nameedit, 1, 1)
-        mainLayout.addWidget(self.fomulapane, 2, 0, 1, 2)
-        mainLayout.addWidget(self.buttonBox, 3, 0, 1, 2)
-        mainLayout.setRowStretch(2, 1)
+        mainLayout.addWidget(self.nameEdit, 1, 1)
+        mainLayout.addWidget(self.importWidget, 2, 0, 1, 2)
+        mainLayout.addWidget(self.fomulapane, 3, 0, 1, 2)
+        mainLayout.addWidget(self.buttonBox, 4, 0, 1, 2)
+        mainLayout.setRowStretch(3, 1)
         self.setLayout(mainLayout)
 
     def accept(self) -> None:
         self.treeview.reply = {
             'accepted': True,
-            'name': self.nameedit.text(),
+            'name': self.nameEdit.text(),
             'parent': self.parentBox.currentText(),
-            'formula': self.fomulapane.editor.toPlainText()
+            'formula': self.fomulapane.editor.toPlainText(),
+            'should_import': self.importWidget.shouldImport.isChecked(),
+            'varname': self.importWidget.nameEdit.text()
         }
         super().accept()
 
