@@ -69,6 +69,14 @@ if spyder.version_info > (4,):
         CALL_KERNEL_TIMEOUT
     )
 
+
+def _quote_string(arg):
+    if arg:
+        return "'%s'" % arg
+    else:
+        return ""
+
+
 class MxShellWidget(ShellWidget):
     """Custom shell widget for modelx"""
 
@@ -284,20 +292,18 @@ class MxShellWidget(ShellWidget):
             "get_ipython().kernel.mx_get_object('explorer', %s)" % arg)
         self.update_mxdataview()
 
-    def new_model(self, name=None):
+    def new_model(self, name=None, varname=''):
 
         if spyder.version_info > (4,):
             self.call_kernel(
                 interrupt=True,
                 blocking=True,
-                timeout=CALL_KERNEL_TIMEOUT).mx_new_model(name)
+                timeout=CALL_KERNEL_TIMEOUT).mx_new_model(name, varname)
         else:
-            if name:
-                name = "'%s'" % name
-            else:
-                name = ""
+            name = _quote_string(name)
+            varname = _quote_string(varname)
 
-            code = "get_ipython().kernel.mx_new_model(%s)" % name
+            code = "get_ipython().kernel.mx_new_model(%s, %s)" % (name, varname)
             self._mx_wait_reply(
                 None,
                 self.sig_mxupdated,

@@ -51,7 +51,7 @@ from qtpy.QtWidgets import (QHBoxLayout, QLabel, QMenu, QMessageBox, QAction,
                             QToolButton, QVBoxLayout, QWidget, QTreeView,
                             QSplitter, QComboBox, QSizePolicy, QDialog,
                             QGridLayout, QListWidget, QPushButton,
-                            QDialogButtonBox, QLineEdit)
+                            QDialogButtonBox, QLineEdit, QCheckBox)
 from qtpy.QtGui import QPalette
 import spyder
 from spyder.config.base import _
@@ -100,8 +100,12 @@ class MxTreeView(QTreeView):
 
             if self.reply['accepted']:
                 name = self.reply['name']
+                if self.reply['should_import']:
+                    varname = self.reply['varname']
+                else:
+                    varname = ''
                 self.reply = None
-                self.shell.new_model(name)
+                self.shell.new_model(name, varname)
             else:
                 self.reply = None
 
@@ -360,6 +364,55 @@ class MxModelSelector(QComboBox):
         return False
 
 
+class ImportNameEdit(QLineEdit):
+
+    def __init__(self, parent):
+        super().__init__(parent)
+        self.synced = True
+
+    def focusInEvent(self, a0) -> None:
+        self.synced = False
+        super().focusInEvent(a0)
+
+
+class ImportAsWidget(QWidget):
+
+    def __init__(self, parent, sourceWidget: QLineEdit):
+        super().__init__(parent)
+        self.backgroundActive = self.palette().color(QPalette.Base)
+        self.backgroundInactive = parent.palette().color(QPalette.Window)
+
+        self.sourceWidget = sourceWidget
+        self.shouldImport = QCheckBox(_("Import As"))
+        self.shouldImport.setCheckState(Qt.Checked)
+        self.shouldImport.stateChanged.connect(self.activateName)
+
+        self.nameEdit = ImportNameEdit(self)
+        sourceWidget.textChanged.connect(self.syncText)
+
+        self.layout = QHBoxLayout(self)
+        self.layout.addWidget(self.shouldImport)
+        self.layout.addWidget(self.nameEdit)
+
+        # https://forum.qt.io/topic/87226/synchronize-2-qlineedit
+
+    def syncText(self, name):
+        if self.shouldImport.isChecked() and self.nameEdit.synced:
+            self.nameEdit.setText(name)
+
+    def activateName(self, state):
+        if state:
+            self.nameEdit.setReadOnly(False)
+            pallete = self.nameEdit.palette()
+            pallete.setColor(QPalette.Base, self.backgroundActive)
+            self.nameEdit.setPalette(pallete)
+        else:
+            self.nameEdit.setReadOnly(True)
+            pallete = self.nameEdit.palette()
+            pallete.setColor(QPalette.Base, self.backgroundInactive)
+            self.nameEdit.setPalette(pallete)
+
+
 class NewModelDialog(QDialog):
 
     def __init__(self, parent=None):
@@ -370,7 +423,8 @@ class NewModelDialog(QDialog):
         self.setAttribute(Qt.WA_DeleteOnClose)
 
         namelabel = QLabel(_("Model Name"))
-        self.nameedit = QLineEdit(self)
+        self.nameEdit = QLineEdit(self)
+        self.importwidget = ImportAsWidget(self, self.nameEdit)
 
         self.buttonBox = QDialogButtonBox(self)
         self.buttonBox.setOrientation(Qt.Horizontal)
@@ -381,15 +435,27 @@ class NewModelDialog(QDialog):
 
         mainLayout = QGridLayout(self)
         mainLayout.addWidget(namelabel, 0, 0)
-        mainLayout.addWidget(self.nameedit, 0, 1)
-        mainLayout.addWidget(self.buttonBox, 1, 0, 1, 2)
+        mainLayout.addWidget(self.nameEdit, 0, 1)
+        mainLayout.addWidget(self.importwidget, 1, 0, 1, 2)
+        mainLayout.addWidget(self.buttonBox, 2, 0, 1, 2)
         self.setLayout(mainLayout)
 
     def accept(self) -> None:
-        self.treeview.reply = {
+        reply = {
             'accepted': True,
-            'name': self.nameedit.text()
+            'name': self.nameEdit.text(),
+            'should_import': self.importwidget.shouldImport.isChecked(),
+            'varname': self.importwidget.nameEdit.text()
         }
+        if reply['should_import']:
+            if not reply['varname'].isidentifier():
+                QMessageBox.critical(
+                    self,
+                    'Error',
+                    'Invalid variable name: %s' % reply['varname']
+                )
+                return
+        self.treeview.reply = reply
         super().accept()
 
     def reject(self) -> None:

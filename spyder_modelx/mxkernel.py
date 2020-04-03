@@ -75,9 +75,13 @@ class ModelxKernel(SpyderKernel):
         from modelx.core import mxsys
         return mxsys
 
-    def mx_new_model(self, name=None):
+    def mx_new_model(self, name=None, varname=''):
         import modelx as mx
-        mx.new_model(name)
+        model = mx.new_model(name)
+
+        if varname:
+            self._mglobals()[varname] = model
+
         self.send_mx_msg("mxupdated")
 
     def mx_new_space(self, model, parent, name, bases):
