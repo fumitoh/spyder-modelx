@@ -44,7 +44,7 @@
 
 """modelx Widget."""
 import sys
-
+import keyword
 from spyder_modelx.widgets.mxtreemodel import MxTreeModel, ModelItem
 from qtpy.QtCore import Signal, Slot, Qt, QStringListModel, QEventLoop
 from qtpy.QtWidgets import (QHBoxLayout, QLabel, QMenu, QMessageBox, QAction,
@@ -100,12 +100,13 @@ class MxTreeView(QTreeView):
 
             if self.reply['accepted']:
                 name = self.reply['name']
-                if self.reply['should_import']:
+                define_var = self.reply['define_var']
+                if define_var:
                     varname = self.reply['varname']
                 else:
                     varname = ''
                 self.reply = None
-                self.shell.new_model(name, varname)
+                self.shell.new_model(name, define_var, varname)
             else:
                 self.reply = None
 
@@ -138,12 +139,14 @@ class MxTreeView(QTreeView):
                 name = self.reply['name']
                 parent = self.reply['parent']
                 bases = self.reply['bases']
-                if self.reply['should_import']:
+                define_var = self.reply['define_var']
+                if define_var:
                     varname = self.reply['varname']
                 else:
                     varname = ''
                 self.reply = None
-                self.shell.new_space(model, parent, name, bases, varname)
+                self.shell.new_space(
+                    model, parent, name, bases, define_var, varname)
             else:
                 self.reply = None
 
@@ -176,12 +179,14 @@ class MxTreeView(QTreeView):
                 name = self.reply['name']
                 parent = self.reply['parent']
                 formula = self.reply['formula']
-                if self.reply['should_import']:
+                define_var = self.reply['define_var']
+                if define_var:
                     varname = self.reply['varname']
                 else:
                     varname = ''
                 self.reply = None
-                self.shell.new_cells(model, parent, name, formula, varname)
+                self.shell.new_cells(
+                    model, parent, name, formula, define_var, varname)
             else:
                 self.reply = None
 
@@ -421,6 +426,19 @@ class ImportAsWidget(QWidget):
             self.nameEdit.setPalette(pallete)
 
 
+def check_varname(varname):
+    if varname:
+        if varname.isidentifier():
+            if keyword.iskeyword(varname):
+                return False
+            else:
+                return True
+        else:
+            return False
+    else:   # True if empty
+        return True
+
+
 class NewModelDialog(QDialog):
 
     def __init__(self, parent=None):
@@ -452,15 +470,16 @@ class NewModelDialog(QDialog):
         reply = {
             'accepted': True,
             'name': self.nameEdit.text(),
-            'should_import': self.importWidget.shouldImport.isChecked(),
+            'define_var': self.importWidget.shouldImport.isChecked(),
             'varname': self.importWidget.nameEdit.text()
         }
-        if reply['should_import']:
-            if not reply['varname'].isidentifier():
+        if reply['define_var']:
+            varname = reply['varname']
+            if not check_varname(varname):
                 QMessageBox.critical(
                     self,
                     'Error',
-                    'Invalid variable name: %s' % reply['varname']
+                    'Invalid variable name: %s' % varname
                 )
                 return
         self.treeview.reply = reply
@@ -526,14 +545,25 @@ class NewSpaceDialog(QDialog):
         self.setLayout(mainLayout)
 
     def accept(self) -> None:
-        self.treeview.reply = {
+
+        reply = {
             'accepted': True,
             'parent': self.parentBox.currentText(),
             'name': self.nameEdit.text(),
             'bases': self.basesLine.text(),
-            'should_import': self.importWidget.shouldImport.isChecked(),
+            'define_var': self.importWidget.shouldImport.isChecked(),
             'varname': self.importWidget.nameEdit.text()
         }
+        if reply['define_var']:
+            varname = reply['varname']
+            if not check_varname(varname):
+                QMessageBox.critical(
+                    self,
+                    'Error',
+                    'Invalid variable name: %s' % varname
+                )
+                return
+        self.treeview.reply = reply
         super().accept()
 
     def reject(self) -> None:
@@ -703,14 +733,23 @@ class NewCellsDialog(QDialog):
         self.setLayout(mainLayout)
 
     def accept(self) -> None:
-        self.treeview.reply = {
+        reply = {
             'accepted': True,
             'name': self.nameEdit.text(),
             'parent': self.parentBox.currentText(),
             'formula': self.fomulapane.editor.toPlainText(),
-            'should_import': self.importWidget.shouldImport.isChecked(),
+            'define_var': self.importWidget.shouldImport.isChecked(),
             'varname': self.importWidget.nameEdit.text()
         }
+        varname = reply['varname']
+        if not check_varname(varname):
+            QMessageBox.critical(
+                self,
+                'Error',
+                'Invalid variable name: %s' % varname
+            )
+            return
+        self.treeview.reply = reply
         super().accept()
 
     def reject(self) -> None:

@@ -75,16 +75,14 @@ class ModelxKernel(SpyderKernel):
         from modelx.core import mxsys
         return mxsys
 
-    def mx_new_model(self, name=None, varname=''):
+    def mx_new_model(self, name=None, define_var=False, varname=''):
         import modelx as mx
         model = mx.new_model(name)
-
-        if varname:
-            self._mglobals()[varname] = model
+        self._define_var(define_var, model, varname)
 
         self.send_mx_msg("mxupdated")
 
-    def mx_new_space(self, model, parent, name, bases, varname):
+    def mx_new_space(self, model, parent, name, bases, define_var, varname):
         import modelx as mx
 
         model = self._get_or_create_model(model)
@@ -103,11 +101,18 @@ class ModelxKernel(SpyderKernel):
             bases = None
 
         space = parent.new_space(name=name, bases=bases)
-        if varname:
-            self._mglobals()[varname] = space
+        self._define_var(define_var, space, varname)
+
         self.send_mx_msg("mxupdated")
 
-    def mx_new_cells(self, model, parent, name, varname):
+    def _define_var(self, define_var, obj, varname):
+        if define_var:
+            if varname:
+                self._mglobals()[varname] = obj
+            else:
+                self._mglobals()[obj.name] = obj
+
+    def mx_new_cells(self, model, parent, name, define_var, varname):
         """
         If name is blank and formula is blank, cells is auto-named.
         If name is blank and formula is func def, name is func name.
@@ -140,8 +145,7 @@ class ModelxKernel(SpyderKernel):
             name=name,
             formula=formula
         )
-        if varname:
-            self._mglobals()[varname] = cells
+        self._define_var(define_var,cells, varname)
         self.send_mx_msg("mxupdated")
 
     def _get_or_create_model(self, model):

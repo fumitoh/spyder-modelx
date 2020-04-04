@@ -292,18 +292,24 @@ class MxShellWidget(ShellWidget):
             "get_ipython().kernel.mx_get_object('explorer', %s)" % arg)
         self.update_mxdataview()
 
-    def new_model(self, name=None, varname=''):
+    def new_model(self, name=None, define_var=False, varname=''):
 
         if spyder.version_info > (4,):
             self.call_kernel(
                 interrupt=True,
                 blocking=True,
-                timeout=CALL_KERNEL_TIMEOUT).mx_new_model(name, varname)
+                timeout=CALL_KERNEL_TIMEOUT).mx_new_model(
+                name, define_var, varname)
         else:
-            name = _quote_string(name)
-            varname = _quote_string(varname)
+            # name = _quote_string(name)
+            # varname = _quote_string(varname)
+            if define_var:
+                define_var = "True"
+            else:
+                define_var = "False"
 
-            code = "get_ipython().kernel.mx_new_model(%s, %s)" % (name, varname)
+            code = "get_ipython().kernel.mx_new_model('%s', %s, '%s')" % (
+                name, define_var, varname)
             self._mx_wait_reply(
                 None,
                 self.sig_mxupdated,
@@ -311,11 +317,12 @@ class MxShellWidget(ShellWidget):
             )
         self.refresh_namespacebrowser()
 
-    def new_space(self, model, parent, name, bases, varname):
+    def new_space(self, model, parent, name, bases, define_var, varname):
 
-        code = "get_ipython().kernel.mx_new_space('%s', '%s', '%s', '%s', '%s')" % (
-            model, parent, name, bases, varname
+        paramlist = "'%s', '%s', '%s', '%s', %s, '%s'" % (
+            model, parent, name, bases, str(define_var), varname
         )
+        code = "get_ipython().kernel.mx_new_space(" + paramlist + ")"
         self._mx_wait_reply(
                 None,
                 self.sig_mxupdated,
@@ -323,7 +330,7 @@ class MxShellWidget(ShellWidget):
             )
         self.refresh_namespacebrowser()
 
-    def new_cells(self, model, parent, name, formula, varname):
+    def new_cells(self, model, parent, name, formula, define_var, varname):
 
         if formula:
 
@@ -343,9 +350,10 @@ class MxShellWidget(ShellWidget):
                 QMessageBox.critical(self, title="Error", text="Syntax error")
                 return
 
-        code = "get_ipython().kernel.mx_new_cells('%s', '%s', '%s', '%s')" % (
-            model, parent, name, varname
+        paramlist = "'%s', '%s', '%s', %s, '%s'" % (
+            model, parent, name, str(define_var), varname
         )
+        code = "get_ipython().kernel.mx_new_cells(" + paramlist + ")"
         code = formula + "\n" + code
 
         self._mx_wait_reply(
