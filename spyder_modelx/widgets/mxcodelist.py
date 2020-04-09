@@ -187,26 +187,26 @@ class CodeListDataWrapper:
         return len(self.items)
 
 
-class MxCodeListWidget(QScrollArea, QAbstractItemView):
+class MxCodeListWidget(QScrollArea):
 
     def __init__(self, parent):
         QScrollArea.__init__(self, parent)
 
         self.plugin = parent.plugin
         self.codelist = CodeList(self)
-        self.model = None
+        self.model_ = None
         self.setWidget(self.codelist)
         self.setWidgetResizable(True)
 
-    def setModel(self, model):
-        self.model = model
+    def setModel_(self, model):
+        self.model_ = model
         self.updateList()
 
     def updateList(self):
         self.codelist.removeAll()
-        for i in range(self.model.rowCount(None)):
-            index = self.model.index(i)
-            item = self.model.data(index, Qt.DisplayRole)
+        for i in range(self.model_.rowCount(None)):
+            index = self.model_.index(i)
+            item = self.model_.data(index, Qt.DisplayRole)
             self.codelist.appendCode(item['name'],
                                      item['formula'])
 
@@ -214,7 +214,8 @@ class MxCodeListWidget(QScrollArea, QAbstractItemView):
         if data is None:
             return
         data = CodeListDataWrapper(data)
-        self.setModel(CodeListModel(parent=self, data=data))
+        model = CodeListModel(parent=self, data=data)
+        self.setModel_(model)
 
 
 # ---- Test MxCodeListWidget ----
