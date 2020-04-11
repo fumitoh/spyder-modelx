@@ -122,7 +122,7 @@ class BaseItem(object):
         return 0
 
     def getType(self):
-        raise NotImplementedError
+        return self.itemData.get('type', '')
 
     def getParams(self):
         raise NotImplementedError
@@ -191,9 +191,6 @@ class ModelItem(SpaceContainerItem):
     def __init__(self, data):
         super(ModelItem, self).__init__(data, parent=None)
 
-    def getType(self):
-        return 'Model'
-
     def getParams(self):
         return ''
 
@@ -217,8 +214,6 @@ class SpaceItem(SpaceContainerItem):
         for ref in refview.values():
             self.childItems.append(RefItem(ref, self))
 
-    def getType(self):
-        return 'Space'
 
     def getParams(self):
         if 'argvalues' in self.itemData:
@@ -244,9 +239,6 @@ class DynamicSpaceMapItem(ViewItem):
         else:
             return BaseItem.data(self, column)
 
-    def getType(self):
-        return ''
-
     def getParams(self):
         return self.parent().itemData['params']
 
@@ -256,9 +248,6 @@ class CellsItem(InterfaceItem):
     def updateChild(self):
         pass
 
-    def getType(self):
-        return 'Cells'
-
     def getParams(self):
         return self.itemData['params']
 
@@ -267,9 +256,6 @@ class RefItem(InterfaceItem):
     """Item class for references."""
     def updateChild(self):
         pass
-
-    def getType(self):
-        return self.itemData['type']
 
     def getParams(self):
         return ''
