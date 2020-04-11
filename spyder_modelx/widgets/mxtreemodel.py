@@ -240,7 +240,7 @@ class DynamicSpaceMapItem(ViewItem):
 
     def data(self, column):
         if column == 0:
-            return 'Dynamic Spaces'
+            return 'ItemSpaces'
         else:
             return BaseItem.data(self, column)
 
