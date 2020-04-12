@@ -160,15 +160,23 @@ class ModelxKernel(SpyderKernel):
         else:
             return mx.cur_model() if mx.cur_model() else mx.new_model()
 
-    def mx_get_object(self, msgtype, fullname=None):
+    def mx_get_object(self, msgtype, fullname=None, attrs=None):
 
         import modelx as mx
         if fullname is None:
             obj = mx.cur_model()
         else:
-            obj = mx.get_object(fullname)
+            obj = mx.get_object(fullname, as_proxy=True)
 
-        self.send_mx_msg(msgtype, data=obj._baseattrs if obj else None)
+        if obj is not None:
+            if attrs is None:
+                data = obj._baseattrs
+            else:
+                data = obj._to_attrdict(attrs)
+        else:
+            data = None
+
+        self.send_mx_msg(msgtype, data=data)
 
     def mx_get_modellist(self):
         """Returns a list of model info.

@@ -88,6 +88,7 @@ class MxShellWidget(ShellWidget):
     sig_mxanalyze_preds = Signal()
     sig_mxanalyze_succs = Signal()
     sig_mxupdated = Signal()
+    sig_mxproperty = Signal(object)
 
     mx_msgtypes = ['mxupdated',
                    'dataview',
@@ -97,7 +98,8 @@ class MxShellWidget(ShellWidget):
                    'analyze_preds_setnode',
                    'analyze_succs_setnode',
                    'analyze_preds',
-                   'analyze_succs']
+                   'analyze_succs',
+                   'property']
 
     mx_nondata_msgs = ['mxupdated']
 
@@ -121,7 +123,7 @@ class MxShellWidget(ShellWidget):
             lambda : self.update_modeltree(
                 self.mxmodelselector.get_selected_model()
             )
-        )
+        )   # TODO: Why wrap in lambdas?
 
     # ---- modelx data view ----
     def set_mxdataview(self, mxdataview, mxexprbox):
@@ -243,6 +245,23 @@ class MxShellWidget(ShellWidget):
 
             return self._mx_wait_reply(code, sig)
 
+    # ---- modelx property widget ----
+    def set_mxproperty(self, mxproperty):
+        """Set modelx dataview widget"""
+        self.mxproperty = mxproperty
+        self.configure_mxproperty()
+
+    def configure_mxproperty(self):
+        """Configure mx data view widget"""
+        self.sig_mxproperty.connect(
+            lambda data: self.mxproperty.process_remote_view(data))
+
+    def update_mxproperty(self, objname):
+        param = "'property', '%s', ['formula', '_evalrepr', 'allow_none', 'parameters']" % objname
+        code = "get_ipython().kernel.mx_get_object(" + param + ")"
+        val = self.mx_silent_exec_method(code)
+        return val
+
     def _mx_wait_reply(self, usrexp, sig, code=''):
 
         wait_loop = QEventLoop()
@@ -290,7 +309,7 @@ class MxShellWidget(ShellWidget):
 
         self.mx_silent_exec_method(
             "get_ipython().kernel.mx_get_object('explorer', %s)" % arg)
-        self.update_mxdataview()
+        self.update_mxdataview()    # TODO: Redundant?
 
     def new_model(self, name=None, define_var=False, varname=''):
 
@@ -492,6 +511,9 @@ class MxShellWidget(ShellWidget):
             elif msgtype == 'analyze_succs':
                 self._mx_value = value
                 self.sig_mxanalyze_succs.emit()
+            elif msgtype == 'property':
+                self._mx_value = value
+                self.sig_mxproperty.emit(value)
 
             # Copied _handle_execute_reply
             if info and info.kind == 'silent_exec_method' and not self._hidden:

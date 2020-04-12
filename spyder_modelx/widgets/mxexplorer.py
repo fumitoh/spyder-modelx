@@ -51,7 +51,7 @@ from qtpy.QtWidgets import (QHBoxLayout, QLabel, QMenu, QMessageBox, QAction,
                             QToolButton, QVBoxLayout, QWidget, QTreeView,
                             QSplitter, QComboBox, QSizePolicy, QDialog,
                             QGridLayout, QListWidget, QPushButton,
-                            QDialogButtonBox, QLineEdit, QCheckBox)
+                            QDialogButtonBox, QLineEdit, QCheckBox, QTabWidget)
 from qtpy.QtGui import QPalette
 import spyder
 from spyder.config.base import _
@@ -59,6 +59,8 @@ from spyder.utils.qthelpers import create_plugin_layout
 from spyder_modelx.widgets.mxcodelist import MxCodeListWidget
 from spyder_modelx.widgets.mxtoolbar import MxToolBarMixin
 from spyder_modelx.widgets.mxcodelist import BaseCodePane
+from spyder_modelx.widgets.mxproperty import MxPropertyWidget
+from spyder_modelx.widgets.mxtreemodel import ViewItem, SpaceItem
 
 
 class MxTreeView(QTreeView):
@@ -72,16 +74,23 @@ class MxTreeView(QTreeView):
 
         # Context menu
         self.contextMenu = QMenu(self)
-        self.action_update_formulas = \
-            self.contextMenu.addAction("Show Formulas")
-        self.action_new_model = \
-            self.contextMenu.addAction("Create New Model")
-        self.action_new_space = \
-            self.contextMenu.addAction("Create New Space")
-        self.action_new_cells = \
-            self.contextMenu.addAction("Create New Cells")
 
-        self.setAlternatingRowColors(True)
+        self.action_update_properties = self.contextMenu.addAction(
+            "Show Properties"
+        )
+        self.action_update_formulas = self.contextMenu.addAction(
+            "Show Formulas"
+        )
+        self.action_new_model = self.contextMenu.addAction(
+            "Create New Model"
+        )
+        self.action_new_space = self.contextMenu.addAction(
+            "Create New Space"
+        )
+        self.action_new_cells = self.contextMenu.addAction(
+            "Create New Cells"
+        )
+        self.setAlternatingRowColors(False)
 
     def contextMenuEvent(self, event):
         action = self.contextMenu.exec_(self.mapToGlobal(event.pos()))
@@ -90,9 +99,22 @@ class MxTreeView(QTreeView):
             index = self.currentIndex()
             if index.isValid():
                 item = index.internalPointer()
-                if item.getType() == 'Space':
-                    # QMessageBox(text=item.itemData['fullname']).exec()
-                    self.shell.update_codelist(item.itemData['fullname'])
+                if isinstance(item, SpaceItem):
+                    pass
+                else:
+                    if index.parent().isValid():
+                        item = index.parent().internalPointer()
+                    else:
+                        return
+
+                self.shell.update_codelist(item.itemData['fullname'])
+
+        elif action == self.action_update_properties:
+            index = self.currentIndex()
+            if index.isValid():
+                item = self.currentIndex().internalPointer()
+                if not isinstance(item, ViewItem):
+                    self.shell.update_mxproperty(item.itemData['fullname'])
 
         elif action == self.action_new_model:
             dialog = NewModelDialog(self)
@@ -247,6 +269,7 @@ class MxMainWidget(MxToolBarMixin, QWidget):
 
         # Create code list
         self.codelist = MxCodeListWidget(self)
+        self.propwidget = MxPropertyWidget(self)
 
         # Create splitter
         self.splitter = QSplitter(self)
@@ -255,9 +278,14 @@ class MxMainWidget(MxToolBarMixin, QWidget):
         # self.splitter.setStretchFactor(0, 5)
         # self.splitter.setStretchFactor(1, 1)
 
+        self.tabwidget = QTabWidget(parent=self)
+        # self.tabwidget.setContentsMargins(0, 0, 0, 0)
+        MxMainWidget.IdxProperties = self.tabwidget.addTab(self.propwidget, "Properties")
+        MxMainWidget.IdxFormulas = self.tabwidget.addTab(self.codelist, "Formulas")
+
         # Layout management
         self.splitter.addWidget(self.explorer)
-        self.splitter.addWidget(self.codelist)
+        self.splitter.addWidget(self.tabwidget)
 
         layout = create_plugin_layout(self.tools_layout, self.splitter)
 
@@ -269,6 +297,10 @@ class MxMainWidget(MxToolBarMixin, QWidget):
         self.shellwidget = shellwidget
         self.shellwidget.set_mxexplorer(self.explorer, self.model_selector)
         self.shellwidget.set_mxcodelist(self.codelist)
+        self.shellwidget.set_mxproperty(self.propwidget)
+
+    def raise_tab(self, widget):
+        self.tabwidget.setCurrentWidget(widget)
 
     # MxToolBarMixin interface method
     def setup_toolbar(self):
@@ -711,8 +743,8 @@ class NewCellsDialog(QDialog):
         self.nameEdit = QLineEdit(self)
         self.importWidget = ImportAsWidget(self, self.nameEdit)
 
-        self.fomulapane = BaseCodePane(parent, title='Formula')
-        self.fomulapane.editor.setReadOnly(False)
+        self.fomulaPane = BaseCodePane(parent, title='Formula')
+        self.fomulaPane.editor.setReadOnly(False)
 
         self.buttonBox = QDialogButtonBox(self)
         self.buttonBox.setOrientation(Qt.Horizontal)
@@ -727,7 +759,7 @@ class NewCellsDialog(QDialog):
         mainLayout.addWidget(nameLabel, 1, 0)
         mainLayout.addWidget(self.nameEdit, 1, 1)
         mainLayout.addWidget(self.importWidget, 2, 0, 1, 2)
-        mainLayout.addWidget(self.fomulapane, 3, 0, 1, 2)
+        mainLayout.addWidget(self.fomulaPane, 3, 0, 1, 2)
         mainLayout.addWidget(self.buttonBox, 4, 0, 1, 2)
         mainLayout.setRowStretch(3, 1)
         self.setLayout(mainLayout)
@@ -737,7 +769,7 @@ class NewCellsDialog(QDialog):
             'accepted': True,
             'name': self.nameEdit.text(),
             'parent': self.parentBox.currentText(),
-            'formula': self.fomulapane.editor.toPlainText(),
+            'formula': self.fomulaPane.editor.toPlainText(),
             'define_var': self.importWidget.shouldImport.isChecked(),
             'varname': self.importWidget.nameEdit.text()
         }

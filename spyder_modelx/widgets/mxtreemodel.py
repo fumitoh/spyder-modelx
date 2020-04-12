@@ -201,7 +201,7 @@ class SpaceItem(SpaceContainerItem):
         self.childItems.clear()
         dynspaces = self.itemData['named_itemspaces']['items']
         if len(dynspaces) > 0:
-            self.childItems.append(DynamicSpaceMapItem(dynspaces, self))
+            self.childItems.append(ItemSpaceMapItem(dynspaces, self))
 
         for space in self.itemData['named_spaces']['items'].values():
             self.childItems.append(SpaceItem(space, self))
@@ -226,7 +226,7 @@ class SpaceItem(SpaceContainerItem):
             return ''
 
 
-class DynamicSpaceMapItem(ViewItem):
+class ItemSpaceMapItem(ViewItem):
     """Item class for parent nodes of dynamic spaces of a space."""
     def updateChild(self):
         self.childItems.clear()
@@ -256,6 +256,9 @@ class RefItem(InterfaceItem):
     """Item class for references."""
     def updateChild(self):
         pass
+
+    def getType(self):
+        return "Ref/" + self.itemData["value_type"]
 
     def getParams(self):
         return ''

@@ -192,6 +192,7 @@ class MxCodeListWidget(QScrollArea):
     def __init__(self, parent):
         QScrollArea.__init__(self, parent)
 
+        self._parent = parent
         self.plugin = parent.plugin
         self.codelist = CodeList(self)
         self.model_ = None
@@ -213,6 +214,7 @@ class MxCodeListWidget(QScrollArea):
     def process_remote_view(self, data):
         if data is None:
             return
+        self._parent.raise_tab(self)
         data = CodeListDataWrapper(data)
         model = CodeListModel(parent=self, data=data)
         self.setModel_(model)
