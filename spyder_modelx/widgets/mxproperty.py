@@ -13,7 +13,7 @@ COL_HEADER = "Property", "Value"
 Property = namedtuple(
     "Property",
     ["attr", "title", "is_editable", "editor", "is_multiple", "to_text"],
-    defaults=[True, None, False, None]
+    defaults=[False, None, False, None]
 )
 
 
@@ -68,10 +68,10 @@ class SpacePropertyData(BasePropertyData):
     properties = [
         Property("type", "Type"),
         Property("repr", "Name"),
-        Property("_evalrepr", "Full Name", False),
-        Property("parameters", "Parameters", True, None, False,
+        Property("_evalrepr", "Full Name"),
+        Property("parameters", "Parameters", False, None, False,
                  lambda args: ", ".join(args)),
-        Property("bases", "Base Spaces", True, None, False,
+        Property("bases", "Base Spaces", False, None, False,
                  lambda args: ", ".join(args)),
         # Property("parent", "Parent"),
         # Property("bases", "Base Spaces"),
@@ -88,7 +88,7 @@ class ItemSpacePropertyData(BasePropertyData):
         Property("type", "Type"),
         Property("repr", "Parent[Args]"),
         Property("_evalrepr", "Full Name"),
-        Property("bases", "Base Spaces", True, None, False,
+        Property("bases", "Base Spaces", False, None, False,
                  lambda args: ", ".join(args))
     ]
     visibleIndexes = list(range(len(properties)))
@@ -99,8 +99,8 @@ class CellsPropertyData(BasePropertyData):
     properties = [
         Property("type", "Type"),
         Property("repr", "Name"),
-        Property("_evalrepr", "Full Name", False),
-        Property("parameters", "Parameters", True, None, False,
+        Property("_evalrepr", "Full Name"),
+        Property("parameters", "Parameters", False, None, False,
                  lambda args: ", ".join(args)),
         # Property("parent", "Parent"),
         # Property("bases", "Base Spaces"),
@@ -116,7 +116,7 @@ class ReferencePropertyData(BasePropertyData):
     properties = [
         Property("type", "Type"),
         Property("repr", "Name"),
-        Property("_evalrepr", "Full Name", False),
+        Property("_evalrepr", "Full Name"),
         # Property("parent", "Parent"),
         # Property("bases", "Base Spaces"),
         # Property("is_derived", "Is Derived"),
@@ -159,10 +159,11 @@ class MxPropertyView(QTreeView):
         # self.formulaPane = parent.fomulaPane
         self.setRootIsDecorated(False)
         self.setAlternatingRowColors(False)
-        self.doubleClicked.connect(self.openEditor)
+        # self.doubleClicked.connect(self.openEditor)
         self.setItemDelegate(MxPropertyItemDelegate(self))
         self.setContentsMargins(0, 0, 0, 0)
 
+    # TODO: Implement
     def openEditor(self, index):
         data = index.internalPointer()
         if not data._get_property(index.row()).is_editable:
@@ -269,7 +270,7 @@ class MxPropertyWidget(QScrollArea):
         # self.setContentsMargins(0, 0, 0, 0)
 
         self.fomulaPane = BaseCodePane(self, title='Formula')
-        self.fomulaPane.editor.setReadOnly(False)
+        self.fomulaPane.editor.setReadOnly(True)
 
         layout.addWidget(self.fomulaPane)
         layout.setStretch(1, 1)
