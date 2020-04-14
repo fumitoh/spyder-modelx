@@ -43,7 +43,7 @@
 # OTHER DEALINGS IN THE SOFTWARE.
 
 """modelx Widget."""
-import sys
+import sys, os
 import keyword
 from spyder_modelx.widgets.mxtreemodel import MxTreeModel, ModelItem
 from qtpy.QtCore import Signal, Slot, Qt, QStringListModel, QEventLoop
@@ -53,9 +53,13 @@ from qtpy.QtWidgets import (QHBoxLayout, QLabel, QMenu, QMessageBox, QAction,
                             QGridLayout, QListWidget, QPushButton,
                             QDialogButtonBox, QLineEdit, QCheckBox, QTabWidget)
 from qtpy.QtGui import QPalette
+from qtpy.compat import getexistingdirectory
 import spyder
+from spyder.py3compat import to_text_string
 from spyder.config.base import _
 from spyder.utils.qthelpers import create_plugin_layout
+from spyder.utils.misc import getcwd_or_home
+from spyder.utils import icon_manager as ima
 from spyder_modelx.widgets.mxcodelist import MxCodeListWidget
 from spyder_modelx.widgets.mxtoolbar import MxToolBarMixin
 from spyder_modelx.widgets.mxcodelist import BaseCodePane
@@ -71,6 +75,7 @@ class MxTreeView(QTreeView):
         self.plugin = parent.plugin
         self.shell = None
         self.reply = None  # To write dialog box result
+        self.setAlternatingRowColors(False)
 
         # Context menu
         self.contextMenu = QMenu(self)
@@ -90,7 +95,18 @@ class MxTreeView(QTreeView):
         self.action_new_cells = self.contextMenu.addAction(
             "Create New Cells"
         )
-        self.setAlternatingRowColors(False)
+        self.action_read_model = self.contextMenu.addAction(
+            "Read Model"
+        )
+        self.action_write_model = self.contextMenu.addAction(
+            "Write Model"
+        )
+        self.action_delete_model = self.contextMenu.addAction(
+            "Delete Model"
+        )
+        self.action_delete_current = self.contextMenu.addAction(
+            "Delete"
+        )
 
     def contextMenuEvent(self, event):
         action = self.contextMenu.exec_(self.mapToGlobal(event.pos()))
@@ -211,6 +227,30 @@ class MxTreeView(QTreeView):
                     model, parent, name, formula, define_var, varname)
             else:
                 self.reply = None
+
+        elif action == self.action_read_model:
+            dialog = ReadModelDialog(self)
+            dialog.exec()
+
+            if self.reply['accepted']:
+                modelpath = self.reply['directory']
+                name = self.reply['name']
+                define_var = self.reply['define_var']
+                if define_var:
+                    varname = self.reply['varname']
+                else:
+                    varname = ''
+                self.reply = None
+                self.shell.read_model(modelpath, name, define_var, varname)
+            else:
+                self.reply = None
+
+        elif action == self.action_write_model:
+            pass
+        elif action == self.action_delete_model:
+            pass
+        elif action == self.action_delete_current:
+            pass
 
 
 class MxExplorer(QWidget):
@@ -423,8 +463,6 @@ class ImportAsWidget(QWidget):
 
     def __init__(self, parent, sourceWidget: QLineEdit):
         super().__init__(parent)
-        self.backgroundActive = self.palette().color(QPalette.Base)
-        self.backgroundInactive = parent.palette().color(QPalette.Window)
 
         self.sourceWidget = sourceWidget
         self.shouldImport = QCheckBox(_("Import As"))
@@ -448,14 +486,10 @@ class ImportAsWidget(QWidget):
     def activateName(self, state):
         if state:
             self.nameEdit.setReadOnly(False)
-            pallete = self.nameEdit.palette()
-            pallete.setColor(QPalette.Base, self.backgroundActive)
-            self.nameEdit.setPalette(pallete)
+            self.nameEdit.setEnabled(True)
         else:
             self.nameEdit.setReadOnly(True)
-            pallete = self.nameEdit.palette()
-            pallete.setColor(QPalette.Base, self.backgroundInactive)
-            self.nameEdit.setPalette(pallete)
+            self.nameEdit.setEnabled(False)
 
 
 def check_varname(varname):
@@ -522,6 +556,78 @@ class NewModelDialog(QDialog):
         super().reject()
 
 
+class ReadModelDialog(QDialog):
+
+    def __init__(self, parent=None):
+        QDialog.__init__(
+            self, parent, flags=Qt.WindowSystemMenuHint | Qt.WindowTitleHint)
+        self.setWindowTitle('Read Model')
+        self.treeview = parent
+        self.setAttribute(Qt.WA_DeleteOnClose)
+
+        fixed_dir_layout = QHBoxLayout()
+        browse_btn = QPushButton(ima.icon('DirOpenIcon'), '', self)
+        browse_btn.setToolTip(_("Select model directory"))
+        browse_btn.clicked.connect(self.select_directory)
+        self.wd_edit = QLineEdit()
+        fixed_dir_layout.addWidget(self.wd_edit)
+        fixed_dir_layout.addWidget(browse_btn)
+        fixed_dir_layout.setContentsMargins(0, 0, 0, 0)
+
+        namelabel = QLabel(_("Model Name"))
+        self.nameEdit = QLineEdit(self)
+        self.importWidget = ImportAsWidget(self, self.nameEdit)
+
+        self.buttonBox = QDialogButtonBox(self)
+        self.buttonBox.setOrientation(Qt.Horizontal)
+        self.buttonBox.setStandardButtons(
+            QDialogButtonBox.Cancel|QDialogButtonBox.Ok)
+        self.buttonBox.accepted.connect(self.accept)
+        self.buttonBox.rejected.connect(self.reject)
+
+        mainLayout = QGridLayout(self)
+        mainLayout.addLayout(fixed_dir_layout, 0, 0, 1, 2)
+        mainLayout.addWidget(namelabel, 1, 0)
+        mainLayout.addWidget(self.nameEdit, 1, 1)
+        mainLayout.addWidget(self.importWidget, 2, 0, 1, 2)
+        mainLayout.addWidget(self.buttonBox, 3, 0, 1, 2)
+        # mainLayout.setContentsMargins(0, 0, 0, 0)
+        self.setLayout(mainLayout)
+
+    def accept(self) -> None:
+        reply = {
+            'accepted': True,
+            'directory': self.wd_edit.text(),
+            'name': self.nameEdit.text(),
+            'define_var': self.importWidget.shouldImport.isChecked(),
+            'varname': self.importWidget.nameEdit.text()
+        }
+        if reply['define_var']:
+            varname = reply['varname']
+            if not check_varname(varname):
+                QMessageBox.critical(
+                    self,
+                    'Error',
+                    'Invalid variable name: %s' % varname
+                )
+                return
+        self.treeview.reply = reply
+        super().accept()
+
+    def reject(self) -> None:
+        self.treeview.reply = {'accepted': False}
+        super().reject()
+
+    def select_directory(self):
+        """Select directory"""
+        basedir = to_text_string(self.wd_edit.text())
+        if not os.path.isdir(basedir):
+            basedir = getcwd_or_home()
+        directory = getexistingdirectory(self, _("Select directory"), basedir)
+        if directory:
+            self.wd_edit.setText(directory)
+
+
 class NewSpaceDialog(QDialog):
 
     def __init__(self, parent=None, parentList=(), currIndex=0):
@@ -545,17 +651,9 @@ class NewSpaceDialog(QDialog):
         basesTitle = QLabel(_("Base Spaces"))
         self.basesLine = QLineEdit()
         self.basesLine.setReadOnly(True)
+        self.basesLine.setEnabled(False)
         self.basesEditButton = QPushButton(_("Edit"))
         self.basesEditButton.clicked.connect(self.on_base_edit)
-
-        # Change background color to gray
-        pallete = self.basesLine.palette()
-        color = self.palette().color(QPalette.Window)
-        pallete.setColor(
-            QPalette.Base,
-            color
-        )
-        self.basesLine.setPalette(pallete)
 
         self.buttonBox = QDialogButtonBox(self)
         self.buttonBox.setOrientation(Qt.Horizontal)

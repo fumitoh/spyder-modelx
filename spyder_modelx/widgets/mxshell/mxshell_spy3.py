@@ -336,6 +336,31 @@ class MxShellWidget(ShellWidget):
             )
         self.refresh_namespacebrowser()
 
+    def read_model(self, modelpath, name, define_var, varname):
+
+        if spyder.version_info > (4,):
+            self.call_kernel(
+                interrupt=True,
+                blocking=True,
+                timeout=CALL_KERNEL_TIMEOUT).mx_read_model(
+                modelpath, name, define_var, varname)
+        else:
+            if define_var:
+                define_var = "True"
+            else:
+                define_var = "False"
+
+            params = "'%s', '%s', %s, '%s'" % (
+                modelpath, name, define_var, varname
+            )
+            code = "get_ipython().kernel.mx_read_model(" + params + ")"
+            self._mx_wait_reply(
+                None,
+                self.sig_mxupdated,
+                code
+            )
+        self.refresh_namespacebrowser()
+
     def new_space(self, model, parent, name, bases, define_var, varname):
 
         paramlist = "'%s', '%s', '%s', '%s', %s, '%s'" % (

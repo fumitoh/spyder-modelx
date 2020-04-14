@@ -63,7 +63,8 @@ class ModelxKernel(SpyderKernel):
             for call_id, handler in [
                 ('mx_get_modellist', self.mx_get_modellist),
                 ('mx_get_adjacent', self.mx_get_adjacent),
-                ('mx_new_model', self.mx_new_model)
+                ('mx_new_model', self.mx_new_model),
+                ('mx_read_model', self.mx_read_model)
 
             ]:
                 self.frontend_comm.register_call_handler(
@@ -79,7 +80,12 @@ class ModelxKernel(SpyderKernel):
         import modelx as mx
         model = mx.new_model(name)
         self._define_var(define_var, model, varname)
+        self.send_mx_msg("mxupdated")
 
+    def mx_read_model(self, modelpath, name, define_var, varname):
+        import modelx as mx
+        model = mx.read_model(modelpath, name)
+        self._define_var(define_var, model, varname)
         self.send_mx_msg("mxupdated")
 
     def mx_new_space(self, model, parent, name, bases, define_var, varname):
