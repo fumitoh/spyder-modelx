@@ -72,6 +72,8 @@ class MxTreeView(QTreeView):
     def __init__(self, parent=None):
         super().__init__(parent)
 
+        self.activated.connect(self.activated_callback)
+
         self.plugin = parent.plugin
         self.shell = None
         self.reply = None  # To write dialog box result
@@ -104,9 +106,15 @@ class MxTreeView(QTreeView):
         self.action_delete_model = self.contextMenu.addAction(
             "Delete Model"
         )
-        self.action_delete_current = self.contextMenu.addAction(
-            "Delete"
+        self.action_delete_selected = self.contextMenu.addAction(
+            "Delete Selected"
         )
+
+    def activated_callback(self, index):
+        if index.isValid():
+            item = self.currentIndex().internalPointer()
+            if not isinstance(item, ViewItem):
+                self.shell.update_mxproperty(item.itemData['fullname'])
 
     def contextMenuEvent(self, event):
         action = self.contextMenu.exec_(self.mapToGlobal(event.pos()))
@@ -249,7 +257,7 @@ class MxTreeView(QTreeView):
             pass
         elif action == self.action_delete_model:
             pass
-        elif action == self.action_delete_current:
+        elif action == self.action_delete_selected:
             pass
 
 
