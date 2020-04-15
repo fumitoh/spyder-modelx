@@ -64,7 +64,9 @@ class ModelxKernel(SpyderKernel):
                 ('mx_get_modellist', self.mx_get_modellist),
                 ('mx_get_adjacent', self.mx_get_adjacent),
                 ('mx_new_model', self.mx_new_model),
-                ('mx_read_model', self.mx_read_model)
+                ('mx_read_model', self.mx_read_model),
+                ('mx_del_object', self.mx_del_object),
+                ('mx_del_model', self.mx_del_model)
 
             ]:
                 self.frontend_comm.register_call_handler(
@@ -109,6 +111,16 @@ class ModelxKernel(SpyderKernel):
         space = parent.new_space(name=name, bases=bases)
         self._define_var(define_var, space, varname)
 
+        self.send_mx_msg("mxupdated")
+
+    def mx_del_object(self, parent, name):
+        import modelx as mx
+        mx.get_object(parent).__delattr__(name)
+        self.send_mx_msg("mxupdated")
+
+    def mx_del_model(self, name):
+        import modelx as mx
+        mx.get_models()[name].close()
         self.send_mx_msg("mxupdated")
 
     def _define_var(self, define_var, obj, varname):

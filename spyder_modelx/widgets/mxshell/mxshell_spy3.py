@@ -407,6 +407,43 @@ class MxShellWidget(ShellWidget):
         )
         self.refresh_namespacebrowser()
 
+    def del_object(self, parent, name):
+
+        if spyder.version_info > (4,):
+            self.call_kernel(
+                interrupt=True,
+                blocking=True,
+                timeout=CALL_KERNEL_TIMEOUT).mx_del_object(
+                parent, name)
+        else:
+            params = "'%s', '%s'" % (
+                parent, name
+            )
+            code = "get_ipython().kernel.mx_del_object(" + params + ")"
+            self._mx_wait_reply(
+                None,
+                self.sig_mxupdated,
+                code
+            )
+        self.refresh_namespacebrowser()
+
+    def del_model(self, name):
+
+        if spyder.version_info > (4,):
+            self.call_kernel(
+                interrupt=True,
+                blocking=True,
+                timeout=CALL_KERNEL_TIMEOUT).mx_del_model(
+                name)
+        else:
+            code = "get_ipython().kernel.mx_del_model('%s')" % name
+            self._mx_wait_reply(
+                None,
+                self.sig_mxupdated,
+                code
+            )
+        self.refresh_namespacebrowser()
+
     # ---- Override NamespaceBrowserWidget ---
     def refresh_namespacebrowser(self):
         """Refresh namespace browser"""

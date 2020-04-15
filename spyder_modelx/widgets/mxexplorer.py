@@ -45,7 +45,6 @@
 """modelx Widget."""
 import sys, os
 import keyword
-from spyder_modelx.widgets.mxtreemodel import MxTreeModel, ModelItem
 from qtpy.QtCore import Signal, Slot, Qt, QStringListModel, QEventLoop
 from qtpy.QtWidgets import (QHBoxLayout, QLabel, QMenu, QMessageBox, QAction,
                             QToolButton, QVBoxLayout, QWidget, QTreeView,
@@ -64,7 +63,8 @@ from spyder_modelx.widgets.mxcodelist import MxCodeListWidget
 from spyder_modelx.widgets.mxtoolbar import MxToolBarMixin
 from spyder_modelx.widgets.mxcodelist import BaseCodePane
 from spyder_modelx.widgets.mxproperty import MxPropertyWidget
-from spyder_modelx.widgets.mxtreemodel import ViewItem, SpaceItem
+from spyder_modelx.widgets.mxtreemodel import (
+    MxTreeModel, ModelItem, ItemSpaceItem, ViewItem, SpaceItem)
 
 
 class MxTreeView(QTreeView):
@@ -256,9 +256,31 @@ class MxTreeView(QTreeView):
         elif action == self.action_write_model:
             pass
         elif action == self.action_delete_model:
-            pass
+            model = self.plugin.current_widget().model_selector.get_selected_model()
+            if model:
+                self.shell.del_model(model)
+            else:
+                QMessageBox.critical(self, "Error", "No model exits.")
         elif action == self.action_delete_selected:
-            pass
+            index = self.currentIndex()
+            if index.isValid():
+                item = index.internalPointer()
+                if isinstance(item, ViewItem) or isinstance(item, ItemSpaceItem):
+                    pass
+                else:
+                    if index.parent().isValid():
+                        parent = index.parent().internalPointer().fullname
+                        self.shell.del_object(parent, item.name)
+                    else:
+                        parent = self.plugin.current_widget().model_selector.get_selected_model()
+                        if parent:
+                            self.shell.del_object(parent, item.name)
+                        else:
+                            raise RuntimeError("must not happen")
+
+                    QMessageBox.information(
+                        self, "Notice",
+                        "'%s' is deleted from '%s'" % (item.name, parent))
 
 
 class MxExplorer(QWidget):

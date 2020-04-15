@@ -127,6 +127,9 @@ class BaseItem(object):
     def getParams(self):
         raise NotImplementedError
 
+    def __getattr__(self, item):
+        return self.itemData[item]
+
 
 class InterfaceItem(BaseItem):
     """Object item, such as Model, Space, Cells"""
@@ -226,12 +229,15 @@ class SpaceItem(SpaceContainerItem):
             return ''
 
 
+class ItemSpaceItem(SpaceItem): pass
+
+
 class ItemSpaceMapItem(ViewItem):
     """Item class for parent nodes of dynamic spaces of a space."""
     def updateChild(self):
         self.childItems.clear()
         for space in self.itemData.values():
-            self.childItems.append(SpaceItem(space, self))
+            self.childItems.append(ItemSpaceItem(space, self))
 
     def data(self, column):
         if column == 0:
@@ -262,10 +268,6 @@ class RefItem(InterfaceItem):
 
     def getParams(self):
         return ''
-
-
-class CellNodeItem(BaseItem):
-    pass
 
 
 class MxTreeModel(QAbstractItemModel):
