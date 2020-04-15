@@ -444,6 +444,26 @@ class MxShellWidget(ShellWidget):
             )
         self.refresh_namespacebrowser()
 
+
+    def write_model(self, model, modelpath, backup):
+
+        if spyder.version_info > (4,):
+            self.call_kernel(
+                interrupt=True,
+                blocking=True,
+                timeout=CALL_KERNEL_TIMEOUT).mx_write_model(
+                model, modelpath, backup)
+        else:
+            param = "'%s', '%s', %s" % (model, modelpath, str(backup))
+            code = "get_ipython().kernel.mx_write_model(" + param + ")"
+            self._mx_wait_reply(
+                None,
+                self.sig_mxupdated,
+                code
+            )
+        self.refresh_namespacebrowser()
+
+
     # ---- Override NamespaceBrowserWidget ---
     def refresh_namespacebrowser(self):
         """Refresh namespace browser"""

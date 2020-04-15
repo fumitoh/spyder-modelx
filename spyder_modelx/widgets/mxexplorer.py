@@ -254,7 +254,22 @@ class MxTreeView(QTreeView):
                 self.reply = None
 
         elif action == self.action_write_model:
-            pass
+            model = self.plugin.current_widget().model_selector.get_selected_model()
+            if not model:
+                QMessageBox.critical(self, "Error", "No model exits.")
+                return
+
+            dialog = WriteModelDialog(self)
+            dialog.exec()
+
+            if self.reply['accepted']:
+                modelpath = self.reply['directory'] + "/" + self.reply['name']
+                backup = self.reply['backup']
+                self.reply = None
+                self.shell.write_model(model, modelpath, backup)
+            else:
+                self.reply = None
+
         elif action == self.action_delete_model:
             model = self.plugin.current_widget().model_selector.get_selected_model()
             if model:
@@ -641,6 +656,70 @@ class ReadModelDialog(QDialog):
                     'Invalid variable name: %s' % varname
                 )
                 return
+        self.treeview.reply = reply
+        super().accept()
+
+    def reject(self) -> None:
+        self.treeview.reply = {'accepted': False}
+        super().reject()
+
+    def select_directory(self):
+        """Select directory"""
+        basedir = to_text_string(self.wd_edit.text())
+        if not os.path.isdir(basedir):
+            basedir = getcwd_or_home()
+        directory = getexistingdirectory(self, _("Select directory"), basedir)
+        if directory:
+            self.wd_edit.setText(directory)
+
+
+class WriteModelDialog(QDialog):
+
+    def __init__(self, parent=None):
+        QDialog.__init__(
+            self, parent, flags=Qt.WindowSystemMenuHint | Qt.WindowTitleHint)
+        self.setWindowTitle('Write Model')
+        self.treeview = parent
+        self.setAttribute(Qt.WA_DeleteOnClose)
+
+        fixed_dir_layout = QHBoxLayout()
+        browse_btn = QPushButton(ima.icon('DirOpenIcon'), '', self)
+        browse_btn.setToolTip(_("Select model directory"))
+        browse_btn.clicked.connect(self.select_directory)
+        self.wd_edit = QLineEdit()
+        fixed_dir_layout.addWidget(self.wd_edit)
+        fixed_dir_layout.addWidget(browse_btn)
+        fixed_dir_layout.setContentsMargins(0, 0, 0, 0)
+
+        namelabel = QLabel(_("Folder Name"))
+        self.nameEdit = QLineEdit(self)
+
+        self.backupCheck = QCheckBox(_("Back up old folder"))
+        self.backupCheck.setCheckState(Qt.Checked)
+
+        self.buttonBox = QDialogButtonBox(self)
+        self.buttonBox.setOrientation(Qt.Horizontal)
+        self.buttonBox.setStandardButtons(
+            QDialogButtonBox.Cancel|QDialogButtonBox.Ok)
+        self.buttonBox.accepted.connect(self.accept)
+        self.buttonBox.rejected.connect(self.reject)
+
+        mainLayout = QGridLayout(self)
+        mainLayout.addLayout(fixed_dir_layout, 0, 0, 1, 2)
+        mainLayout.addWidget(namelabel, 1, 0)
+        mainLayout.addWidget(self.nameEdit, 1, 1)
+        mainLayout.addWidget(self.backupCheck, 2, 0, 1, 2)
+        mainLayout.addWidget(self.buttonBox, 3, 0, 1, 2)
+        # mainLayout.setContentsMargins(0, 0, 0, 0)
+        self.setLayout(mainLayout)
+
+    def accept(self) -> None:
+        reply = {
+            'accepted': True,
+            'directory': self.wd_edit.text(),
+            'name': self.nameEdit.text(),
+            'backup': self.backupCheck.isChecked()
+        }
         self.treeview.reply = reply
         super().accept()
 

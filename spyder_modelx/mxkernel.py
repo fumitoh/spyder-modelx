@@ -66,7 +66,8 @@ class ModelxKernel(SpyderKernel):
                 ('mx_new_model', self.mx_new_model),
                 ('mx_read_model', self.mx_read_model),
                 ('mx_del_object', self.mx_del_object),
-                ('mx_del_model', self.mx_del_model)
+                ('mx_del_model', self.mx_del_model),
+                ('mx_write_model', self.mx_write_model)
 
             ]:
                 self.frontend_comm.register_call_handler(
@@ -89,6 +90,10 @@ class ModelxKernel(SpyderKernel):
         model = mx.read_model(modelpath, name)
         self._define_var(define_var, model, varname)
         self.send_mx_msg("mxupdated")
+
+    def mx_write_model(self, model, modelpath, backup):
+        import modelx as mx
+        mx.write_model(mx.get_models()[model], modelpath, backup)
 
     def mx_new_space(self, model, parent, name, bases, define_var, varname):
         import modelx as mx
