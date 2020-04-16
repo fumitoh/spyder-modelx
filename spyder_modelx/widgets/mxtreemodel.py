@@ -299,11 +299,19 @@ class MxTreeModel(QAbstractItemModel):
 
             if delItems:
                 delRows = sorted([item.row() for item in delItems])
+                # https://stackoverflow.com/questions/10420464/group-list-of-ints-by-continuous-sequence
                 delRows = [list(g) for _, g in itertools.groupby(
                     delRows, key=lambda n, c=itertools.count(): n-next(c))]
 
+                # Example:
+                # delRows = [2,3,4,7,8,9]
+                # key(n): delRows -> [2, 2, 2, 4, 4, 4]
+                # delRows = [[2,3,4],[7,8,9]]
+
+                shift = 0
                 for rows in delRows:
-                    self.removeRows(rows[0], len(rows), index)
+                    self.removeRows(rows[0]-shift, len(rows), index)
+                    shift += len(rows)
 
             addItems = set(newitem.childItems) - set(item.childItems)
 
@@ -338,8 +346,10 @@ class MxTreeModel(QAbstractItemModel):
 
         self.beginRemoveRows(parent, position, position + rows - 1)
 
-        for row in range(position, position + rows):
-            item.childItems.pop(row)
+        # for row in range(position, position + rows):
+        while rows > 0:
+            item.childItems.pop(position)
+            rows -= 1
 
         self.endRemoveRows()
 
