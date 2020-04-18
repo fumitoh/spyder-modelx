@@ -49,7 +49,7 @@ import time
 import cloudpickle
 from qtpy.QtCore import Signal, Slot, Qt, QEventLoop
 from qtpy.QtWidgets import QMessageBox
-from spyder.widgets.reporterror import SpyderErrorDialog
+# from spyder.widgets.reporterror import SpyderErrorDialog
 
 import spyder
 from spyder.config.base import _, debug_print
