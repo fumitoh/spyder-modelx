@@ -1019,14 +1019,14 @@ class MxDataWidget(QWidget):
     def _sizeHintForColumn(self, table, col, limit_ms=None):
         """Get the size hint for a given column in a table."""
         max_row = table.model().rowCount()
-        lm_start = time.clock()
+        lm_start = time.perf_counter()
         lm_row = 64 if limit_ms else max_row
         max_width = 0
         for row in range(max_row):
             v = table.sizeHintForIndex(table.model().index(row, col))
             max_width = max(max_width, v.width())
             if row > lm_row:
-                lm_now = time.clock()
+                lm_now = time.perf_counter()
                 lm_elapsed = (lm_now - lm_start) * 1000
                 if lm_elapsed >= limit_ms:
                     break
