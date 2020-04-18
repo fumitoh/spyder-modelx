@@ -103,12 +103,13 @@ class MxTreeView(QTreeView):
         self.action_write_model = self.contextMenu.addAction(
             "Write Model"
         )
-        self.action_delete_model = self.contextMenu.addAction(
-            "Delete Model"
-        )
         self.action_delete_selected = self.contextMenu.addAction(
             "Delete Selected"
         )
+        self.action_delete_model = self.contextMenu.addAction(
+            "Delete Model"
+        )
+
 
     def activated_callback(self, index):
         if index.isValid():
@@ -273,7 +274,14 @@ class MxTreeView(QTreeView):
         elif action == self.action_delete_model:
             model = self.plugin.current_widget().model_selector.get_selected_model()
             if model:
-                self.shell.del_model(model)
+                answer = QMessageBox.question(
+                    self, _("Delete Model"),
+                    _("Do you want to delete %s?" % model),
+                    QMessageBox.Yes | QMessageBox.No)
+                if answer == QMessageBox.Yes:
+                    self.shell.del_model(model)
+                else:
+                    return
             else:
                 QMessageBox.critical(self, "Error", "No model exits.")
         elif action == self.action_delete_selected:
