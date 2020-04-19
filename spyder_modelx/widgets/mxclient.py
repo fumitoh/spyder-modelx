@@ -92,6 +92,7 @@ class MxClientWidget(ClientWidget):
         SaveHistoryMixin.__init__(self, history_filename)
 
         # --- Init attrs
+        self.plugin = plugin
         self.id_ = id_
         self.connection_file = connection_file
         self.hostname = hostname
@@ -116,6 +117,7 @@ class MxClientWidget(ClientWidget):
         self.allow_rename = True
         self.stderr_dir = None
         self.is_error_shown = False
+        self.restart_thread = None
 
         if "css_path" in kwargs:
             if kwargs["css_path"] is None:
@@ -143,7 +145,10 @@ class MxClientWidget(ClientWidget):
         # To keep a reference to the page to be displayed
         # in infowidget
         self.info_page = None
-        self._show_loading_page()
+        if spyder.version_info < (4, 1):
+            self._show_loading_page()
+        else:
+            self._before_prompt_is_ready()
 
         # Elapsed time
         self.time_label = None
@@ -179,9 +184,6 @@ class MxClientWidget(ClientWidget):
 
         # Show timer
         self.update_time_label_visibility()
-
-        # Fix error while run file
-        self.plugin = plugin
 
     def get_name(self):
         """Return client name"""
