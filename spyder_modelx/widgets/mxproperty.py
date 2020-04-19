@@ -12,9 +12,10 @@ COL_HEADER = "Property", "Value"
 
 Property = namedtuple(
     "Property",
-    ["attr", "title", "is_editable", "editor", "is_multiple", "to_text"],
-    defaults=[False, None, False, None]
+    ["attr", "title", "is_editable", "editor", "is_multiple", "to_text"]
 )
+
+property_defaults = (False, None, False, None)
 
 
 class BasePropertyData:
@@ -66,18 +67,14 @@ class BasePropertyData:
 class SpacePropertyData(BasePropertyData):
 
     properties = [
-        Property("type", "Type"),
-        Property("repr", "Name"),
-        Property("_evalrepr", "Full Name"),
+        Property(*(("type", "Type") + property_defaults)),
+        Property(*("repr", "Name") + property_defaults),
+        Property(*("_evalrepr", "Full Name") + property_defaults),
         Property("parameters", "Parameters", False, None, False,
                  lambda args: ", ".join(args)),
         Property("bases", "Base Spaces", False, None, False,
                  lambda args: ", ".join(args)),
-        # Property("parent", "Parent"),
-        # Property("bases", "Base Spaces"),
-        # Property("is_derived", "Is Derived"),
-        Property("allow_none", "Allow None")
-        # Property("formula", "Formula")
+        Property(*(("allow_none", "Allow None") + property_defaults))
     ]
     visibleIndexes = list(range(len(properties)))
 
@@ -85,9 +82,9 @@ class SpacePropertyData(BasePropertyData):
 class ItemSpacePropertyData(BasePropertyData):
 
     properties = [
-        Property("type", "Type"),
-        Property("repr", "Parent[Args]"),
-        Property("_evalrepr", "Full Name"),
+        Property(*(("type", "Type") + property_defaults)),
+        Property(*(("repr", "Parent[Args]") + property_defaults)),
+        Property(*(("_evalrepr", "Full Name") + property_defaults)),
         Property("bases", "Base Spaces", False, None, False,
                  lambda args: ", ".join(args))
     ]
@@ -97,16 +94,12 @@ class ItemSpacePropertyData(BasePropertyData):
 class CellsPropertyData(BasePropertyData):
 
     properties = [
-        Property("type", "Type"),
-        Property("repr", "Name"),
-        Property("_evalrepr", "Full Name"),
+        Property(*(("type", "Type") + property_defaults)),
+        Property(*(("repr", "Name") + property_defaults)),
+        Property(*(("_evalrepr", "Full Name") + property_defaults)),
         Property("parameters", "Parameters", False, None, False,
                  lambda args: ", ".join(args)),
-        # Property("parent", "Parent"),
-        # Property("bases", "Base Spaces"),
-        # Property("is_derived", "Is Derived"),
-        Property("allow_none", "Allow None")
-        # Property("formula", "Formula")
+        Property(*(("allow_none", "Allow None") + property_defaults))
     ]
     visibleIndexes = list(range(len(properties)))
 
@@ -114,15 +107,10 @@ class CellsPropertyData(BasePropertyData):
 class ReferencePropertyData(BasePropertyData):
 
     properties = [
-        Property("type", "Type"),
-        Property("repr", "Name"),
-        Property("_evalrepr", "Full Name"),
-        # Property("parent", "Parent"),
-        # Property("bases", "Base Spaces"),
-        # Property("is_derived", "Is Derived"),
-        # Property("allow_none", "Allow None"),
-        Property("value_type", "Value Type")
-        # Property("formula", "Formula")
+        Property(*(("type", "Type") + property_defaults)),
+        Property(*(("repr", "Name") + property_defaults)),
+        Property(*(("_evalrepr", "Full Name") + property_defaults)),
+        Property(*(("value_type", "Value Type") + property_defaults))
     ]
     visibleIndexes = list(range(len(properties)))
 
