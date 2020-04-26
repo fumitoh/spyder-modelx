@@ -61,7 +61,7 @@ from spyder.utils.misc import getcwd_or_home
 from spyder.utils import icon_manager as ima
 from spyder_modelx.widgets.mxcodelist import MxCodeListWidget
 from spyder_modelx.widgets.mxtoolbar import MxToolBarMixin
-from spyder_modelx.widgets.mxcodelist import BaseCodePane
+from spyder_modelx.widgets.mxcodeeditor import BaseCodePane
 from spyder_modelx.widgets.mxproperty import MxPropertyWidget
 from spyder_modelx.widgets.mxtreemodel import (
     MxTreeModel, ModelItem, ItemSpaceItem, ViewItem, SpaceItem)

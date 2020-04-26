@@ -5,7 +5,8 @@ from qtpy.QtWidgets import (
     QTableView, QApplication, QTreeView, QStyledItemDelegate,
     QMessageBox, QLineEdit, QWidget, QVBoxLayout, QScrollArea
 )
-from spyder_modelx.widgets.mxcodelist import BaseCodePane
+from spyder_modelx.widgets.mxcodeeditor import BaseCodePane, CodeEditor
+from spyder_modelx.utility.formula import is_funcdef_or_lambda
 
 COLS = COL_TITLE, COL_VALUE = range(2)
 COL_HEADER = "Property", "Value"
@@ -16,6 +17,21 @@ Property = namedtuple(
 )
 
 property_defaults = (False, None, False, None)
+
+
+class FormulaEditor(CodeEditor):
+
+    def __init__(self, parent):
+        self.init_finished = False
+        CodeEditor.__init__(self, parent)
+
+        self.text_before_focus = None
+        self.init_finished = True
+
+    def focusInEvent(self, event):
+        """Reimplemented to handle focus"""
+        self.text_before_focus = self.toPlainText()
+        super().focusInEvent(event)
 
 
 class BasePropertyData:
@@ -63,6 +79,13 @@ class BasePropertyData:
     def __contains__(self, item):
         return item in self.data
 
+    def __getattr__(self, item):
+        props = {prop.attr: prop for prop in self.properties}
+        if item in props:
+            return props[item]
+        else:
+            raise AttributeError
+
 
 class SpacePropertyData(BasePropertyData):
 
@@ -74,9 +97,10 @@ class SpacePropertyData(BasePropertyData):
                  lambda args: ", ".join(args)),
         Property("bases", "Base Spaces", False, None, False,
                  lambda args: ", ".join(args)),
-        Property(*(("allow_none", "Allow None") + property_defaults))
+        Property(*(("allow_none", "Allow None") + property_defaults)),
+        Property("formula", "Formula", False, None, False, None)
     ]
-    visibleIndexes = list(range(len(properties)))
+    visibleIndexes = list(range(len(properties)))[:-1]
 
 
 class ItemSpacePropertyData(BasePropertyData):
@@ -99,9 +123,10 @@ class CellsPropertyData(BasePropertyData):
         Property(*(("_evalrepr", "Full Name") + property_defaults)),
         Property("parameters", "Parameters", False, None, False,
                  lambda args: ", ".join(args)),
-        Property(*(("allow_none", "Allow None") + property_defaults))
+        Property(*(("allow_none", "Allow None") + property_defaults)),
+        Property("formula", "Formula", True, None, False, None)
     ]
-    visibleIndexes = list(range(len(properties)))
+    visibleIndexes = list(range(len(properties)))[:-1]
 
 
 class ReferencePropertyData(BasePropertyData):
@@ -170,13 +195,17 @@ class MxPropertyModel(QAbstractItemModel):
         self.beginResetModel()
         self.propertyData = klass(data)
         self.endResetModel()
-        if "formula" in self.propertyData:
+        if hasattr(self.propertyData, "formula"):
             if self.propertyData["formula"]:
                 s = self.propertyData["formula"]["source"]
             else:
                 s = ""
+            self.formulaPane.editor.setReadOnly(
+                not self.propertyData.formula.is_editable
+            )
         else:
             s = ""
+            self.formulaPane.editor.setReadOnly(True)
         self.formulaPane.editor.set_text(s)
 
     def rowCount(self, parent):     # pure virtual
@@ -246,6 +275,7 @@ class MxPropertyWidget(QScrollArea):
 
     def __init__(self, parent):
         super().__init__(parent)
+        self.shell = None   # To be set by MxShellWidget
         self.plugin = parent.plugin
         self._parent = parent
         layout = QVBoxLayout()
@@ -257,8 +287,10 @@ class MxPropertyWidget(QScrollArea):
         self.setWidgetResizable(True)
         # self.setContentsMargins(0, 0, 0, 0)
 
-        self.fomulaPane = BaseCodePane(self, title='Formula')
-        self.fomulaPane.editor.setReadOnly(True)
+        self.fomulaPane = BaseCodePane(self, title='Formula',
+                                       editor_type=FormulaEditor)
+
+        self.fomulaPane.editor.sig_focus_changed.connect(self.formula_updated)
 
         layout.addWidget(self.fomulaPane)
         layout.setStretch(1, 1)
@@ -274,6 +306,24 @@ class MxPropertyWidget(QScrollArea):
                 self.view.setModel(MxPropertyModel(parent=self, data=data))
         else:
             self.view.setModel(None)
+
+    def formula_updated(self):
+        if not self.view.model():
+            return
+
+        editor = self.fomulaPane.editor
+        text = editor.toPlainText()
+        if editor.text_before_focus != text:
+            data = self.view.model().propertyData
+            if is_funcdef_or_lambda(text):
+                self.shell.set_formula(data["fullname"], text)
+                self.shell.update_mxproperty(data["fullname"])
+            else:
+                QMessageBox.warning(
+                    self, 'Error',
+                    'Invalid formula definition or lambda expression')
+
+                self.shell.update_mxproperty(data["fullname"])
 
 
 if __name__ == '__main__':

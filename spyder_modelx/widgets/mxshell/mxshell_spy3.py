@@ -62,7 +62,7 @@ from spyder.py3compat import PY2, to_text_string
 
 from spyder_modelx.util import TupleEncoder, hinted_tuple_hook
 from spyder_modelx.utility.formula import (
-    is_funcdef, has_lambda, replace_funcname, get_funcname)
+    is_funcdef, is_lambda, replace_funcname, get_funcname)
 
 if spyder.version_info > (4,):
     from spyder.plugins.ipythonconsole.widgets.namespacebrowser import (
@@ -248,6 +248,7 @@ class MxShellWidget(ShellWidget):
     # ---- modelx property widget ----
     def set_mxproperty(self, mxproperty):
         """Set modelx dataview widget"""
+        mxproperty.shell = self
         self.mxproperty = mxproperty
         self.configure_mxproperty()
 
@@ -383,7 +384,7 @@ class MxShellWidget(ShellWidget):
                     if not name:
                         name = get_funcname(formula)
                     formula = replace_funcname(formula, "__mx_temp")
-                elif has_lambda(formula):
+                elif is_lambda(formula):
                     formula = "__mx_temp = " + formula.lstrip()
                 else:
                     QMessageBox.critical(self,
@@ -398,6 +399,23 @@ class MxShellWidget(ShellWidget):
             model, parent, name, str(define_var), varname
         )
         code = "get_ipython().kernel.mx_new_cells(" + paramlist + ")"
+        code = formula + "\n" + code
+
+        self._mx_wait_reply(
+            None,
+            self.sig_mxupdated,
+            code
+        )
+        self.refresh_namespacebrowser()
+
+    def set_formula(self, fullname, formula):
+
+        if is_funcdef(formula):
+            formula = replace_funcname(formula, "__mx_temp")
+        elif is_lambda(formula):
+            formula = "__mx_temp = " + formula.lstrip()
+
+        code = "get_ipython().kernel.mx_set_formula('%s')" % fullname
         code = formula + "\n" + code
 
         self._mx_wait_reply(

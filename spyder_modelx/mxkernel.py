@@ -171,6 +171,20 @@ class ModelxKernel(SpyderKernel):
         self._define_var(define_var,cells, varname)
         self.send_mx_msg("mxupdated")
 
+    def mx_set_formula(self, fullname):
+        import modelx as mx
+
+        obj = mx.get_object(fullname)
+        ns = self._mglobals()
+        if "__mx_temp" in ns:
+            formula = ns["__mx_temp"]
+            del ns["__mx_temp"]
+        else:
+            formula = None
+
+        obj.set_formula(formula)
+        self.send_mx_msg("mxupdated")
+
     def _get_or_create_model(self, model):
         """
         if model is blank, current model is used if exits, otherwise new model

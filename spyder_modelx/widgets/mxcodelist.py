@@ -43,51 +43,12 @@ from textwrap import dedent
 # Third party imports
 from qtpy.QtCore import (Qt, Signal, Slot,
                          QAbstractListModel)
-from qtpy.QtGui import QFont
+
 from qtpy.QtWidgets import (QLabel, QVBoxLayout, QWidget,
                             QMainWindow, QScrollArea,
                             QAbstractItemView)
 
-import spyder
-if spyder.version_info < (4,):
-    from spyder.widgets.sourcecode.codeeditor import CodeEditor
-else:
-    from spyder.plugins.editor.widgets.codeeditor import CodeEditor
-
-
-class BaseCodePane(QWidget):
-
-    def __init__(self, parent, title='', code=''):
-        QWidget.__init__(self, parent)
-
-        self.editor = editor = CodeEditor(self)
-        self.plugin = plugin = parent.plugin
-
-        if self.plugin:
-            if spyder.version_info < (4,):
-                font = self.plugin.get_plugin_font()
-            else:
-                font = self.plugin.get_font()
-
-            color_scheme = self.plugin.get_color_scheme()
-        else:
-            font = QFont("Courier New", 10)
-            color_scheme = 'Spyder'
-
-        editor.setup_editor(linenumbers=False, language='Python',
-                            markers=True, tab_mode=False,
-                            font=font,
-                            show_blanks=False,
-                            color_scheme=color_scheme,
-                            scrollflagarea=False)
-
-        editor.fontMetrics().lineSpacing()
-
-        layout = QVBoxLayout()
-        layout.setContentsMargins(0, 0, 0, 0)
-        layout.addWidget(QLabel(title))
-        layout.addWidget(editor)  # , stretch=1)
-        self.setLayout(layout)
+from spyder_modelx.widgets.mxcodeeditor import BaseCodePane
 
 
 class CodePane(BaseCodePane):
