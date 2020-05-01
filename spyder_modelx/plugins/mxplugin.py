@@ -142,7 +142,7 @@ class ModelxPlugin(MxStackedMixin, SpyderPluginWidget):
 
         create_client_action = create_action(
                                    self,
-                                   _("Open a &MxConsole"),
+                                   _("New MxConsole"),
                                    icon=ima.icon('ipython_console'),
                                    triggered=self.create_new_client,
                                    context=Qt.WidgetWithChildrenShortcut)
