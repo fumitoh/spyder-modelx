@@ -492,7 +492,7 @@ class MxShellWidget(ShellWidget):
             super(MxShellWidget, self).refresh_namespacebrowser(
                 interrupt=True
             )
-        if self.namespacebrowser:
+        if self.namespacebrowser and self.spyder_kernel_comm.is_open():
             mlist = self.get_modellist()
             name = self.mxmodelselector.get_selected_model(mlist)
             self.update_modeltree(name)
