@@ -378,8 +378,8 @@ class MxAnalyzerWidget(MxToolBarMixin, QWidget):
         self.tabs = {'preds': self.preds,
                      'succs': self.succs}
 
-        self.tabwidget.addTab(self.preds, 'Predecessors')
-        self.tabwidget.addTab(self.succs, 'Successors')
+        self.tabwidget.addTab(self.preds, 'Precedents')
+        self.tabwidget.addTab(self.succs, 'Dependents')
 
         layout = create_plugin_layout(self.tools_layout, self.tabwidget)
         self.setFocusPolicy(Qt.ClickFocus)
