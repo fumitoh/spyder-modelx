@@ -5,7 +5,7 @@ from qtpy.QtWidgets import (
     QTableView, QApplication, QTreeView, QStyledItemDelegate,
     QMessageBox, QLineEdit, QWidget, QVBoxLayout, QScrollArea
 )
-from spyder_modelx.widgets.mxcodeeditor import BaseCodePane, CodeEditor
+from spyder_modelx.widgets.mxcodeeditor import BaseCodePane, MxCodeEditor
 from spyder_modelx.utility.formula import is_funcdef_or_lambda
 
 COLS = COL_TITLE, COL_VALUE = range(2)
@@ -19,11 +19,11 @@ Property = namedtuple(
 property_defaults = (False, None, False, None)
 
 
-class FormulaEditor(CodeEditor):
+class FormulaEditor(MxCodeEditor):
 
     def __init__(self, parent):
         self.init_finished = False
-        CodeEditor.__init__(self, parent)
+        MxCodeEditor.__init__(self, parent)
 
         self.text_before_focus = None
         self.init_finished = True

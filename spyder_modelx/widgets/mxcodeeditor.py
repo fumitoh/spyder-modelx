@@ -39,20 +39,103 @@
 
 
 from qtpy.QtGui import QFont
-from qtpy.QtWidgets import (QLabel, QVBoxLayout, QWidget,
+from qtpy.QtWidgets import (QLabel, QVBoxLayout, QWidget, QMenu,
                             QMainWindow, QScrollArea,
                             QAbstractItemView)
 
 import spyder
 if spyder.version_info < (4,):
-    from spyder.widgets.sourcecode.codeeditor import CodeEditor
+    from spyder.widgets.sourcecode.codeeditor import (
+        create_action,
+        ima,
+        _,
+        CodeEditor,
+        CONF,
+        add_actions,
+        to_text_string,
+        QTextCursor
+    )
 else:
-    from spyder.plugins.editor.widgets.codeeditor import CodeEditor
+    from spyder.plugins.editor.widgets.codeeditor import (
+        create_action,
+        ima,
+        _,
+        CodeEditor,
+        CONF,
+        add_actions,
+        to_text_string,
+        QTextCursor
+    )
+
+
+class MxCodeEditor(CodeEditor):
+
+    def setup_context_menu(self):
+        """Setup context menu"""
+        self.undo_action = create_action(
+            self, _("Undo"), icon=ima.icon('undo'),
+            shortcut=CONF.get_shortcut('editor', 'undo'), triggered=self.undo)
+        self.redo_action = create_action(
+            self, _("Redo"), icon=ima.icon('redo'),
+            shortcut=CONF.get_shortcut('editor', 'redo'), triggered=self.redo)
+        self.cut_action = create_action(
+            self, _("Cut"), icon=ima.icon('editcut'),
+            shortcut=CONF.get_shortcut('editor', 'cut'), triggered=self.cut)
+        self.copy_action = create_action(
+            self, _("Copy"), icon=ima.icon('editcopy'),
+            shortcut=CONF.get_shortcut('editor', 'copy'), triggered=self.copy)
+        self.paste_action = create_action(
+            self, _("Paste"), icon=ima.icon('editpaste'),
+            shortcut=CONF.get_shortcut('editor', 'paste'),
+            triggered=self.paste)
+        selectall_action = create_action(
+            self, _("Select All"), icon=ima.icon('selectall'),
+            shortcut=CONF.get_shortcut('editor', 'select all'),
+            triggered=self.selectAll)
+        toggle_comment_action = create_action(
+            self, _("Comment")+"/"+_("Uncomment"), icon=ima.icon('comment'),
+            shortcut=CONF.get_shortcut('editor', 'toggle comment'),
+            triggered=self.toggle_comment)
+
+        # Build menu
+        self.menu = QMenu(self)
+        actions_1 = [self.undo_action,
+                     self.redo_action, None, self.cut_action,
+                     self.copy_action, self.paste_action, selectall_action]
+        actions_2 = [None, toggle_comment_action]
+        actions = actions_1 + actions_2
+        add_actions(self.menu, actions)
+
+        # Read-only context-menu
+        self.readonly_menu = QMenu(self)
+        add_actions(self.readonly_menu,
+                    (self.copy_action, selectall_action))
+
+    def contextMenuEvent(self, event):
+        """Reimplement Qt method"""
+        nonempty_selection = self.has_selected_text()
+        self.copy_action.setEnabled(nonempty_selection)
+        self.cut_action.setEnabled(nonempty_selection)
+
+        # Code duplication go_to_definition_from_cursor and mouse_move_event
+        cursor = self.textCursor()
+        text = to_text_string(cursor.selectedText())
+        if len(text) == 0:
+            cursor.select(QTextCursor.WordUnderCursor)
+            text = to_text_string(cursor.selectedText())
+
+        self.undo_action.setEnabled(self.document().isUndoAvailable())
+        self.redo_action.setEnabled(self.document().isRedoAvailable())
+        menu = self.menu
+        if self.isReadOnly():
+            menu = self.readonly_menu
+        menu.popup(event.globalPos())
+        event.accept()
 
 
 class BaseCodePane(QWidget):
 
-    def __init__(self, parent, title='', code='', editor_type=CodeEditor):
+    def __init__(self, parent, title='', code='', editor_type=MxCodeEditor):
         QWidget.__init__(self, parent)
 
         self.editor = editor = editor_type(self)
