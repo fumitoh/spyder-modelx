@@ -44,7 +44,7 @@ def get_description():
     return data
 
 
-REQUIREMENTS = ['spyder>=3.2.5', 'modelx>=0.3.0', 'asttokens']
+REQUIREMENTS = ['spyder>=3.2.5', 'modelx>=0.6.0', 'asttokens']
 
 
 setup(
