@@ -5,6 +5,7 @@ from qtpy.QtWidgets import (
     QTableView, QApplication, QTreeView, QStyledItemDelegate,
     QMessageBox, QLineEdit, QWidget, QVBoxLayout, QScrollArea
 )
+import spyder
 from spyder_modelx.widgets.mxcodeeditor import BaseCodePane, MxCodeEditor
 from spyder_modelx.utility.formula import is_funcdef_or_lambda
 
@@ -290,7 +291,10 @@ class MxPropertyWidget(QScrollArea):
         self.fomulaPane = BaseCodePane(self, title='Formula',
                                        editor_type=FormulaEditor)
 
-        self.fomulaPane.editor.sig_focus_changed.connect(self.formula_updated)
+        if spyder.version_info < (4,):
+            self.fomulaPane.editor.focus_changed.connect(self.formula_updated)
+        else:
+            self.fomulaPane.editor.sig_focus_changed.connect(self.formula_updated)
 
         layout.addWidget(self.fomulaPane)
         layout.setStretch(1, 1)
