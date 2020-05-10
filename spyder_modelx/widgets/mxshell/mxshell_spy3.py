@@ -481,22 +481,31 @@ class MxShellWidget(ShellWidget):
             )
         self.refresh_namespacebrowser()
 
+    if spyder.version_info < (4,):
+        # ---- Override NamespaceBrowserWidget ---
+        def refresh_namespacebrowser(self):
+            """Refresh namespace browser"""
 
-    # ---- Override NamespaceBrowserWidget ---
-    def refresh_namespacebrowser(self):
-        """Refresh namespace browser"""
-
-        if spyder.version_info < (4,):
             super(MxShellWidget, self).refresh_namespacebrowser()
-        else:
+
+            if self.namespacebrowser and self.spyder_kernel_comm.is_open():
+                mlist = self.get_modellist()
+                name = self.mxmodelselector.get_selected_model(mlist)
+                self.update_modeltree(name)
+                self.update_mxdataview()
+    else:
+        # ---- Override NamespaceBrowserWidget ---
+        def refresh_namespacebrowser(self, interrupt=False):
+            """Refresh namespace browser"""
+
             super(MxShellWidget, self).refresh_namespacebrowser(
-                interrupt=True
+                interrupt=interrupt
             )
-        if self.namespacebrowser and self.spyder_kernel_comm.is_open():
-            mlist = self.get_modellist()
-            name = self.mxmodelselector.get_selected_model(mlist)
-            self.update_modeltree(name)
-            self.update_mxdataview()
+            if self.namespacebrowser and self.spyder_kernel_comm.is_open():
+                mlist = self.get_modellist()
+                name = self.mxmodelselector.get_selected_model(mlist)
+                self.update_modeltree(name)
+                self.update_mxdataview()
 
     # ---- Private API (defined by us) ------------------------------
     def mx_silent_exec_method(self, usrexp=None, code=''):
