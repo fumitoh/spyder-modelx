@@ -958,8 +958,8 @@ class NewCellsDialog(QDialog):
         self.nameEdit = QLineEdit(self)
         self.importWidget = ImportAsWidget(self, self.nameEdit)
 
-        self.fomulaPane = BaseCodePane(parent, title='Formula')
-        self.fomulaPane.editor.setReadOnly(False)
+        self.formulaPane = BaseCodePane(parent, title='Formula')
+        self.formulaPane.editor.setReadOnly(False)
 
         self.buttonBox = QDialogButtonBox(self)
         self.buttonBox.setOrientation(Qt.Horizontal)
@@ -974,7 +974,7 @@ class NewCellsDialog(QDialog):
         mainLayout.addWidget(nameLabel, 1, 0)
         mainLayout.addWidget(self.nameEdit, 1, 1)
         mainLayout.addWidget(self.importWidget, 2, 0, 1, 2)
-        mainLayout.addWidget(self.fomulaPane, 3, 0, 1, 2)
+        mainLayout.addWidget(self.formulaPane, 3, 0, 1, 2)
         mainLayout.addWidget(self.buttonBox, 4, 0, 1, 2)
         mainLayout.setRowStretch(3, 1)
         self.setLayout(mainLayout)
@@ -984,7 +984,7 @@ class NewCellsDialog(QDialog):
             'accepted': True,
             'name': self.nameEdit.text(),
             'parent': self.parentBox.currentText(),
-            'formula': self.fomulaPane.editor.toPlainText(),
+            'formula': self.formulaPane.editor.toPlainText(),
             'define_var': self.importWidget.shouldImport.isChecked(),
             'varname': self.importWidget.nameEdit.text()
         }

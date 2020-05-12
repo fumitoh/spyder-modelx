@@ -203,7 +203,10 @@ class ModelxKernel(SpyderKernel):
         if fullname is None:
             obj = mx.cur_model()
         else:
-            obj = mx.get_object(fullname, as_proxy=True)
+            try:
+                obj = mx.get_object(fullname, as_proxy=True)
+            except NameError:
+                obj = None
 
         if obj is not None:
             if attrs is None:

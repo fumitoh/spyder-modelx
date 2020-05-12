@@ -170,7 +170,7 @@ class MxPropertyView(QTreeView):
     def __init__(self, parent=None):
         QTreeView.__init__(self, parent)
         self._parent = parent
-        # self.formulaPane = parent.fomulaPane
+        # self.formulaPane = parent.formulaPane
         self.setRootIsDecorated(False)
         self.setAlternatingRowColors(False)
         # self.doubleClicked.connect(self.openEditor)
@@ -188,7 +188,7 @@ class MxPropertyModel(QAbstractItemModel):
 
     def __init__(self, parent=None, data=None):
         super(MxPropertyModel, self).__init__(parent)
-        self.formulaPane = parent.fomulaPane
+        self.formulaPane = parent.formulaPane
         self.resetPropData(data)
 
     def resetPropData(self, data):
@@ -288,15 +288,15 @@ class MxPropertyWidget(QScrollArea):
         self.setWidgetResizable(True)
         # self.setContentsMargins(0, 0, 0, 0)
 
-        self.fomulaPane = BaseCodePane(self, title='Formula',
+        self.formulaPane = BaseCodePane(self, title='Formula',
                                        editor_type=FormulaEditor)
 
         if spyder.version_info < (4,):
-            self.fomulaPane.editor.focus_changed.connect(self.formula_updated)
+            self.formulaPane.editor.focus_changed.connect(self.formula_updated)
         else:
-            self.fomulaPane.editor.sig_focus_changed.connect(self.formula_updated)
+            self.formulaPane.editor.sig_focus_changed.connect(self.formula_updated)
 
-        layout.addWidget(self.fomulaPane)
+        layout.addWidget(self.formulaPane)
         layout.setStretch(1, 1)
         self.setLayout(layout)
 
@@ -310,12 +310,14 @@ class MxPropertyWidget(QScrollArea):
                 self.view.setModel(MxPropertyModel(parent=self, data=data))
         else:
             self.view.setModel(None)
+            self.formulaPane.editor.set_text("")
+            self.formulaPane.editor.setReadOnly(True)
 
     def formula_updated(self):
         if not self.view.model():
             return
 
-        editor = self.fomulaPane.editor
+        editor = self.formulaPane.editor
         text = editor.toPlainText()
         if editor.text_before_focus != text:
             data = self.view.model().propertyData

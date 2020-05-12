@@ -263,6 +263,12 @@ class MxShellWidget(ShellWidget):
         val = self.mx_silent_exec_method(code)
         return val
 
+    def reload_mxproperty(self):
+        model = self.mxproperty.view.model()
+        if model and model.propertyData:
+            fullname = model.propertyData["fullname"]
+            return self.update_mxproperty(fullname)
+
     def _mx_wait_reply(self, usrexp, sig, code=''):
 
         wait_loop = QEventLoop()
@@ -462,7 +468,6 @@ class MxShellWidget(ShellWidget):
             )
         self.refresh_namespacebrowser()
 
-
     def write_model(self, model, modelpath, backup):
 
         if spyder.version_info > (4,):
@@ -492,6 +497,7 @@ class MxShellWidget(ShellWidget):
                 mlist = self.get_modellist()
                 name = self.mxmodelselector.get_selected_model(mlist)
                 self.update_modeltree(name)
+                self.reload_mxproperty()
                 self.update_mxdataview()
     else:
         # ---- Override NamespaceBrowserWidget ---
@@ -505,6 +511,7 @@ class MxShellWidget(ShellWidget):
                 mlist = self.get_modellist()
                 name = self.mxmodelselector.get_selected_model(mlist)
                 self.update_modeltree(name)
+                self.reload_mxproperty()
                 self.update_mxdataview()
 
     # ---- Private API (defined by us) ------------------------------
