@@ -1,12 +1,13 @@
 
 from collections import namedtuple
-from qtpy.QtCore import QAbstractItemModel, QModelIndex, Qt
+from qtpy.QtCore import QAbstractItemModel, QModelIndex, Qt, Slot, QMetaMethod
 from qtpy.QtWidgets import (
     QTableView, QApplication, QTreeView, QStyledItemDelegate,
-    QMessageBox, QLineEdit, QWidget, QVBoxLayout, QScrollArea
+    QMessageBox, QLineEdit, QWidget, QVBoxLayout, QScrollArea,
+    QDialogButtonBox, QPushButton, QHBoxLayout, QLabel
 )
 import spyder
-from spyder_modelx.widgets.mxcodeeditor import BaseCodePane, MxCodeEditor
+from spyder_modelx.widgets.mxcodeeditor import _, BaseCodePane, MxCodeEditor
 from spyder_modelx.utility.formula import is_funcdef_or_lambda
 
 COLS = COL_TITLE, COL_VALUE = range(2)
@@ -20,19 +21,71 @@ Property = namedtuple(
 property_defaults = (False, None, False, None)
 
 
-class FormulaEditor(MxCodeEditor):
+class FormulaPane(BaseCodePane):
 
-    def __init__(self, parent):
-        self.init_finished = False
-        MxCodeEditor.__init__(self, parent)
+    def __init__(self, parent, title='', code='', editor_type=MxCodeEditor):
+        super().__init__(parent, title, code, editor_type)
 
-        self.text_before_focus = None
-        self.init_finished = True
+        self.buttonBox = QDialogButtonBox(self)
+        self.buttonBox.setOrientation(Qt.Horizontal)
+        self.saveButton = QPushButton(_("Save"))
+        self.discardButton = QPushButton(_("Discard"))
+        self.buttonBox.addButton(self.saveButton, QDialogButtonBox.AcceptRole)
+        self.buttonBox.addButton(
+            self.discardButton, QDialogButtonBox.RejectRole)
 
-    def focusInEvent(self, event):
-        """Reimplemented to handle focus"""
-        self.text_before_focus = self.toPlainText()
-        super().focusInEvent(event)
+        self.buttonBox.accepted.connect(self.accept)
+        self.buttonBox.rejected.connect(self.reject)
+
+        self.bottomLayout = QHBoxLayout()
+        self.bottomLayout.setContentsMargins(5, 0, 5, 5)
+        self.status = QLabel()
+        self.bottomLayout.addWidget(self.status)
+        self.bottomLayout.addWidget(self.buttonBox)
+        self.layout.addLayout(self.bottomLayout)
+        self.clearCode()
+
+    def setCode(self, source, reconnect=True):
+        self.editor.set_text(source)
+        self.resetModification()
+        if reconnect:
+            self.editor.modificationChanged.connect(self.activateActions)
+        self.editor.setReadOnly(False)
+
+    def clearCode(self):
+        self.editor.set_text("")
+        try:
+            self.editor.modificationChanged.disconnect(self.activateActions)
+        except TypeError:
+            pass
+        self.editor.setReadOnly(True)
+        self.resetModification()
+
+    def resetModification(self):
+        self.editor.document().setModified(False)
+        self.updateStatus()
+        self.saveButton.setEnabled(False)
+        self.discardButton.setEnabled(False)
+
+    def updateStatus(self):
+        modified = self.editor.document().isModified()
+        if modified:
+            self.status.setText("Modified")
+        else:
+            self.status.setText("")
+
+    @Slot(bool)
+    def activateActions(self, status):
+        if status:
+            self.saveButton.setEnabled(True)
+            self.discardButton.setEnabled(True)
+            self.updateStatus()
+
+    def accept(self):
+        self.parent().formula_updated()
+
+    def reject(self):
+        self.parent().shell.reload_mxproperty()
 
 
 class BasePropertyData:
@@ -199,15 +252,11 @@ class MxPropertyModel(QAbstractItemModel):
         if hasattr(self.propertyData, "formula"):
             if self.propertyData["formula"]:
                 s = self.propertyData["formula"]["source"]
+                self.formulaPane.setCode(s)
             else:
-                s = ""
-            self.formulaPane.editor.setReadOnly(
-                not self.propertyData.formula.is_editable
-            )
+                self.formulaPane.clearCode()
         else:
-            s = ""
-            self.formulaPane.editor.setReadOnly(True)
-        self.formulaPane.editor.set_text(s)
+            self.formulaPane.clearCode()
 
     def rowCount(self, parent):     # pure virtual
         if not parent.isValid():
@@ -288,13 +337,8 @@ class MxPropertyWidget(QScrollArea):
         self.setWidgetResizable(True)
         # self.setContentsMargins(0, 0, 0, 0)
 
-        self.formulaPane = BaseCodePane(self, title='Formula',
-                                       editor_type=FormulaEditor)
-
-        if spyder.version_info < (4,):
-            self.formulaPane.editor.focus_changed.connect(self.formula_updated)
-        else:
-            self.formulaPane.editor.sig_focus_changed.connect(self.formula_updated)
+        self.formulaPane = FormulaPane(self, title='Formula',
+                                       editor_type=MxCodeEditor)
 
         layout.addWidget(self.formulaPane)
         layout.setStretch(1, 1)
@@ -310,8 +354,13 @@ class MxPropertyWidget(QScrollArea):
                 self.view.setModel(MxPropertyModel(parent=self, data=data))
         else:
             self.view.setModel(None)
-            self.formulaPane.editor.set_text("")
-            self.formulaPane.editor.setReadOnly(True)
+            self.formulaPane.clearCode()
+
+    @property
+    def objectId(self):
+        model = self.view.model()
+        if model and model.propertyData:
+            return self.view.model().propertyData["fullname"]
 
     def formula_updated(self):
         if not self.view.model():
@@ -319,17 +368,15 @@ class MxPropertyWidget(QScrollArea):
 
         editor = self.formulaPane.editor
         text = editor.toPlainText()
-        if editor.text_before_focus != text:
-            data = self.view.model().propertyData
-            if is_funcdef_or_lambda(text):
-                self.shell.set_formula(data["fullname"], text)
-                self.shell.update_mxproperty(data["fullname"])
-            else:
-                QMessageBox.warning(
-                    self, 'Error',
-                    'Invalid formula definition or lambda expression')
-
-                self.shell.update_mxproperty(data["fullname"])
+        if is_funcdef_or_lambda(text):
+            self.shell.set_formula(self.objectId, text)
+            self.shell.update_mxproperty(self.objectId)
+            return True
+        else:
+            QMessageBox.warning(
+                self, 'Error',
+                'Invalid formula definition or lambda expression')
+            return False
 
 
 if __name__ == '__main__':

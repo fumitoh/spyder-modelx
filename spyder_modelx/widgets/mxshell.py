@@ -264,10 +264,9 @@ class MxShellWidget(ShellWidget):
         return val
 
     def reload_mxproperty(self):
-        model = self.mxproperty.view.model()
-        if model and model.propertyData:
-            fullname = model.propertyData["fullname"]
-            return self.update_mxproperty(fullname)
+        objid = self.mxproperty.objectId
+        if objid:
+            return self.update_mxproperty(objid)
 
     def _mx_wait_reply(self, usrexp, sig, code=''):
 

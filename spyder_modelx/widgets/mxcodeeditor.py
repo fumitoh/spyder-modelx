@@ -207,8 +207,8 @@ class BaseCodePane(QWidget):
 
         editor.fontMetrics().lineSpacing()
 
-        layout = QVBoxLayout()
-        layout.setContentsMargins(0, 0, 0, 0)
-        layout.addWidget(QLabel(title))
-        layout.addWidget(editor)  # , stretch=1)
-        self.setLayout(layout)
+        self.layout = QVBoxLayout()
+        self.layout.setContentsMargins(0, 0, 0, 0)
+        self.layout.addWidget(QLabel(title))
+        self.layout.addWidget(editor)  # , stretch=1)
+        self.setLayout(self.layout)
