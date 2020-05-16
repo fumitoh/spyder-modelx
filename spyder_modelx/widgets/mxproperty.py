@@ -255,6 +255,7 @@ class MxPropertyModel(QAbstractItemModel):
                 self.formulaPane.setCode(s)
             else:
                 self.formulaPane.clearCode()
+                self.formulaPane.setCode(source="")
         else:
             self.formulaPane.clearCode()
 
