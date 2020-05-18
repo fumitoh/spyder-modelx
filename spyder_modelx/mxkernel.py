@@ -67,7 +67,8 @@ class ModelxKernel(SpyderKernel):
                 ('mx_read_model', self.mx_read_model),
                 ('mx_del_object', self.mx_del_object),
                 ('mx_del_model', self.mx_del_model),
-                ('mx_write_model', self.mx_write_model)
+                ('mx_write_model', self.mx_write_model),
+                ('mx_import_names', self.mx_import_names)
 
             ]:
                 self.frontend_comm.register_call_handler(
@@ -82,13 +83,15 @@ class ModelxKernel(SpyderKernel):
     def mx_new_model(self, name=None, define_var=False, varname=''):
         import modelx as mx
         model = mx.new_model(name)
-        self._define_var(define_var, model, varname)
+        if define_var:
+            self._define_var(model, varname)
         self.send_mx_msg("mxupdated")
 
     def mx_read_model(self, modelpath, name, define_var, varname):
         import modelx as mx
         model = mx.read_model(modelpath, name)
-        self._define_var(define_var, model, varname)
+        if define_var:
+            self._define_var(model, varname)
         self.send_mx_msg("mxupdated")
 
     def mx_write_model(self, model, modelpath, backup):
@@ -114,7 +117,8 @@ class ModelxKernel(SpyderKernel):
             bases = None
 
         space = parent.new_space(name=name, bases=bases)
-        self._define_var(define_var, space, varname)
+        if define_var:
+            self._define_var(space, varname)
 
         self.send_mx_msg("mxupdated")
 
@@ -128,12 +132,53 @@ class ModelxKernel(SpyderKernel):
         mx.get_models()[name].close()
         self.send_mx_msg("mxupdated")
 
-    def _define_var(self, define_var, obj, varname):
-        if define_var:
-            if varname:
-                self._mglobals()[varname] = obj
+    def _define_var(self, obj, varname=None, replace_existing=True):
+
+        name = varname or obj.name
+
+        if replace_existing or name not in self._mglobals():
+            self._mglobals()[name] = obj
+            return True
+        else:
+            return False
+
+    def mx_import_names(self, fullname,
+                        import_selected,
+                        import_children, replace_existing):
+        import modelx as mx
+        from modelx.core.space import ItemSpace
+        from modelx.core.spacecontainer import BaseSpaceContainer
+        from modelx.core.space import BaseSpace
+        from modelx.core.reference import ReferenceProxy
+
+        obj = mx.get_object(fullname, as_proxy=True)
+
+        if import_selected:  # Retrieve non item parent
+            parent = obj
+            while isinstance(parent, mx.core.space.ItemSpace):
+                parent = obj.parent
+
+            if isinstance(parent, ReferenceProxy):
+                self._define_var(parent.value,
+                                 varname=parent.name,
+                                 replace_existing=replace_existing)
             else:
-                self._mglobals()[obj.name] = obj
+                self._define_var(parent, replace_existing=replace_existing)
+
+        if import_children and isinstance(obj, BaseSpaceContainer):
+            for child in obj.spaces.values():
+                self._define_var(child, replace_existing=replace_existing)
+
+            if isinstance(obj, BaseSpace):
+                for child in obj.cells.values():
+                    self._define_var(child, replace_existing=replace_existing)
+
+            for name, child in obj.refs.items():
+                self._define_var(child,
+                                 varname=name,
+                                 replace_existing=replace_existing)
+
+        self.send_mx_msg("mxupdated")
 
     def mx_new_cells(self, model, parent, name, define_var, varname):
         """
@@ -168,7 +213,8 @@ class ModelxKernel(SpyderKernel):
             name=name,
             formula=formula
         )
-        self._define_var(define_var,cells, varname)
+        if define_var:
+            self._define_var(cells, varname)
         self.send_mx_msg("mxupdated")
 
     def mx_set_formula(self, fullname):

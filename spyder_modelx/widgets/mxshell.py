@@ -485,6 +485,33 @@ class MxShellWidget(ShellWidget):
             )
         self.refresh_namespacebrowser()
 
+    def import_names(self,
+                     fullname,
+                     import_selected,
+                     import_children,
+                     replace_existing
+    ):
+        if spyder.version_info > (4,):
+            self.call_kernel(
+                interrupt=True,
+                blocking=True,
+                timeout=CALL_KERNEL_TIMEOUT).mx_import_names(
+                fullname, import_selected, import_children, replace_existing)
+        else:
+            param = "'%s', %s, %s, %s" % (
+                fullname,
+                str(import_selected),
+                str(import_children),
+                str(replace_existing)
+            )
+            code = "get_ipython().kernel.mx_import_names(" + param + ")"
+            self._mx_wait_reply(
+                None,
+                self.sig_mxupdated,
+                code
+            )
+        self.refresh_namespacebrowser()
+
     if spyder.version_info < (4,):
         # ---- Override NamespaceBrowserWidget ---
         def refresh_namespacebrowser(self):

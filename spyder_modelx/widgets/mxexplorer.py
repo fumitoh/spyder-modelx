@@ -64,7 +64,8 @@ from spyder_modelx.widgets.mxtoolbar import MxToolBarMixin
 from spyder_modelx.widgets.mxcodeeditor import BaseCodePane
 from spyder_modelx.widgets.mxproperty import MxPropertyWidget
 from spyder_modelx.widgets.mxtreemodel import (
-    MxTreeModel, ModelItem, ItemSpaceItem, ViewItem, SpaceItem)
+    MxTreeModel, ModelItem, ItemSpaceItem,
+    ViewItem, SpaceItem, CellsItem, RefItem)
 
 
 class MxTreeView(QTreeView):
@@ -84,6 +85,9 @@ class MxTreeView(QTreeView):
 
         self.action_update_properties = self.contextMenu.addAction(
             "Show Properties"
+        )
+        self.action_import_names = self.contextMenu.addAction(
+            "Import Names"
         )
         self.action_update_formulas = self.contextMenu.addAction(
             "Show Formulas"
@@ -109,7 +113,6 @@ class MxTreeView(QTreeView):
         self.action_delete_model = self.contextMenu.addAction(
             "Delete Model"
         )
-
 
     def activated_callback(self, index):
         if index.isValid():
@@ -140,6 +143,44 @@ class MxTreeView(QTreeView):
                 item = self.currentIndex().internalPointer()
                 if not isinstance(item, ViewItem):
                     self.shell.update_mxproperty(item.itemData['fullname'])
+
+        elif action == self.action_import_names:
+            index = self.currentIndex()
+            if index.isValid():
+                item = self.currentIndex().internalPointer()
+
+                if isinstance(item, SpaceItem):
+                    has_children = True
+                elif isinstance(item, CellsItem) or isinstance(item, RefItem):
+                    has_children = False
+                else:
+                    return
+            else:
+                return
+
+            if has_children:
+                dialog = ImportNamesDialog(self)
+                dialog.exec()
+
+                if self.reply['accepted']:
+                    import_selected = self.reply['import_selected']
+                    import_children = self.reply['import_children']
+                    replace_existing = self.reply['replace_existing']
+                    self.reply = None
+                else:
+                    self.reply = None
+                    return
+            else:
+                import_selected = True
+                import_children = False
+                replace_existing = True
+
+            self.shell.import_names(item.itemData['fullname'],
+                                    import_selected,
+                                    import_children,
+                                    replace_existing
+                                    )
+
 
         elif action == self.action_new_model:
             dialog = NewModelDialog(self)
@@ -1003,6 +1044,51 @@ class NewCellsDialog(QDialog):
         self.treeview.reply = {
             'accepted': False
         }
+        super().reject()
+
+
+class ImportNamesDialog(QDialog):
+
+    def __init__(self, parent=None):
+        QDialog.__init__(
+            self, parent, flags=Qt.WindowSystemMenuHint | Qt.WindowTitleHint)
+        self.setWindowTitle('Import Names')
+        self.treeview = parent
+        self.setAttribute(Qt.WA_DeleteOnClose)
+
+        self.importSelected = QCheckBox(_("Import selected"), self)
+        self.importSelected.setCheckState(Qt.Checked)
+        self.importChildren = QCheckBox(_("Import children"), self)
+        self.importChildren.setCheckState(Qt.Checked)
+        self.replaceExisting = QCheckBox(_("Replace existing names"), self)
+        self.replaceExisting.setCheckState(Qt.Checked)
+
+        self.buttonBox = QDialogButtonBox(self)
+        self.buttonBox.setOrientation(Qt.Horizontal)
+        self.buttonBox.setStandardButtons(
+            QDialogButtonBox.Cancel|QDialogButtonBox.Ok)
+        self.buttonBox.accepted.connect(self.accept)
+        self.buttonBox.rejected.connect(self.reject)
+
+        mainLayout = QGridLayout(self)
+        mainLayout.addWidget(self.importSelected)
+        mainLayout.addWidget(self.importChildren)
+        mainLayout.addWidget(self.replaceExisting)
+        mainLayout.addWidget(self.buttonBox)
+        self.setLayout(mainLayout)
+
+    def accept(self) -> None:
+        reply = {
+            'accepted': True,
+            'import_selected': self.importSelected.isChecked(),
+            'import_children': self.importChildren.isChecked(),
+            'replace_existing': self.replaceExisting.isChecked()
+        }
+        self.treeview.reply = reply
+        super().accept()
+
+    def reject(self) -> None:
+        self.treeview.reply = {'accepted': False}
         super().reject()
 
 

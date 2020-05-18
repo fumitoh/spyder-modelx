@@ -207,7 +207,7 @@ class SpaceItem(SpaceContainerItem):
             self.childItems.append(ItemSpaceMapItem(dynspaces, self))
 
         for space in self.itemData['named_spaces']['items'].values():
-            self.childItems.append(SpaceItem(space, self))
+            self.childItems.append(UserSpaceItem(space, self))
 
         cellsmap = self.itemData['cells']['items']
         for cells in cellsmap.values():
@@ -228,6 +228,7 @@ class SpaceItem(SpaceContainerItem):
         else:
             return ''
 
+class UserSpaceItem(SpaceItem): pass
 
 class ItemSpaceItem(SpaceItem): pass
 
