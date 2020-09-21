@@ -199,6 +199,7 @@ PropertyDataTypes = {
     "Cells": CellsPropertyData,
     "UserSpace": SpacePropertyData,
     "ItemSpace": ItemSpacePropertyData,
+    "DynamicSpace": SpacePropertyData,
     "Reference": ReferencePropertyData
 }
 
