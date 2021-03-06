@@ -52,7 +52,7 @@ from qtpy.QtWidgets import (QHBoxLayout, QLabel, QMenu, QMessageBox, QAction,
                             QGridLayout, QListWidget, QPushButton,
                             QDialogButtonBox, QLineEdit, QCheckBox, QTabWidget)
 from qtpy.QtGui import QPalette
-from qtpy.compat import getexistingdirectory
+from qtpy.compat import getexistingdirectory, getopenfilename
 import spyder
 from spyder.py3compat import to_text_string
 from spyder.config.base import _
@@ -662,7 +662,7 @@ class ReadModelDialog(QDialog):
         fixed_dir_layout = QHBoxLayout()
         browse_btn = QPushButton(ima.icon('DirOpenIcon'), '', self)
         browse_btn.setToolTip(_("Select model directory"))
-        browse_btn.clicked.connect(self.select_directory)
+        browse_btn.clicked.connect(self.select_model)
         self.wd_edit = QLineEdit()
         fixed_dir_layout.addWidget(self.wd_edit)
         fixed_dir_layout.addWidget(browse_btn)
@@ -713,13 +713,22 @@ class ReadModelDialog(QDialog):
         super().reject()
 
     def select_directory(self):
-        """Select directory"""
+        """Select directory (Not Used)"""
         basedir = to_text_string(self.wd_edit.text())
         if not os.path.isdir(basedir):
             basedir = getcwd_or_home()
         directory = getexistingdirectory(self, _("Select directory"), basedir)
         if directory:
             self.wd_edit.setText(directory)
+
+    def select_model(self):
+        """Select Model file/dir"""
+        basedir = to_text_string(self.wd_edit.text())
+        if not os.path.isdir(basedir):
+            basedir = getcwd_or_home()
+        file, no_use = getopenfilename(self, _("Select Model"), basedir)
+        if file:
+            self.wd_edit.setText(file)
 
 
 class WriteModelDialog(QDialog):
