@@ -661,11 +661,15 @@ class ReadModelDialog(QDialog):
 
         fixed_dir_layout = QHBoxLayout()
         browse_btn = QPushButton(ima.icon('DirOpenIcon'), '', self)
-        browse_btn.setToolTip(_("Select model directory"))
-        browse_btn.clicked.connect(self.select_model)
+        browse_btn.setToolTip(_("Select Model Directory"))
+        browse_btn.clicked.connect(self.select_directory)
+        openzip_btn = QPushButton(ima.icon('ArchiveFileIcon'), '', self)
+        openzip_btn.setToolTip(_("Select Model File"))
+        openzip_btn.clicked.connect(self.select_model)
         self.wd_edit = QLineEdit()
         fixed_dir_layout.addWidget(self.wd_edit)
         fixed_dir_layout.addWidget(browse_btn)
+        fixed_dir_layout.addWidget(openzip_btn)
         fixed_dir_layout.setContentsMargins(0, 0, 0, 0)
 
         namelabel = QLabel(_("Model Name"))
