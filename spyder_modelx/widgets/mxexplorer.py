@@ -404,7 +404,7 @@ class MxMainWidget(MxToolBarMixin, QWidget):
 
         # Create code list
         self.codelist = MxCodeListWidget(self)
-        self.propwidget = MxPropertyWidget(self)
+        self.propwidget = MxPropertyWidget(self, orientation=Qt.Vertical)
 
         # Create splitter
         self.splitter = QSplitter(self)

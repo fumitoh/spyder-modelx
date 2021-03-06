@@ -4,7 +4,7 @@ from qtpy.QtCore import QAbstractItemModel, QModelIndex, Qt, Slot, QMetaMethod
 from qtpy.QtWidgets import (
     QTableView, QApplication, QTreeView, QStyledItemDelegate,
     QMessageBox, QLineEdit, QWidget, QVBoxLayout, QScrollArea,
-    QDialogButtonBox, QPushButton, QHBoxLayout, QLabel
+    QDialogButtonBox, QPushButton, QHBoxLayout, QLabel, QSplitter
 )
 import spyder
 from spyder_modelx.widgets.mxcodeeditor import _, BaseCodePane, MxCodeEditor
@@ -323,28 +323,16 @@ class MxPropertyModel(QAbstractItemModel):
         return None
 
 
-class MxPropertyWidget(QScrollArea):
+class MxPropertyWidget(QSplitter):
 
-    def __init__(self, parent):
-        super().__init__(parent)
+    def __init__(self, parent, orientation):
+        super().__init__(parent, orientation=orientation)
         self.shell = None   # To be set by MxShellWidget
         self.plugin = parent.plugin
         self._parent = parent
-        layout = QVBoxLayout()
-        layout.setContentsMargins(0, 0, 0, 0)
         self.view = view = MxPropertyView(self)
-        # view.setContentsMargins(0, 0, 0, 0)
-        layout.addWidget(view)
-
-        self.setWidgetResizable(True)
-        # self.setContentsMargins(0, 0, 0, 0)
-
         self.formulaPane = FormulaPane(self, title='Formula',
                                        editor_type=MxCodeEditor)
-
-        layout.addWidget(self.formulaPane)
-        layout.setStretch(1, 1)
-        self.setLayout(layout)
 
     def process_remote_view(self, data):
         if data:
