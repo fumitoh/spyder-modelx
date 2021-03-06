@@ -467,14 +467,14 @@ class MxShellWidget(ShellWidget):
             )
         self.refresh_namespacebrowser()
 
-    def write_model(self, model, modelpath, backup):
+    def write_model(self, model, modelpath, backup, zipmodel):
 
         if spyder.version_info > (4,):
             self.call_kernel(
                 interrupt=True,
                 blocking=True,
                 timeout=CALL_KERNEL_TIMEOUT).mx_write_model(
-                model, modelpath, backup)
+                model, modelpath, backup, zipmodel)
         else:
             param = "'%s', '%s', %s" % (model, modelpath, str(backup))
             code = "get_ipython().kernel.mx_write_model(" + param + ")"

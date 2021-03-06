@@ -307,8 +307,9 @@ class MxTreeView(QTreeView):
             if self.reply['accepted']:
                 modelpath = self.reply['directory'] + "/" + self.reply['name']
                 backup = self.reply['backup']
+                zipmodel = self.reply['zipmodel']
                 self.reply = None
-                self.shell.write_model(model, modelpath, backup)
+                self.shell.write_model(model, modelpath, backup, zipmodel)
             else:
                 self.reply = None
 
@@ -746,18 +747,24 @@ class WriteModelDialog(QDialog):
 
         fixed_dir_layout = QHBoxLayout()
         browse_btn = QPushButton(ima.icon('DirOpenIcon'), '', self)
-        browse_btn.setToolTip(_("Select model directory"))
+        browse_btn.setToolTip(_("Select Model Location"))
         browse_btn.clicked.connect(self.select_directory)
-        self.wd_edit = QLineEdit()
+
+        namelabel = QLabel(_("Location"))
+        self.wd_edit = QLineEdit(self)
+        fixed_dir_layout.addWidget(namelabel)
         fixed_dir_layout.addWidget(self.wd_edit)
         fixed_dir_layout.addWidget(browse_btn)
         fixed_dir_layout.setContentsMargins(0, 0, 0, 0)
 
-        namelabel = QLabel(_("Folder Name"))
+        namelabel = QLabel(_("Folder/File"))
         self.nameEdit = QLineEdit(self)
 
         self.backupCheck = QCheckBox(_("Back up old folder"))
         self.backupCheck.setCheckState(Qt.Checked)
+
+        self.zipmodelCheck = QCheckBox(_("Zip Model"))
+        self.zipmodelCheck.setCheckState(Qt.Unchecked)
 
         self.buttonBox = QDialogButtonBox(self)
         self.buttonBox.setOrientation(Qt.Horizontal)
@@ -771,7 +778,8 @@ class WriteModelDialog(QDialog):
         mainLayout.addWidget(namelabel, 1, 0)
         mainLayout.addWidget(self.nameEdit, 1, 1)
         mainLayout.addWidget(self.backupCheck, 2, 0, 1, 2)
-        mainLayout.addWidget(self.buttonBox, 3, 0, 1, 2)
+        mainLayout.addWidget(self.zipmodelCheck, 3, 0, 1, 2)
+        mainLayout.addWidget(self.buttonBox, 4, 0, 1, 2)
         # mainLayout.setContentsMargins(0, 0, 0, 0)
         self.setLayout(mainLayout)
 
@@ -780,7 +788,8 @@ class WriteModelDialog(QDialog):
             'accepted': True,
             'directory': self.wd_edit.text(),
             'name': self.nameEdit.text(),
-            'backup': self.backupCheck.isChecked()
+            'backup': self.backupCheck.isChecked(),
+            'zipmodel': self.zipmodelCheck.isChecked()
         }
         self.treeview.reply = reply
         super().accept()

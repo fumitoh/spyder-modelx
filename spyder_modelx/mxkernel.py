@@ -94,9 +94,12 @@ class ModelxKernel(SpyderKernel):
             self._define_var(model, varname)
         self.send_mx_msg("mxupdated")
 
-    def mx_write_model(self, model, modelpath, backup):
+    def mx_write_model(self, model, modelpath, backup, zipmodel):
         import modelx as mx
-        mx.write_model(mx.get_models()[model], modelpath, backup)
+        if zipmodel:
+            mx.zip_model(mx.get_models()[model], modelpath, backup)
+        else:
+            mx.write_model(mx.get_models()[model], modelpath, backup)
 
     def mx_new_space(self, model, parent, name, bases, define_var, varname):
         import modelx as mx
