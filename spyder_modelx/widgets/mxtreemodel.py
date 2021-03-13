@@ -62,10 +62,13 @@ from qtpy.QtCore import QAbstractItemModel, QModelIndex, Qt
 
 class BaseItem(object):
     """Base Item class for all tree item classes."""
-    def __init__(self, data, parent=None):
 
-        self.colType = 1
-        self.colParam = 2
+    COL_TYPE = 1
+    COL_PARAM = 2
+    COL_DERIVED = 3
+    COL_LEN = 4
+
+    def __init__(self, data, parent=None):
 
         self.parentItem = parent
         self.itemData = None
@@ -100,16 +103,27 @@ class BaseItem(object):
         return len(self.childItems)
 
     def columnCount(self):
-        return 3
+        return 5
 
     def data(self, column):
 
         if column == 0:
             return self.itemData['repr']
-        elif column == self.colType:
+        elif column == self.COL_TYPE:
             return self.getType()
-        elif column == self.colParam:
+        elif column == self.COL_PARAM:
             return self.getParams()
+        elif column == self.COL_DERIVED:
+            if '_is_derived' in self.itemData:
+                return str(self.itemData['_is_derived'])
+            else:
+                return None
+        elif column == self.COL_LEN:
+            if '__len__' in self.itemData:
+                l = self.itemData['__len__']
+                return str(l) if l else ""      # Hide 0
+            else:
+                return None
         else:
             raise IndexError
 
@@ -202,7 +216,7 @@ class SpaceItem(SpaceContainerItem):
     """Item class for Space objects."""
     def updateChild(self):
         self.childItems.clear()
-        dynspaces = self.itemData['named_itemspaces']['items']
+        dynspaces = self.itemData['_named_itemspaces']['items']
         if len(dynspaces) > 0:
             self.childItems.append(ItemSpaceMapItem(dynspaces, self))
 
@@ -247,8 +261,8 @@ class ItemSpaceMapItem(ViewItem):
             return BaseItem.data(self, column)
 
     def getParams(self):
-        return self.parent().itemData['params']
-
+        params = self.parent().itemData['parameters']
+        return ", ".join(params) if params else ""
 
 class CellsItem(InterfaceItem):
     """Item class for cells objects."""
@@ -256,7 +270,8 @@ class CellsItem(InterfaceItem):
         pass
 
     def getParams(self):
-        return self.itemData['params']
+        params = self.itemData['parameters']
+        return ", ".join(params) if params else ""
 
 
 class RefItem(InterfaceItem):
@@ -437,6 +452,10 @@ class MxTreeModel(QAbstractItemModel):
                 return 'Type'
             elif section == 2:
                 return 'Parameters'
+            elif section == 3:
+                return 'Is Derived'
+            elif section == 4:
+                return 'No. Data'
 
         return None
 

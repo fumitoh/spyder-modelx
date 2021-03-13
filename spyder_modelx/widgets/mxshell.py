@@ -46,6 +46,7 @@
 import ast
 import uuid
 import time
+from collections import namedtuple
 import cloudpickle
 from qtpy.QtCore import Signal, Slot, Qt, QEventLoop
 from qtpy.QtWidgets import QMessageBox
@@ -85,6 +86,7 @@ class MxShellWidget(ShellWidget):
     sig_mxdataview = Signal(object)
     sig_mxcodelist = Signal(object)
     sig_mxanalyzer = Signal(str, object)
+    sig_mxanalyzer_status = Signal(str, bool, str)
     sig_mxanalyze_preds = Signal()
     sig_mxanalyze_succs = Signal()
     sig_mxupdated = Signal()
@@ -104,6 +106,13 @@ class MxShellWidget(ShellWidget):
     mx_nondata_msgs = ['mxupdated']
 
     _mx_value = None
+    _MxRequest = namedtuple("_MxRequest",
+                            ["msgtype", "code", "local_uuid", "usrexp"])
+
+    def __init__(self, *args, **kw):
+
+        self._mx_exec = {}
+        super(MxShellWidget, self).__init__(*args, **kw)
 
     # ---- modelx browser ----
     def set_mxexplorer(self, mxexplorer, mxmodelselector):
@@ -145,7 +154,7 @@ class MxShellWidget(ShellWidget):
         expr = self.mxexprbox.get_expr()
         if expr:
             method = "get_ipython().kernel.mx_get_evalresult('dataview', %s)" % expr
-            self.mx_silent_exec_method(method)
+            self.mx_silent_exec_method(method, msgtype='dataview')
 
     # ---- modelx code list ----
     def set_mxcodelist(self, codelist):
@@ -158,7 +167,7 @@ class MxShellWidget(ShellWidget):
         """Update codelist"""
         objname = '"' + objname + '.cells' + '"'
         method = 'get_ipython().kernel.mx_get_codelist(%s)' % objname
-        self.mx_silent_exec_method(method)
+        self.mx_silent_exec_method(method, msgtype='codelist')
 
     # ---- modelx analyzer ----
     def set_mxanalyzer(self, analyzer):
@@ -169,6 +178,7 @@ class MxShellWidget(ShellWidget):
     def configure_mxanalyzer(self):
         """Configure mx data view widget"""
         self.sig_mxanalyzer.connect(self.mxanalyzer.update_node)
+        self.sig_mxanalyzer_status.connect(self.mxanalyzer.update_status)
 
         tab = self.mxanalyzer.tabs['preds']
 
@@ -201,12 +211,17 @@ class MxShellWidget(ShellWidget):
 
         if objexpr:
             expr = objexpr + ".node(" + argexpr + ")"
-            msgtype = "\"analyze_" + adjacency + "_setnode\""
+            msgtype = "analyze_" + adjacency + "_setnode"
+            msgtype_quotes = "\"" + msgtype + "\""
             method = (
-                "get_ipython().kernel.mx_get_evalresult(%s, %s._baseattrs)"
-                % (msgtype, expr)
+                "get_ipython().kernel.mx_get_evalresult(%s, %s._get_attrdict(recursive=False))"
+                % (msgtype_quotes, expr)
             )
-            self.mx_silent_exec_method(method)
+            self.mx_silent_exec_method(method, msgtype=msgtype)
+
+    def update_mxanalyzer_all(self):
+        for adj in ['preds', 'succs']:
+            self.update_mxanalyzer(adj)
 
     def get_adjacent(self, obj: str, args: tuple, adjacency: str):
 
@@ -260,7 +275,7 @@ class MxShellWidget(ShellWidget):
     def update_mxproperty(self, objname):
         param = "'property', '%s', ['formula', '_evalrepr', 'allow_none', 'parameters']" % objname
         code = "get_ipython().kernel.mx_get_object(" + param + ")"
-        val = self.mx_silent_exec_method(code)
+        val = self.mx_silent_exec_method(code, msgtype="property")
         return val
 
     def reload_mxproperty(self):
@@ -313,8 +328,12 @@ class MxShellWidget(ShellWidget):
         else:
             arg = "None"
 
+        param = "'explorer', %s, ['_is_derived', '__len__'], recursive=True" % arg
+
         self.mx_silent_exec_method(
-            "get_ipython().kernel.mx_get_object('explorer', %s)" % arg)
+            "get_ipython().kernel.mx_get_object(" + param + ")",
+            msgtype='explorer'
+        )
         self.update_mxdataview()    # TODO: Redundant?
 
     def new_model(self, name=None, define_var=False, varname=''):
@@ -525,6 +544,7 @@ class MxShellWidget(ShellWidget):
                 self.update_modeltree(name)
                 self.reload_mxproperty()
                 self.update_mxdataview()
+                self.update_mxanalyzer_all()
     else:
         # ---- Override NamespaceBrowserWidget ---
         def refresh_namespacebrowser(self, interrupt=False):
@@ -539,9 +559,10 @@ class MxShellWidget(ShellWidget):
                 self.update_modeltree(name)
                 self.reload_mxproperty()
                 self.update_mxdataview()
+                self.update_mxanalyzer_all()
 
     # ---- Private API (defined by us) ------------------------------
-    def mx_silent_exec_method(self, usrexp=None, code=''):
+    def mx_silent_exec_method(self, usrexp=None, code='', msgtype=None):
         """Silently execute a kernel method and save its reply
 
         The methods passed here **don't** involve getting the value
@@ -571,6 +592,7 @@ class MxShellWidget(ShellWidget):
             local_uuid = to_text_string(uuid.uuid1())
             usrexp = {local_uuid: usrexp}
         else:
+            local_uuid = ""
             usrexp = {}
 
         if self.kernel_client is None:
@@ -581,6 +603,9 @@ class MxShellWidget(ShellWidget):
             silent=True,
             user_expressions=usrexp
         )
+        self._mx_exec[msg_id] = self._MxRequest(
+            msgtype=msgtype, code=code, local_uuid=local_uuid,
+            usrexp=usrexp[local_uuid] if usrexp else usrexp)
         self._request_info['execute'][msg_id] = self._ExecutionRequest(
             msg_id,
             'mx_silent_exec_method'
@@ -608,6 +633,20 @@ class MxShellWidget(ShellWidget):
 
         # Handle silent execution of kernel methods
         if info and info.kind == 'mx_silent_exec_method' and not self._hidden:
+
+            msgtype = self._mx_exec[msg_id].msgtype
+
+            if msgtype and msgtype[:len("analyze_")] == "analyze_":
+                local_uuid = self._mx_exec[msg_id].local_uuid
+                result = msg['content']['user_expressions'][local_uuid]
+                adjacency = msgtype[8:13]
+                if result['status'] == "error":
+                    errmsg = result['ename'] + ": " + result['evalue']
+                    self.sig_mxanalyzer_status.emit(adjacency, False, errmsg)
+                else:
+                    self.sig_mxanalyzer_status.emit(adjacency, True, "")
+
+            self._mx_exec.pop(msg_id)
             self._request_info['execute'].pop(msg_id)
         else:
             super(MxShellWidget, self)._handle_execute_reply(msg)

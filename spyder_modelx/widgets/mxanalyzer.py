@@ -351,6 +351,9 @@ class MxAnalyzerTab(QWidget):
         layout = create_plugin_layout(layout_top, self.tree)
         self.setLayout(layout)
 
+        self.status = QLabel()
+        layout.addWidget(self.status)
+
 
 class MxAnalyzerWidget(MxToolBarMixin, QWidget):
 
@@ -397,6 +400,13 @@ class MxAnalyzerWidget(MxToolBarMixin, QWidget):
         tab = self.tabs[adjacency]
         tab.tree.process_remote_view(data)
 
+    def update_status(self, adjacency, success, msg):
+        tab = self.tabs[adjacency]
+        if success:
+            tab.status.setText('')
+        else:
+            tab.status.setText(msg)
+            tab.tree.process_remote_view(None)
 
 class MxAnalyzerTree(QTreeView):
 

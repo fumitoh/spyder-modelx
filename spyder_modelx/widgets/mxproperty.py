@@ -106,7 +106,10 @@ class BasePropertyData:
     def get_value(self, row):
         if self.has_value(row):
             attr = self._get_property(row).attr
-            return self.data[attr]
+            if self.data[attr]:
+                return self.data[attr]
+            else:
+                return ""
         else:
             return ""
 

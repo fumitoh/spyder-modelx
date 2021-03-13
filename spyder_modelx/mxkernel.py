@@ -246,7 +246,7 @@ class ModelxKernel(SpyderKernel):
         else:
             return mx.cur_model() if mx.cur_model() else mx.new_model()
 
-    def mx_get_object(self, msgtype, fullname=None, attrs=None):
+    def mx_get_object(self, msgtype, fullname=None, attrs=None, recursive=False):
 
         import modelx as mx
         if fullname is None:
@@ -258,10 +258,7 @@ class ModelxKernel(SpyderKernel):
                 obj = None
 
         if obj is not None:
-            if attrs is None:
-                data = obj._baseattrs
-            else:
-                data = obj._to_attrdict(attrs)
+            data = obj._get_attrdict(attrs, recursive=recursive)
         else:
             data = None
 
@@ -278,10 +275,10 @@ class ModelxKernel(SpyderKernel):
         import modelx as mx
         from modelx.core.base import Interface
 
-        data = [Interface._baseattrs.fget(m) for m in mx.get_models().values()]
+        data = [m._get_attrdict(recursive=False) for m in mx.get_models().values()]
 
         if mx.cur_model():
-            cur = Interface._baseattrs.fget(mx.cur_model())
+            cur = mx.cur_model()._get_attrdict(recursive=False)
         else:
             cur = None
 
@@ -297,7 +294,7 @@ class ModelxKernel(SpyderKernel):
 
         try:
             obj = mx.get_object(fullname)
-            data = obj._to_attrdict(['formula'])
+            data = obj._get_attrdict(['formula'])
         except:
             data = None
 
@@ -326,7 +323,7 @@ class ModelxKernel(SpyderKernel):
         args = json.loads(jsonargs, object_hook=hinted_tuple_hook)
         node = mx.get_object(obj).node(*args)
         nodes = getattr(node, adjacency)
-        attrs = [node._baseattrs for node in nodes]
+        attrs = [node._get_attrdict(recursive=False) for node in nodes]
 
         for node in attrs:
             if isinstance(node["value"], Interface):
