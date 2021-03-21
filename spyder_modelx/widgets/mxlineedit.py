@@ -22,7 +22,7 @@ from qtpy.QtWidgets import QLineEdit
 
 
 class MxPyExprLineEdit(QLineEdit):
-    """A text form to enter a Python expression for MxDataWidget."""
+    """A text form to enter a Python expression for MxDataFrameViewer."""
 
     def __init__(self, parent, font):
         super().__init__(parent)

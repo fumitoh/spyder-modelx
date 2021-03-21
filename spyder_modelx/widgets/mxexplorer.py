@@ -119,6 +119,7 @@ class MxTreeView(QTreeView):
             item = self.currentIndex().internalPointer()
             if not isinstance(item, ViewItem):
                 self.shell.update_mxproperty(item.itemData['fullname'])
+                # self.plugin.dataview.update_object(item.itemData['fullname'])
 
     def contextMenuEvent(self, event):
         action = self.contextMenu.exec_(self.mapToGlobal(event.pos()))

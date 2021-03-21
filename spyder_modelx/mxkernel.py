@@ -43,6 +43,7 @@
 # OTHER DEALINGS IN THE SOFTWARE.
 
 import json
+import ast
 import spyder
 
 if spyder.version_info < (3, 3, 0):
@@ -68,7 +69,8 @@ class ModelxKernel(SpyderKernel):
                 ('mx_del_object', self.mx_del_object),
                 ('mx_del_model', self.mx_del_model),
                 ('mx_write_model', self.mx_write_model),
-                ('mx_import_names', self.mx_import_names)
+                ('mx_import_names', self.mx_import_names),
+                ('mx_get_value', self.mx_get_value)
 
             ]:
                 self.frontend_comm.register_call_handler(
@@ -334,6 +336,26 @@ class ModelxKernel(SpyderKernel):
         else:
             content = {'mx_obj': obj, 'mx_args': args, 'mx_adjacency': adjacency}
             self.send_mx_msg(msgtype, content=content, data=attrs)
+
+    def mx_get_value(self, msgtype, fullname: str, argstr: str):
+        import modelx as mx
+        from modelx.core.reference import ReferenceProxy
+        from modelx.core.base import Interface
+
+        args = ast.literal_eval(argstr)
+        obj = mx.get_object(fullname, as_proxy=True)
+        if isinstance(obj, ReferenceProxy):
+            value = mx.get_object(fullname)
+        elif isinstance(obj, Interface):
+            if args in obj:
+                value = obj(*args)
+            else:
+                raise KeyError("value for %s not found" % argstr)
+
+        if spyder.version_info > (4,):
+            return value
+        else:
+            self.send_mx_msg(msgtype, content=None, data=value)
 
     def send_mx_msg(self, mx_msgtype, content=None, data=None):
         """

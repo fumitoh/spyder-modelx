@@ -83,7 +83,8 @@ class MxShellWidget(ShellWidget):
 
     sig_mxexplorer = Signal(object)
     sig_mxmodellist = Signal()
-    sig_mxdataview = Signal(object)
+    sig_mxdataview_eval = Signal(object)
+    sig_mxdataview_getval = Signal()  # Spyder 3 only
     sig_mxcodelist = Signal(object)
     sig_mxanalyzer = Signal(str, object)
     sig_mxanalyzer_status = Signal(str, bool, str)
@@ -94,6 +95,7 @@ class MxShellWidget(ShellWidget):
 
     mx_msgtypes = ['mxupdated',
                    'dataview',
+                   'dataview_getval',   # Spyder 3 only
                    'codelist',
                    'explorer',
                    'modellist',
@@ -135,26 +137,64 @@ class MxShellWidget(ShellWidget):
         )   # TODO: Why wrap in lambdas?
 
     # ---- modelx data view ----
-    def set_mxdataview(self, mxdataview, mxexprbox):
+    def set_mxdataview(self, mxdataviewer):
         """Set modelx dataview widget"""
-        self.mxdataview = mxdataview
-        self.mxexprbox = mxexprbox
+        # self.mxdataview = mxdataview
+        # self.mxexprbox = mxexprbox
+        self.mxdataviewer = mxdataviewer
         self.configure_mxdataview()
 
     def configure_mxdataview(self):
         """Configure mx data view widget"""
-        self.sig_mxdataview.connect(
-            lambda data: self.mxdataview.process_remote_view(data))
+        # self.sig_mxdataview_eval.connect(
+        #     lambda data: self.mxdataview.process_remote_view(data))
 
-        self.mxexprbox.editingFinished.connect(
-            self.update_mxdataview)
+        # self.mxexprbox.editingFinished.connect(
+        #     self.update_mxdataview)
 
-    def update_mxdataview(self):
+        self.sig_mxdataview_eval.connect(self.mxdataviewer.update_value)
+        self.sig_mxproperty.connect(self.mxdataviewer.update_object)
+
+    def get_obj_value(self, msgtype: str, obj: str, args: str):
+
+        # jsonargs = TupleEncoder(ensure_ascii=True).encode(args)
+
+        if spyder.version_info > (4,):
+            result = self.call_kernel(
+                interrupt=True,
+                blocking=True,
+                timeout=CALL_KERNEL_TIMEOUT).mx_get_value(
+                msgtype, obj, args
+            )
+            return result
+        else:
+            code = (
+                    "get_ipython().kernel.mx_get_value('%s', '%s', '%s')"
+                    % (msgtype, obj, args)
+            )
+
+            # The code below is replaced with silent_exec_method
+
+            # if self._reading:
+            #     method = self.kernel_client.input
+            #     code = u'!' + code
+            # else:
+            #     method = self.silent_execute
+
+            # Wait until the kernel returns the value
+            return self._mx_wait_reply(code, self.sig_mxdataview_getval)
+
+    def update_mxdataview(self, is_obj, obj=None, args=None, expr=None):
         """Update dataview"""
-        expr = self.mxexprbox.get_expr()
-        if expr:
-            method = "get_ipython().kernel.mx_get_evalresult('dataview', %s)" % expr
-            self.mx_silent_exec_method(method, msgtype='dataview')
+        # expr = self.mxdataviewer.exprbox.get_expr()
+        if is_obj:
+            return self.get_obj_value('dataview_getval', obj, args)
+        else:
+            if expr:
+                method = "get_ipython().kernel.mx_get_evalresult('dataview', %s)" % expr
+                self.mx_silent_exec_method(method, msgtype='dataview')
+
+            return None
 
     # ---- modelx code list ----
     def set_mxcodelist(self, codelist):
@@ -334,7 +374,7 @@ class MxShellWidget(ShellWidget):
             "get_ipython().kernel.mx_get_object(" + param + ")",
             msgtype='explorer'
         )
-        self.update_mxdataview()    # TODO: Redundant?
+        # self.update_mxdataview()    # TODO: Redundant?
 
     def new_model(self, name=None, define_var=False, varname=''):
 
@@ -543,7 +583,7 @@ class MxShellWidget(ShellWidget):
                 name = self.mxmodelselector.get_selected_model(mlist)
                 self.update_modeltree(name)
                 self.reload_mxproperty()
-                self.update_mxdataview()
+                # self.update_mxdataview()
                 self.update_mxanalyzer_all()
     else:
         # ---- Override NamespaceBrowserWidget ---
@@ -558,7 +598,7 @@ class MxShellWidget(ShellWidget):
                 name = self.mxmodelselector.get_selected_model(mlist)
                 self.update_modeltree(name)
                 self.reload_mxproperty()
-                self.update_mxdataview()
+                # self.update_mxdataview()
                 self.update_mxanalyzer_all()
 
     # ---- Private API (defined by us) ------------------------------
@@ -674,12 +714,19 @@ class MxShellWidget(ShellWidget):
             if msgtype == 'mxupdated':
                 self.sig_mxupdated.emit()
             elif msgtype == 'dataview':
-                self.sig_mxdataview.emit(value)
+                self.sig_mxdataview_eval.emit(value)
+            elif msgtype == 'dataview_getval':
+                if spyder.version_info > (4,):
+                    raise AssertionError("must not happen")
+                self._mx_value = value
+                self.sig_mxdataview_getval.emit()
             elif msgtype == 'codelist':
                 self.sig_mxcodelist.emit(value)
             elif msgtype == 'explorer':
                 self.sig_mxexplorer.emit(value)
             elif msgtype == 'modellist':
+                if spyder.version_info > (4,):
+                    raise AssertionError("must not happen")
                 self._mx_value = value
                 self.sig_mxmodellist.emit()
             elif msgtype == 'analyze_preds_setnode':
@@ -687,9 +734,13 @@ class MxShellWidget(ShellWidget):
             elif msgtype == 'analyze_succs_setnode':
                 self.sig_mxanalyzer.emit('succs', value)
             elif msgtype == 'analyze_preds':
+                if spyder.version_info > (4,):
+                    raise AssertionError("must not happen")
                 self._mx_value = value
                 self.sig_mxanalyze_preds.emit()
             elif msgtype == 'analyze_succs':
+                if spyder.version_info > (4,):
+                    raise AssertionError("must not happen")
                 self._mx_value = value
                 self.sig_mxanalyze_succs.emit()
             elif msgtype == 'property':

@@ -36,7 +36,7 @@ from spyder.utils.test import close_message_box
 
 
 import spyder_modelx.widgets.mxdataview as dataframeeditor
-from spyder_modelx.widgets.mxdataview import MxDataWidget as DataFrameEditor
+from spyder_modelx.widgets.mxdataview import MxDataFrameViewer as DataFrameEditor
 from spyder_modelx.widgets.mxdataview import MxDataModel as DataFrameModel
 
 
