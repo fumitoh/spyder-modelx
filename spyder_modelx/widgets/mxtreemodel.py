@@ -294,7 +294,10 @@ class MxTreeModel(QAbstractItemModel):
 
     def updateRoot(self, item):
         newmodel = item
-        self.updateItem(QModelIndex(), newmodel)
+        if self.updateItem(QModelIndex(), newmodel):
+            # Refresh view when data changed
+            # https://www.qtcentre.org/threads/48230-QTreeView-How-to-refresh-the-view?p=270537#post270537
+            self.dataChanged.emit(QModelIndex(), QModelIndex())
 
     def getItem(self, index):
         if not index.isValid():
@@ -303,12 +306,18 @@ class MxTreeModel(QAbstractItemModel):
             return index.internalPointer()
 
     def updateItem(self, index, newitem, recursive=True):
+
+        updated = False
+
         if not index.isValid():
             item = self.rootItem
         else:
             item = index.internalPointer()
 
         if item.itemData != newitem.itemData:
+
+            updated = True
+
             item.itemData = newitem.itemData
             # self.dataChanged.emit(index, index)
             delItems = set(item.childItems) - set(newitem.childItems)
@@ -345,6 +354,8 @@ class MxTreeModel(QAbstractItemModel):
                 for row, child in enumerate(item.childItems):
                     child_index = self.index(row, 0, index)
                     self.updateItem(child_index, newitem.childItems[row])
+
+        return updated
 
     def insertRows(self, rows, newitem, parent):
         # Signature is different from the base method.
