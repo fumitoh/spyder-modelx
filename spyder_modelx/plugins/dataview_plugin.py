@@ -244,13 +244,12 @@ class MxDataViewWidget(MxToolBarMixin, QWidget):
             self.widget.setup(data, title='', readonly=True)
             self.msgbox.setText(data.__class__.__name__)
         else:
+            txt = data.__class__.__name__ + ": " + repr(data)
             self.widget.deleteLater()
-            txt = repr(data).splitlines()[0]
             self.widget = QWidget(parent=self)
             self.msgbox.setText(txt)
 
         self.main_layout.addWidget(self.widget)
-        # self.main_layout.setStretch(0, 0)
         self.main_layout.setStretchFactor(self.widget, 1)
 
 
