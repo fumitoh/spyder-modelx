@@ -66,7 +66,10 @@ if spyder.version_info > (4,):
 else:
     from spyder_modelx.widgets.mxdataviewer.compat32.dataframeviewer import MxDataFrameViewer
     from spyder_modelx.widgets.mxdataviewer.compat32.arrayviewer import MxArrayViewer
-    from spyder_modelx.widgets.mxdataviewer.compat32.collectionsviewer import MxCollectionsViewer
+    if spyder.version_info > (3, 3):
+        from spyder_modelx.widgets.mxdataviewer.compat33.collectionsviewer import MxCollectionsViewer
+    else:
+        from spyder_modelx.widgets.mxdataviewer.compat32.collectionsviewer import MxCollectionsViewer
 
 from spyder_modelx.widgets.mxtoolbar import MxToolBarMixin
 from spyder_modelx.widgets.mxlineedit import MxPyExprLineEdit
