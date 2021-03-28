@@ -64,9 +64,9 @@ if spyder.version_info > (4,):
     from spyder_modelx.widgets.mxdataviewer.collectionsviewer import MxCollectionsViewer
 
 else:
-    from spyder_modelx.widgets.mxdataviewer.compat3.dataframeviewer import MxDataFrameViewer
-    from spyder_modelx.widgets.mxdataviewer.compat3.arrayviewer import MxArrayViewer
-    from spyder_modelx.widgets.mxdataviewer.compat3.collectionsviewer import MxCollectionsViewer
+    from spyder_modelx.widgets.mxdataviewer.compat32.dataframeviewer import MxDataFrameViewer
+    from spyder_modelx.widgets.mxdataviewer.compat32.arrayviewer import MxArrayViewer
+    from spyder_modelx.widgets.mxdataviewer.compat32.collectionsviewer import MxCollectionsViewer
 
 from spyder_modelx.widgets.mxtoolbar import MxToolBarMixin
 from spyder_modelx.widgets.mxlineedit import MxPyExprLineEdit
