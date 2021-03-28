@@ -336,13 +336,17 @@ class MxTreeView(QTreeView):
                 else:
                     if index.parent().isValid():
                         parent = index.parent().internalPointer().fullname
-                        self.shell.del_object(parent, item.name)
                     else:
                         parent = self.plugin.current_widget().model_selector.get_selected_model()
-                        if parent:
-                            self.shell.del_object(parent, item.name)
-                        else:
-                            raise RuntimeError("must not happen")
+                    assert parent
+
+                    answer = QMessageBox.question(
+                        self, _("Delete Selected"),
+                        _("Do you want to delete %s?" % item.name),
+                        QMessageBox.Yes | QMessageBox.No)
+
+                    if answer == QMessageBox.Yes:
+                        self.shell.del_object(parent, item.name)
 
                     QMessageBox.information(
                         self, "Notice",
