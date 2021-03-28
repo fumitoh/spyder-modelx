@@ -44,7 +44,7 @@ from spyder_kernels.utils.nsview import (
     get_type_string)
 
 # Local imports
-from spyder.config.base import _, PICKLE_PROTOCOL
+from spyder.config.base import _    # , PICKLE_PROTOCOL
 from spyder.config.fonts import DEFAULT_SMALL_DELTA
 from spyder.config.gui import get_font
 from spyder.py3compat import (io, is_binary_string, PY3, to_text_string,
