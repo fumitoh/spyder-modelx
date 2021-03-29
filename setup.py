@@ -52,7 +52,7 @@ setup(
     version=get_version(),
     keywords=['Spyder', 'Plugin'],
     url='https://github.com/fumitoh/spyder-modelx',
-    license='License :: OSI Approved :: GNU Lesser General Public License v3 (LGPLv3)',
+    license='LGPLv3',
     author='Fumito Hamamura',
     author_email='fumito.ham@gmail.com',
     description='Spyder plugin for modelx',
