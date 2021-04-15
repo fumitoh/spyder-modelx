@@ -325,7 +325,8 @@ class ModelxKernel(SpyderKernel):
         args = json.loads(jsonargs, object_hook=hinted_tuple_hook)
         node = mx.get_object(obj).node(*args)
         nodes = getattr(node, adjacency)
-        attrs = [node._get_attrdict(recursive=False) for node in nodes]
+        attrs = [node._get_attrdict(
+            recursive=False, extattrs=['formula']) for node in nodes]
 
         for node in attrs:
             if isinstance(node["value"], Interface):

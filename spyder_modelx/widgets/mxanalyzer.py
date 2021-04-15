@@ -59,7 +59,7 @@
 import sys
 import enum
 from qtpy.QtWidgets import (QApplication, QTreeView, QWidget, QHBoxLayout,
-                            QLabel, QTabWidget)
+                            QLabel, QTabWidget, QSplitter)
 from qtpy.QtCore import QAbstractItemModel, QModelIndex, Qt, QObject
 
 import spyder
@@ -68,6 +68,7 @@ from spyder.utils.qthelpers import (add_actions, create_action,
                                     create_toolbutton, create_plugin_layout)
 from spyder_modelx.widgets.mxlineedit import MxPyExprLineEdit
 from spyder_modelx.widgets.mxtoolbar import MxToolBarMixin
+from spyder_modelx.widgets.mxcodeeditor import BaseCodePane
 
 class NodeCols(enum.IntEnum):
     Node = 0
@@ -151,6 +152,15 @@ class NodeItem(object):
     def parent(self):
         return self.parentItem
 
+    @property
+    def formula(self):
+
+        if self.node:
+            if 'formula' in self.node:
+                return self.node['formula']['source']
+            if 'obj' in self.node and 'formula' in self.node['obj']:
+                return self.node['obj']['formula']['source']
+        return ""
 
 class MxAnalyzerModel(QAbstractItemModel):
 
@@ -295,22 +305,37 @@ class MxAnalyzerModel(QAbstractItemModel):
         self.endRemoveRows()
 
 
-class MxAnalyzerTab(QWidget):
+class AnalyzerCodePane(BaseCodePane):
+
+    def __init__(self, parent, title=''):
+        super().__init__(parent, title)
+        self.editor.setReadOnly(True)
+
+    def setCode(self, code):
+        self.editor.set_text(code)
+
+
+class MxAnalyzerTab(QSplitter):
 
     def __init__(self, parent, adjacency):
 
-        QWidget.__init__(self, parent)
+        QSplitter.__init__(self, parent, orientation=Qt.Vertical)
         # self.main = parent # Spyder3
+
+        self.plugin = parent.plugin
+
+        treepane = QWidget(parent=self)
 
         # Create main widget
         self.model = MxAnalyzerModel(
             adjacency=adjacency,
             root=None,
-            parent=self
+            parent=self     # parent must be self,
+                            # because self.model access self.tab
         )
         # from .modeltest import ModelTest
         # self.modeltest = ModelTest(self.model, self)
-        self.tree = MxAnalyzerTree(self, self.model)
+        self.tree = MxAnalyzerTree(treepane, self.model)
         self.shellwidget = None # Set by parent
 
         # Layout of the top area in the plugin widget
@@ -331,7 +356,7 @@ class MxAnalyzerTab(QWidget):
         else:
             font = parent.plugin.get_font()
 
-        self.objbox = MxPyExprLineEdit(self, font=font)
+        self.objbox = MxPyExprLineEdit(treepane, font=font)
         layout_top.addWidget(self.objbox)
         layout_top.addSpacing(10)
 
@@ -343,16 +368,18 @@ class MxAnalyzerTab(QWidget):
             arg_label = QLabel(txt)
         layout_top.addWidget(arg_label)
 
-        self.argbox = MxPyExprLineEdit(self, font=font)
+        self.argbox = MxPyExprLineEdit(treepane, font=font)
         layout_top.addWidget(self.argbox)
         layout_top.addSpacing(10)
 
         # Main layout of this widget
         layout = create_plugin_layout(layout_top, self.tree)
-        self.setLayout(layout)
+        treepane.setLayout(layout)
 
         self.status = QLabel()
         layout.addWidget(self.status)
+
+        self.codepane = AnalyzerCodePane(parent=self)
 
 
 class MxAnalyzerWidget(MxToolBarMixin, QWidget):
@@ -421,6 +448,12 @@ class MxAnalyzerTree(QTreeView):
             model.setRoot(data)
         else:
             model.setRoot(None)
+
+    def currentChanged(self, current: QModelIndex, previous: QModelIndex) -> None:
+        if current.isValid():
+            item = current.internalPointer()
+            self.parent().parent().codepane.setCode(item.formula)
+
 
 
 if __name__ == '__main__':

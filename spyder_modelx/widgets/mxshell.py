@@ -253,11 +253,12 @@ class MxShellWidget(ShellWidget):
             expr = objexpr + ".node(" + argexpr + ")"
             msgtype = "analyze_" + adjacency + "_setnode"
             msgtype_quotes = "\"" + msgtype + "\""
-            method = (
-                "get_ipython().kernel.mx_get_evalresult(%s, %s._get_attrdict(recursive=False))"
-                % (msgtype_quotes, expr)
-            )
-            self.mx_silent_exec_method(method, msgtype=msgtype)
+
+            str1 = "get_ipython().kernel.mx_get_evalresult"
+            str2 = "(%s, %s." % (msgtype_quotes, expr)
+            str3 = "_get_attrdict(recursive=False, extattrs=['formula']))"
+
+            self.mx_silent_exec_method(str1+str2+str3, msgtype=msgtype)
 
     def update_mxanalyzer_all(self):
         for adj in ['preds', 'succs']:

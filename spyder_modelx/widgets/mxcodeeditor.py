@@ -209,6 +209,7 @@ class BaseCodePane(QWidget):
 
         self.layout = QVBoxLayout()
         self.layout.setContentsMargins(0, 0, 0, 0)
-        self.layout.addWidget(QLabel(title))
+        if title:
+            self.layout.addWidget(QLabel(title))
         self.layout.addWidget(editor)  # , stretch=1)
         self.setLayout(self.layout)
