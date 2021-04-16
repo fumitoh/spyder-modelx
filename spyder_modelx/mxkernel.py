@@ -376,7 +376,8 @@ class ModelxKernel(SpyderKernel):
                                 np.ndarray, np.ma.MaskedArray,
                                 list, set, tuple, dict)):
             return "Type: " + value.__class__.__name__
-
+        elif isinstance(value, np.float64):
+            return float(value)
         else:
             return value
 
