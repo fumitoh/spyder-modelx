@@ -57,16 +57,20 @@
 #############################################################################
 
 import itertools
+import enum
 from qtpy.QtCore import QAbstractItemModel, QModelIndex, Qt
+
+class TreeCol(enum.IntEnum):
+
+    OJBTYPE = 1
+    PARAM = 2
+    IS_DERIVED = 3
+    LEN = 4
+    VAL = 5
 
 
 class BaseItem(object):
     """Base Item class for all tree item classes."""
-
-    COL_TYPE = 1
-    COL_PARAM = 2
-    COL_DERIVED = 3
-    COL_LEN = 4
 
     def __init__(self, data, parent=None):
 
@@ -109,16 +113,16 @@ class BaseItem(object):
 
         if column == 0:
             return self.itemData['repr']
-        elif column == self.COL_TYPE:
+        elif column == TreeCol.OJBTYPE:
             return self.getType()
-        elif column == self.COL_PARAM:
+        elif column == TreeCol.PARAM:
             return self.getParams()
-        elif column == self.COL_DERIVED:
+        elif column == TreeCol.IS_DERIVED:
             if '_is_derived' in self.itemData:
                 return str(self.itemData['_is_derived'])
             else:
                 return None
-        elif column == self.COL_LEN:
+        elif column == TreeCol.LEN:
             if '__len__' in self.itemData:
                 l = self.itemData['__len__']
                 return str(l) if l else ""      # Hide 0
