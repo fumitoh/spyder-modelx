@@ -304,6 +304,12 @@ class ModelxKernel(SpyderKernel):
 
     def mx_get_evalresult(self, msgtype, data):
 
+        begstr = "analyze_"
+        endstr = "_setnode"
+        if msgtype[:len(begstr)] == begstr and msgtype[-len(endstr):] == endstr:
+            if "value" in data:
+                data["value"] = self._to_sendval(data["value"])
+
         # The code below is based on SpyderKernel.get_value
         try:
             self.send_mx_msg(msgtype, data=data)
@@ -329,14 +335,51 @@ class ModelxKernel(SpyderKernel):
             recursive=False, extattrs=['formula']) for node in nodes]
 
         for node in attrs:
-            if isinstance(node["value"], Interface):
-                node["value"] = repr(node["value"])
+            node["value"] = self._to_sendval(node["value"])
 
         if spyder.version_info > (4,):
             return attrs
         else:
             content = {'mx_obj': obj, 'mx_args': args, 'mx_adjacency': adjacency}
             self.send_mx_msg(msgtype, content=content, data=attrs)
+
+    def mx_get_data(self, msgtype, fullname: str):
+        """Return data of Cells or Reference"""
+        import modelx as mx
+        from modelx.core.reference import ReferenceProxy
+        from modelx.core.cells import Cells, Interface
+
+        args = ast.literal_eval(argstr)
+        obj = mx.get_object(fullname, as_proxy=True)
+
+        if isinstance(obj, ReferenceProxy):
+            value = self._to_sendval(mx.get_object(fullname))
+
+        elif isinstance(obj, Cells):
+            value = {k: self._to_sendval(v) for k, v in obj.items()}
+
+        if spyder.version_info > (4,):
+            return value
+        else:
+            self.send_mx_msg(msgtype, content=None, data=value)
+
+    def _to_sendval(self, value):
+        from modelx.core.cells import Interface
+        import pandas as pd
+        import numpy as np
+        import numpy.ma
+
+        if isinstance(value, (Interface, str)):
+            return repr(value)
+
+        elif isinstance(value, (pd.DataFrame, pd.Index, pd.Series,
+                                np.ndarray, np.ma.MaskedArray,
+                                list, set, tuple, dict)):
+            return "Type: " + value.__class__.__name__
+
+        else:
+            return value
+
 
     def mx_get_value(self, msgtype, fullname: str, argstr: str):
         import modelx as mx
