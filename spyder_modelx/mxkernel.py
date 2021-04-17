@@ -343,26 +343,6 @@ class ModelxKernel(SpyderKernel):
             content = {'mx_obj': obj, 'mx_args': args, 'mx_adjacency': adjacency}
             self.send_mx_msg(msgtype, content=content, data=attrs)
 
-    def mx_get_data(self, msgtype, fullname: str):
-        """Return data of Cells or Reference"""
-        import modelx as mx
-        from modelx.core.reference import ReferenceProxy
-        from modelx.core.cells import Cells, Interface
-
-        args = ast.literal_eval(argstr)
-        obj = mx.get_object(fullname, as_proxy=True)
-
-        if isinstance(obj, ReferenceProxy):
-            value = self._to_sendval(mx.get_object(fullname))
-
-        elif isinstance(obj, Cells):
-            value = {k: self._to_sendval(v) for k, v in obj.items()}
-
-        if spyder.version_info > (4,):
-            return value
-        else:
-            self.send_mx_msg(msgtype, content=None, data=value)
-
     def _to_sendval(self, value):
         from modelx.core.cells import Interface
         import pandas as pd
@@ -396,6 +376,24 @@ class ModelxKernel(SpyderKernel):
                 value = obj(*args)
             else:
                 raise KeyError("value for %s not found" % argstr)
+
+        if spyder.version_info > (4,):
+            return value
+        else:
+            self.send_mx_msg(msgtype, content=None, data=value)
+
+    def mx_get_allvalues(self, msgtype, fullname: str):
+        """Return data of Cells or Reference"""
+        import modelx as mx
+        from modelx.core.reference import ReferenceProxy
+        from modelx.core.cells import Cells, Interface
+
+        obj = mx.get_object(fullname, as_proxy=True)
+
+        if isinstance(obj, ReferenceProxy):
+            value = mx.get_object(fullname)
+        elif isinstance(obj, Cells):
+            value = dict(obj)
 
         if spyder.version_info > (4,):
             return value

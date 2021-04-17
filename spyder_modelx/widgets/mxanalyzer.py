@@ -66,6 +66,17 @@ import spyder
 from spyder.config.base import _, debug_print
 from spyder.utils.qthelpers import (add_actions, create_action,
                                     create_toolbutton, create_plugin_layout)
+
+if spyder.version_info < (4,):
+    from spyder.widgets.variableexplorer.arrayeditor import ArrayEditor
+    from spyder.widgets.variableexplorer.collectionseditor import CollectionsEditor
+    from spyder.widgets.variableexplorer.dataframeeditor import DataFrameEditor
+else:
+    from spyder.plugins.variableexplorer.widgets.arrayeditor import ArrayEditor
+    from spyder.plugins.variableexplorer.widgets.collectionseditor import CollectionsEditor
+    from spyder.plugins.variableexplorer.widgets.dataframeeditor import DataFrameEditor
+
+from spyder_modelx.util import TupleEncoder
 from spyder_modelx.widgets.mxlineedit import MxPyExprLineEdit
 from spyder_modelx.widgets.mxtoolbar import MxToolBarMixin
 from spyder_modelx.widgets.mxcodeeditor import BaseCodePane
@@ -441,6 +452,7 @@ class MxAnalyzerTree(QTreeView):
         QTreeView.__init__(self, parent)
         self.setModel(model)
         self.setAlternatingRowColors(True)
+        self.doubleClicked.connect(self.doubleClicked_callback)
 
     def process_remote_view(self, data):
         model = self.model()
@@ -454,6 +466,38 @@ class MxAnalyzerTree(QTreeView):
             item = current.internalPointer()
             self.parent().parent().codepane.setCode(item.formula)
 
+    def doubleClicked_callback(self, index: QModelIndex):
+
+        import pandas as pd
+        import numpy as np
+        import numpy.ma
+
+        if index.isValid() and index.column() == NodeCols.Value:
+
+            item = index.internalPointer()
+            obj = item.node['obj']['fullname']
+            args = str(item.node['args'])
+
+            data = self.shell.get_obj_value(
+                'analyze_getval', obj, args)
+
+            if isinstance(data, (pd.DataFrame, pd.Index, pd.Series)):
+                dialog = DataFrameEditor(self)
+                dialog.setup_and_check(data)
+            elif isinstance(data, (np.ndarray, np.ma.MaskedArray)):
+                dialog = ArrayEditor(self)
+                dialog.setup_and_check(data, title='', readonly=True)
+            elif isinstance(data, (list, set, tuple, dict)):
+                dialog = CollectionsEditor(self)
+                dialog.setup(data, title='', readonly=True)
+            else:
+                return
+
+            dialog.show()
+
+    @property
+    def shell(self):
+        return self.parent().parent().shellwidget
 
 
 if __name__ == '__main__':

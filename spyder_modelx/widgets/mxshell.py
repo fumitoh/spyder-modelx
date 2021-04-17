@@ -88,8 +88,9 @@ class MxShellWidget(ShellWidget):
     sig_mxcodelist = Signal(object)
     sig_mxanalyzer = Signal(str, object)
     sig_mxanalyzer_status = Signal(str, bool, str)
-    sig_mxanalyze_preds = Signal()
-    sig_mxanalyze_succs = Signal()
+    sig_mxanalyzer_preds = Signal()
+    sig_mxanalyzer_succs = Signal()
+    sig_mxanalyzer_getval = Signal()   # Spyder 3 only
     sig_mxupdated = Signal()
     sig_mxproperty = Signal(object)
 
@@ -103,6 +104,7 @@ class MxShellWidget(ShellWidget):
                    'analyze_succs_setnode',
                    'analyze_preds',
                    'analyze_succs',
+                   'analyze_getval',    # Spyder 3 only
                    'property']
 
     mx_nondata_msgs = ['mxupdated']
@@ -182,7 +184,14 @@ class MxShellWidget(ShellWidget):
             #     method = self.silent_execute
 
             # Wait until the kernel returns the value
-            return self._mx_wait_reply(code, self.sig_mxdataview_getval)
+            if msgtype == 'dataview_getval':
+                sig = self.sig_mxdataview_getval
+            elif msgtype == 'analyze_getval':
+                sig = self.sig_mxanalyzer_getval
+            else:
+                raise RuntimeError('must not happen')
+
+            return self._mx_wait_reply(code, sig)
 
     def update_mxdataview(self, is_obj, obj=None, args=None, expr=None):
         """Update dataview"""
@@ -293,9 +302,9 @@ class MxShellWidget(ShellWidget):
 
             # Wait until the kernel returns the value
             if adjacency == 'preds':
-                sig = self.sig_mxanalyze_preds
+                sig = self.sig_mxanalyzer_preds
             elif adjacency == 'succs':
-                sig = self.sig_mxanalyze_succs
+                sig = self.sig_mxanalyzer_succs
             else:
                 raise RuntimeError("must not happen")
 
@@ -738,12 +747,17 @@ class MxShellWidget(ShellWidget):
                 if spyder.version_info > (4,):
                     raise AssertionError("must not happen")
                 self._mx_value = value
-                self.sig_mxanalyze_preds.emit()
+                self.sig_mxanalyzer_preds.emit()
             elif msgtype == 'analyze_succs':
                 if spyder.version_info > (4,):
                     raise AssertionError("must not happen")
                 self._mx_value = value
-                self.sig_mxanalyze_succs.emit()
+                self.sig_mxanalyzer_succs.emit()
+            elif msgtype == 'analyze_getval':
+                if spyder.version_info > (4,):
+                    raise AssertionError("must not happen")
+                self._mx_value = value
+                self.sig_mxanalyzer_getval.emit()
             elif msgtype == 'property':
                 self._mx_value = value
                 self.sig_mxproperty.emit(value)
