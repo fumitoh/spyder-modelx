@@ -70,7 +70,9 @@ class ModelxKernel(SpyderKernel):
                 ('mx_del_model', self.mx_del_model),
                 ('mx_write_model', self.mx_write_model),
                 ('mx_import_names', self.mx_import_names),
-                ('mx_get_value', self.mx_get_value)
+                ('mx_get_value', self.mx_get_value),
+                ('mx_get_node', self.mx_get_node),
+                ('mx_get_attrdict', self.mx_get_attrdict)
 
             ]:
                 self.frontend_comm.register_call_handler(
@@ -249,6 +251,7 @@ class ModelxKernel(SpyderKernel):
             return mx.cur_model() if mx.cur_model() else mx.new_model()
 
     def mx_get_object(self, msgtype, fullname=None, attrs=None, recursive=False):
+        # TODO: Replace with mx_get_attrdict
 
         import modelx as mx
         if fullname is None:
@@ -265,6 +268,29 @@ class ModelxKernel(SpyderKernel):
             data = None
 
         self.send_mx_msg(msgtype, data=data)
+
+
+    def mx_get_attrdict(self, fullname=None, attrs=None, recursive=False):
+
+        import modelx as mx
+        if fullname is None:
+            obj = mx.cur_model()
+        else:
+            try:
+                obj = mx.get_object(fullname, as_proxy=True)
+            except NameError:
+                obj = None
+
+        if obj is not None:
+            data = obj._get_attrdict(attrs, recursive=recursive)
+        else:
+            data = None
+
+        if spyder.version_info > (4,):
+            return data
+        else:
+            self.send_mx_msg("get_attrdict", data=data)
+
 
     def mx_get_modellist(self):
         """Returns a list of model info.
@@ -321,6 +347,23 @@ class ModelxKernel(SpyderKernel):
             self.send_mx_msg(msgtype, data=None)
 
         self._do_publish_pdb_state = False
+
+    def mx_get_node(self, msgtype, fullname: str, argstr: str):
+        import modelx as mx
+        from modelx.core.reference import ReferenceProxy
+        from modelx.core.base import Interface
+
+        args = ast.literal_eval(argstr)
+        obj = mx.get_object(fullname, as_proxy=True)
+
+        node = obj.node(*args)
+        data = node._get_attrdict(recursive=False, extattrs=['formula'])
+        data["value"] = self._to_sendval(data["value"])
+
+        if spyder.version_info > (4,):
+            return data
+        else:
+            self.send_mx_msg(msgtype, content=None, data=data)
 
     def mx_get_adjacent(self, msgtype, obj: str,
                         jsonargs: str, adjacency: str):

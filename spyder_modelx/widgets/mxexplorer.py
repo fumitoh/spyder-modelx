@@ -64,6 +64,7 @@ from spyder_modelx.widgets.mxtoolbar import MxToolBarMixin
 from spyder_modelx.widgets.mxcodeeditor import BaseCodePane
 from spyder_modelx.widgets.mxproperty import MxPropertyWidget
 from spyder_modelx.widgets.mxtreemodel import (
+    TreeCol,
     MxTreeModel, ModelItem, ItemSpaceItem,
     ViewItem, SpaceItem, CellsItem, RefItem)
 
@@ -74,6 +75,7 @@ class MxTreeView(QTreeView):
         super().__init__(parent)
 
         self.activated.connect(self.activated_callback)
+        self.doubleClicked.connect(self.doubleClicked_callback)
 
         self.plugin = parent.plugin
         self.shell = None
@@ -88,6 +90,9 @@ class MxTreeView(QTreeView):
         )
         self.action_import_names = self.contextMenu.addAction(
             "Import Names"
+        )
+        self.action_analyze_selected = self.contextMenu.addAction(
+            "Analyze Selected"
         )
         self.action_update_formulas = self.contextMenu.addAction(
             "Show Formulas"
@@ -120,6 +125,13 @@ class MxTreeView(QTreeView):
             if not isinstance(item, ViewItem):
                 self.shell.update_mxproperty(item.itemData['fullname'])
                 # self.plugin.dataview.update_object(item.itemData['fullname'])
+
+    def doubleClicked_callback(self, index):
+        if index.isValid() and index.column() == TreeCol.IS_DERIVED:
+            answer = QMessageBox.warning(self.parent(), _("Warning"),
+                                         str(index.row()),
+                                         QMessageBox.Yes | QMessageBox.No)
+
 
     def contextMenuEvent(self, event):
         action = self.contextMenu.exec_(self.mapToGlobal(event.pos()))
@@ -182,6 +194,12 @@ class MxTreeView(QTreeView):
                                     replace_existing
                                     )
 
+        elif action == self.action_analyze_selected:
+            index = self.currentIndex()
+            if index.isValid():
+                item = self.currentIndex().internalPointer()
+                if isinstance(item, CellsItem):
+                    self.shell.mxanalyzer.update_object(item.itemData)
 
         elif action == self.action_new_model:
             dialog = NewModelDialog(self)

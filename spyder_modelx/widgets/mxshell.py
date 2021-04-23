@@ -93,6 +93,7 @@ class MxShellWidget(ShellWidget):
     sig_mxanalyzer_getval = Signal()   # Spyder 3 only
     sig_mxupdated = Signal()
     sig_mxproperty = Signal(object)
+    sig_mxgetattrdict = Signal()     # Spyder 3 only
 
     mx_msgtypes = ['mxupdated',
                    'dataview',
@@ -105,7 +106,8 @@ class MxShellWidget(ShellWidget):
                    'analyze_preds',
                    'analyze_succs',
                    'analyze_getval',    # Spyder 3 only
-                   'property']
+                   'property',
+                   'get_attrdict']      # Spyder 3 only
 
     mx_nondata_msgs = ['mxupdated']
 
@@ -229,30 +231,102 @@ class MxShellWidget(ShellWidget):
         self.sig_mxanalyzer.connect(self.mxanalyzer.update_node)
         self.sig_mxanalyzer_status.connect(self.mxanalyzer.update_status)
 
-        tab = self.mxanalyzer.tabs['preds']
+        for adjacency in ['preds', 'succs']:
 
-        tab.objbox.editingFinished.connect(
-            lambda: self.update_mxanalyzer('preds')
-        )
-        tab.argbox.editingFinished.connect(
-            lambda: self.update_mxanalyzer('preds')
-        )
+            tab = self.mxanalyzer.tabs[adjacency]
 
-        tab = self.mxanalyzer.tabs['succs']
+            for box in [tab.exprobjbox, tab.exprargbox, tab.argbox]:
+                # adjacenty is a free varible
+                # cannot pass it to update_mxanalyzer in lambda
+                if adjacency == 'preds':
+                    box.editingFinished.connect(
+                        lambda: self.update_mxanalyzer('preds')
+                    )
+                elif adjacency == 'succs':
+                    box.editingFinished.connect(
+                        lambda: self.update_mxanalyzer('succs')
+                    )
+                else:
+                    RuntimeError('must not happen')
 
-        tab.objbox.editingFinished.connect(
-            lambda: self.update_mxanalyzer('succs')
-        )
-        tab.argbox.editingFinished.connect(
-            lambda: self.update_mxanalyzer('succs')
-        )
+    def get_attrdict(self, fullname=None, attrs=None, recursive=False):
 
-    def update_mxanalyzer(self, adjacency):
+        if spyder.version_info > (4,):
+            return self.call_kernel(
+                interrupt=True,
+                blocking=True,
+                timeout=CALL_KERNEL_TIMEOUT).mx_get_attrdict(
+                fullname=fullname, attrs=attrs, recursive=recursive
+            )
+        else:
+            param = "'%s', ['formula', '_evalrepr', 'allow_none', 'parameters']" % fullname
+            code = "get_ipython().kernel.mx_get_attrdict(" + param + ")"
+
+            return self._mx_wait_reply(
+                None,
+                self.sig_mxgetattrdict,
+                code
+            )
+
+
+    def update_mxanalyzer(self, adjacency, update_attrdict=True):
+
+        tab = self.mxanalyzer.tabs[adjacency]
+
+        if tab.object_radio.isChecked():
+            if not tab.attrdict:
+                return
+            if update_attrdict:
+                tab.attrdict = self.get_attrdict(
+                    fullname=tab.attrdict['fullname'],
+                    attrs=['formula', '_evalrepr', 'allow_none', 'parameters'],
+                    recursive=False
+                )
+            if not tab.attrdict:
+                tab.clear_obj()
+                return
+            tab.set_argbox()
+            self._update_mxanalyzer_obj(adjacency, update_attrdict)
+        elif tab.expr_radio.isChecked():
+            self._update_mxanalyzer_expr(adjacency)
+
+    def _update_mxanalyzer_obj(self, adjacency, update_attrdict):
+
+        tab = self.mxanalyzer.tabs[adjacency]
+        msgtype = "analyze_" + adjacency + "_setnode"
+        obj = tab.attrdict['fullname']
+        argtxt = tab.argbox.get_expr()
+        args = "(" + argtxt + ("," if argtxt else "") + ")"
+
+        if spyder.version_info > (4,):
+
+            try:
+                result = self.call_kernel(
+                    interrupt=True,
+                    blocking=True,
+                    timeout=CALL_KERNEL_TIMEOUT).mx_get_node(
+                    msgtype, obj, args
+                )
+                self.mxanalyzer.update_status(adjacency, True)
+                self.sig_mxanalyzer.emit(adjacency, result)
+            except Exception as e:
+                msg = e.__class__.__name__ + ": " + str(e)
+                self.mxanalyzer.update_status(adjacency, False, msg)
+
+        else:
+            str1 = "get_ipython().kernel.mx_get_node"
+            str2 = "('%s', '%s', '%s')" % (msgtype, obj, args)
+            #Issue: need to double quote string args
+
+            self.mx_silent_exec_method(str1+str2, msgtype=msgtype)
+
+
+    def _update_mxanalyzer_expr(self, adjacency):
         """Update dataview"""
 
         tab = self.mxanalyzer.tabs[adjacency]
-        objexpr = tab.objbox.get_expr()
-        argexpr = tab.argbox.get_expr()
+        objexpr = tab.exprobjbox.get_expr()
+        argexpr = tab.exprargbox.get_expr()
 
         # Invalid expression
         if objexpr is None or argexpr is None:
@@ -378,7 +452,7 @@ class MxShellWidget(ShellWidget):
         else:
             arg = "None"
 
-        param = "'explorer', %s, ['_is_derived', '__len__'], recursive=True" % arg
+        param = "'explorer', %s, ['_is_derived', '__len__', '_evalrepr'], recursive=True" % arg
 
         self.mx_silent_exec_method(
             "get_ipython().kernel.mx_get_object(" + param + ")",
@@ -761,6 +835,9 @@ class MxShellWidget(ShellWidget):
             elif msgtype == 'property':
                 self._mx_value = value
                 self.sig_mxproperty.emit(value)
+            elif msgtype == 'get_attrdict':
+                self._mx_value = value
+                self.sig_mxgetattrdict.emit()
 
             # Copied _handle_execute_reply
             if info and info.kind == 'silent_exec_method' and not self._hidden:

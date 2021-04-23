@@ -59,7 +59,9 @@
 import sys
 import enum
 from qtpy.QtWidgets import (QApplication, QTreeView, QWidget, QHBoxLayout,
-                            QLabel, QTabWidget, QSplitter)
+                            QLabel, QTabWidget, QSplitter, QVBoxLayout,
+                            QGridLayout,
+                            QButtonGroup, QRadioButton)
 from qtpy.QtCore import QAbstractItemModel, QModelIndex, Qt, QObject
 
 import spyder
@@ -173,6 +175,7 @@ class NodeItem(object):
                 return self.node['obj']['formula']['source']
         return ""
 
+
 class MxAnalyzerModel(QAbstractItemModel):
 
     def __init__(self, adjacency, root=None, parent=None):
@@ -180,28 +183,16 @@ class MxAnalyzerModel(QAbstractItemModel):
 
         self.tab = parent
         self.adjacency = adjacency
-        self.rootItem = root
-        if root:
-            self.setRoot(root)
+
+        if root is None:
+            self.rootItem = None
+        else:
+            self.rootItem = NodeItem(
+                root, parent=None, model=self, adjacency=adjacency)
+            self.insertRows([0], self.rootItem, parent=QModelIndex())
 
     def get_shell(self):
         return self.tab.shellwidget
-
-    def setRoot(self, root):
-
-        rows = self.rowCount(QModelIndex())
-
-        if rows:
-            self.removeRows(0, rows, QModelIndex())
-            self.rootItem = None
-
-        if root is not None:
-            self.insertRows(
-                [0],
-                NodeItem(root, None, self, adjacency=self.adjacency),
-                QModelIndex())
-        else:
-            self.rootItem = None
 
     def rowCount(self, parent) -> int:  # Pure virtual
 
@@ -331,9 +322,9 @@ class MxAnalyzerTab(QSplitter):
     def __init__(self, parent, adjacency):
 
         QSplitter.__init__(self, parent, orientation=Qt.Vertical)
-        # self.main = parent # Spyder3
 
         self.plugin = parent.plugin
+        self.adjacency = adjacency
 
         treepane = QWidget(parent=self)
 
@@ -349,27 +340,46 @@ class MxAnalyzerTab(QSplitter):
         self.tree = MxAnalyzerTree(treepane, self.model)
         self.shellwidget = None # Set by parent
 
+        button_group = QButtonGroup(parent=self)
+        self.object_radio = object_radio = QRadioButton("Object")
+        self.expr_radio = expr_radio = QRadioButton("Expression")
+        button_group.addButton(object_radio)
+        button_group.addButton(expr_radio)
+        object_radio.setChecked(True)
+
+        object_radio.toggled.connect(self.toggleObject)
+
         # Layout of the top area in the plugin widget
-        layout_top = QHBoxLayout()
-        layout_top.setContentsMargins(0, 0, 0, 0)
+        expr_layout = QHBoxLayout()
+        expr_layout.setContentsMargins(0, 0, 0, 0)
 
         # Add Object textbox
-        layout_top.addSpacing(10)
+        expr_layout.addSpacing(10)
         txt = _("Object")
         if sys.platform == 'darwin':
             obj_label = QLabel("  " + txt)
         else:
             obj_label = QLabel(txt)
-        layout_top.addWidget(obj_label)
+        expr_layout.addWidget(obj_label)
 
         if spyder.version_info < (4,):
             font = parent.plugin.get_plugin_font()
         else:
             font = parent.plugin.get_font()
 
-        self.objbox = MxPyExprLineEdit(treepane, font=font)
-        layout_top.addWidget(self.objbox)
-        layout_top.addSpacing(10)
+        self.objbox = QLabel(parent=self)
+        self.argbox = MxPyExprLineEdit(self, font=font)
+        self.attrdict = None
+
+        objbox_layout = QHBoxLayout()
+        objbox_layout.addWidget(self.objbox)
+        objbox_layout.addWidget(self.argbox)
+        objbox_layout.setStretch(0, 3)  # 3:1
+        objbox_layout.setStretch(1, 1)
+
+        self.exprobjbox = MxPyExprLineEdit(treepane, font=font)
+        expr_layout.addWidget(self.exprobjbox)
+        expr_layout.addSpacing(10)
 
         # Add Object textbox
         txt = _("Args")
@@ -377,20 +387,80 @@ class MxAnalyzerTab(QSplitter):
             arg_label = QLabel("  " + txt)
         else:
             arg_label = QLabel(txt)
-        layout_top.addWidget(arg_label)
+        expr_layout.addWidget(arg_label)
 
-        self.argbox = MxPyExprLineEdit(treepane, font=font)
-        layout_top.addWidget(self.argbox)
-        layout_top.addSpacing(10)
+        self.exprargbox = MxPyExprLineEdit(treepane, font=font)
+        expr_layout.addWidget(self.exprargbox)
+        # expr_layout.addSpacing(5)
+
+        top_layout = QGridLayout()
+        top_layout.addWidget(object_radio, 0, 0)
+        top_layout.addWidget(expr_radio, 1, 0)
+        top_layout.addLayout(objbox_layout, 0, 1)
+        objbox_layout.setContentsMargins(0, 0, 0, 5)
+        top_layout.addLayout(expr_layout, 1, 1)
+        top_layout.setContentsMargins(5, 5, 5, 5)
 
         # Main layout of this widget
-        layout = create_plugin_layout(layout_top, self.tree)
+        layout = create_plugin_layout(top_layout, self.tree)
         treepane.setLayout(layout)
 
         self.status = QLabel()
         layout.addWidget(self.status)
 
         self.codepane = AnalyzerCodePane(parent=self)
+
+    def replace_model(self, data):
+
+        model = MxAnalyzerModel(
+            adjacency=self.adjacency,
+            parent=self,
+            root=data
+        )
+        self.model = model
+        self.tree.setModel(model)
+
+    def toggleObject(self, checked):
+
+        if checked:
+            self.exprobjbox.setEnabled(False)
+            self.exprargbox.setEnabled(False)
+        else:
+            self.argbox.setEnabled(False)
+            self.exprobjbox.setEnabled(True)
+            self.exprargbox.setEnabled(True)
+
+        self.shellwidget.update_mxanalyzer(self.adjacency, update_attrdict=False)
+
+    def set_argbox(self):
+        if self.attrdict:
+            if _has_param(self.attrdict):
+                self.argbox.setEnabled(True)
+            else:
+                self.argbox.setEnabled(False)
+        else:
+            self.argbox.setText("")
+            self.argbox.setEnabled(False)
+
+    def clear_obj(self):
+        self.attrdict = None
+        self.set_argbox()
+        self.objbox.setText('')
+        self.replace_model(None)
+
+
+def _has_param(data):
+    type_ = data["type"]
+
+    if type_ == "Reference":
+        return False
+    elif type_ == "Cells":
+        if data["parameters"]:
+            return True
+        else:
+            return False
+    else:
+        raise RuntimeError("must not happen")
 
 
 class MxAnalyzerWidget(MxToolBarMixin, QWidget):
@@ -433,18 +503,35 @@ class MxAnalyzerWidget(MxToolBarMixin, QWidget):
             tab.shellwidget = shellwidget
         shellwidget.set_mxanalyzer(self)
 
+    def update_object(self, data, analyze=True):
+        if data is None:
+            return
+
+        tab = self.tabwidget.currentWidget()
+
+        tab.attrdict = data
+        if not _has_param(data):
+            tab.argbox.setText("")
+
+        tab.objbox.setText(data['_evalrepr'])
+
+        if analyze:
+            tab.object_radio.setChecked(True)
+            tab.toggleObject(True)
+
     # Slot
     def update_node(self, adjacency, data):
         tab = self.tabs[adjacency]
-        tab.tree.process_remote_view(data)
+        tab.replace_model(data)
 
-    def update_status(self, adjacency, success, msg):
+    def update_status(self, adjacency, success, msg=''):
         tab = self.tabs[adjacency]
         if success:
-            tab.status.setText('')
+            tab.status.setText(msg)
         else:
             tab.status.setText(msg)
-            tab.tree.process_remote_view(None)
+            tab.replace_model(None)
+
 
 class MxAnalyzerTree(QTreeView):
 
@@ -453,13 +540,6 @@ class MxAnalyzerTree(QTreeView):
         self.setModel(model)
         self.setAlternatingRowColors(True)
         self.doubleClicked.connect(self.doubleClicked_callback)
-
-    def process_remote_view(self, data):
-        model = self.model()
-        if data:
-            model.setRoot(data)
-        else:
-            model.setRoot(None)
 
     def currentChanged(self, current: QModelIndex, previous: QModelIndex) -> None:
         if current.isValid():
