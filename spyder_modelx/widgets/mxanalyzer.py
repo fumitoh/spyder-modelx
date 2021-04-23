@@ -61,7 +61,7 @@ import enum
 from qtpy.QtWidgets import (QApplication, QTreeView, QWidget, QHBoxLayout,
                             QLabel, QTabWidget, QSplitter, QVBoxLayout,
                             QGridLayout,
-                            QButtonGroup, QRadioButton)
+                            QButtonGroup, QRadioButton, QMenu)
 from qtpy.QtCore import QAbstractItemModel, QModelIndex, Qt, QObject
 
 import spyder
@@ -540,6 +540,27 @@ class MxAnalyzerTree(QTreeView):
         self.setModel(model)
         self.setAlternatingRowColors(True)
         self.doubleClicked.connect(self.doubleClicked_callback)
+
+        # Context menu
+        self.contextMenu = QMenu(self)
+
+        self.action_show_value = self.contextMenu.addAction(
+            "Show Value"
+        )
+
+    def contextMenuEvent(self, event):
+        action = self.contextMenu.exec_(self.mapToGlobal(event.pos()))
+
+        if action == self.action_show_value:
+            current = self.currentIndex()
+
+            if current.isValid():
+                # replace column
+                idx = self.model().index(
+                    current.row(), NodeCols.Value, current.parent())
+
+                self.doubleClicked_callback(idx)
+
 
     def currentChanged(self, current: QModelIndex, previous: QModelIndex) -> None:
         if current.isValid():
