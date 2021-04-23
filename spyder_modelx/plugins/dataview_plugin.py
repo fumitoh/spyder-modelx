@@ -96,6 +96,26 @@ class MxDataViewWidget(MxToolBarMixin, QWidget):
             plugin_actions=self.plugin_actions
         )
 
+        #
+        #         outer_layout
+        #        +----------------------------------------------|-----------+
+        #        |   inner_layout                               |           |
+        #        |  +---------|-----------------------------+   |           |
+        #  upper |  |         | +----------------------+    |   |           |
+        # layout |  |obj_radio| |objbox_layout         |    |   |           |
+        #        |  |         | +----------------------+    |   |  update   |
+        #        |  -----------------------------------------   |  button   |
+        #        |  |   expr  |                             |   |           |
+        #        |  |   radio |  exprbox                    |   |           |
+        #        |  +---------|-----------------------------+   |           |
+        #        |                                              |           |
+        #        -----------------------------------------------|------------
+        #        |                                                          |
+        #        |   msgbox                                                 |
+        #        |                                                          |
+        #        +----------------------------------------------------------+
+        #
+
         button_group = QButtonGroup(parent=self)
         self.object_radio = object_radio = QRadioButton("Object")
         self.expr_radio = expr_radio = QRadioButton("Expression")
