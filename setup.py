@@ -65,11 +65,19 @@ setup(
         'Development Status :: 1 - Planning',
         'Intended Audience :: Developers',
         'Intended Audience :: Science/Research',
+        'Intended Audience :: Financial and Insurance Industry',
+        'Topic :: Office/Business :: Financial',
+        'Topic :: Office/Business :: Financial :: Accounting',
+        'Topic :: Office/Business :: Financial :: Investment',
+        'Topic :: Office/Business :: Financial :: Spreadsheet',
+        'Topic :: Scientific/Engineering :: Mathematics',
         'License :: OSI Approved :: GNU Lesser General Public License v3 (LGPLv3)',
         'Operating System :: MacOS',
         'Operating System :: Microsoft :: Windows',
         'Operating System :: POSIX :: Linux',
         'Programming Language :: Python :: 3.5',
         'Programming Language :: Python :: 3.6',
-        'Programming Language :: Python :: 3.7'
+        'Programming Language :: Python :: 3.7',
+        'Programming Language :: Python :: 3.8',
+        'Programming Language :: Python :: 3.9'
     ])
