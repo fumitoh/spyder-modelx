@@ -59,10 +59,9 @@ except ImportError:
 from spyder.utils.qthelpers import create_plugin_layout
 
 if spyder.version_info > (4,):
-    from spyder_modelx.widgets.mxdataviewer.dataframeviewer import MxDataFrameViewer
-    from spyder_modelx.widgets.mxdataviewer.arrayviewer import MxArrayViewer
-    from spyder_modelx.widgets.mxdataviewer.collectionsviewer import MxCollectionsViewer
-
+    from spyder_modelx.widgets.mxdataviewer.compat401.dataframeviewer import MxDataFrameViewer
+    from spyder_modelx.widgets.mxdataviewer.compat401.arrayviewer import MxArrayViewer
+    from spyder_modelx.widgets.mxdataviewer.compat401.collectionsviewer import MxCollectionsViewer
 else:
     from spyder_modelx.widgets.mxdataviewer.compat32.dataframeviewer import MxDataFrameViewer
     from spyder_modelx.widgets.mxdataviewer.compat32.arrayviewer import MxArrayViewer
