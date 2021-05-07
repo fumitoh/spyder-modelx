@@ -203,34 +203,49 @@ class ModelxPlugin(MxStackedMixin, SpyderPluginWidget):
 
         Copied and modified from spyder.plugins.ipythonconsole.IPythonConsole
         """
-        ipyconsole = self.main.ipyconsole
+        ipycon = self.main.ipyconsole
 
-        ipyconsole.master_clients += 1
-        client_id = dict(int_id=to_text_string(ipyconsole.master_clients),
+        ipycon.master_clients += 1
+        client_id = dict(int_id=to_text_string(ipycon.master_clients),
                          str_id='A')
-        cf = ipyconsole._new_connection_file()
-        show_elapsed_time = ipyconsole.get_option('show_elapsed_time')
-        reset_warning = ipyconsole.get_option('show_reset_namespace_warning')
-        if spyder.version_info > (4,):
+        cf = ipycon._new_connection_file()
+        show_elapsed_time = ipycon.get_option('show_elapsed_time')
+        reset_warning = ipycon.get_option('show_reset_namespace_warning')
+        if spyder.version_info > (5,):
             client_kwargs = {
-                "ask_before_restart": ipyconsole.get_option('ask_before_restart'),
-                "options_button": ipyconsole.options_button,
-                "css_path": ipyconsole.css_path
+                "ask_before_restart": ipycon.get_option('ask_before_restart'),
+                "ask_before_closing": ipycon.get_option('ask_before_closing'),
+                "options_button": ipycon.options_button,
+                "css_path": ipycon.css_path
+            }
+            if "given_name" in kwargs:  # if not use default 'MxConsole'
+                client_kwargs["given_name"] = kwargs["given_name"]
+        elif spyder.version_info > (4,):
+            client_kwargs = {
+                "ask_before_restart": ipycon.get_option('ask_before_restart'),
+                "options_button": ipycon.options_button,
+                "css_path": ipycon.css_path
             }
             if "given_name" in kwargs:
                 client_kwargs["given_name"] = kwargs["given_name"]
         elif spyder.version_info > (3, 3, 5):
             client_kwargs = {
-                "ask_before_restart": ipyconsole.get_option('ask_before_restart')}
+                "ask_before_restart": ipycon.get_option('ask_before_restart')}
         else:
             client_kwargs = {}
 
-        client = MxClientWidget(self.main.ipyconsole,
+        addops = {}
+        if "is_pylab" in kwargs:
+            addops["is_pylab"] = kwargs["is_pylab"]
+        if "is_sympy" in kwargs:
+            addops["is_sympy"] = kwargs["is_sympy"]
+
+        client = MxClientWidget(ipycon,
             id_=client_id,
             history_filename=get_conf_path('history.py'),
-            config_options=ipyconsole.config_options(),
-            additional_options=ipyconsole.additional_options(),
-            interpreter_versions=ipyconsole.interpreter_versions(),
+            config_options=ipycon.config_options(),
+            additional_options=ipycon.additional_options(**addops),
+            interpreter_versions=ipycon.interpreter_versions(),
             connection_file=cf,
             menu_actions=self.menu_actions,
             show_elapsed_time=show_elapsed_time,
@@ -239,15 +254,16 @@ class ModelxPlugin(MxStackedMixin, SpyderPluginWidget):
 
         # Change stderr_dir if requested
         if spyder.version_info < (3, 3, 2):
-            testing = ipyconsole.testing
+            testing = ipycon.testing
         else:
-            testing = (ipyconsole.test_dir is not None)
+            testing = (ipycon.test_dir is not None)
         if testing:
-            client.stderr_dir = ipyconsole.test_dir
-        ipyconsole.add_tab(client, name=client.get_name(), filename=filename)
+            client.stderr_dir = ipycon.test_dir
+
+        ipycon.add_tab(client, name=client.get_name(), filename=filename)
 
         if cf is None:
-            error_msg = ipyconsole.permission_error_msg.format(jupyter_runtime_dir())
+            error_msg = ipycon.permission_error_msg.format(jupyter_runtime_dir())
             client.show_kernel_error(error_msg)
             return
 
@@ -255,11 +271,21 @@ class ModelxPlugin(MxStackedMixin, SpyderPluginWidget):
         # Else we won't be able to create a client
         if not CONF.get('main_interpreter', 'default'):
             pyexec = CONF.get('main_interpreter', 'executable')
-            has_ipykernel = programs.is_module_installed('ipykernel',
-                                                         interpreter=pyexec)
-            has_cloudpickle = programs.is_module_installed('cloudpickle',
-                                                           interpreter=pyexec)
-            if not (has_ipykernel and has_cloudpickle):
+            if spyder.version_info > (3, 2, 8):
+                has_ipykernel = programs.is_module_installed(
+                    "spyder_kernels",
+                    interpreter=pyexec)     # missing version param
+                testcond = has_ipykernel
+            else:
+                has_ipykernel = programs.is_module_installed(
+                    "ipykernel",
+                    interpreter=pyexec)
+                has_cloudpickle = programs.is_module_installed(
+                    'cloudpickle',
+                    interpreter=pyexec)     # this is gone now
+                testcond = (has_ipykernel and has_cloudpickle)
+
+            if not testcond:
                 client.show_kernel_error(_("Your Python environment or "
                                      "installation doesn't "
                                      "have the <tt>ipykernel</tt> and "
@@ -278,29 +304,30 @@ class ModelxPlugin(MxStackedMixin, SpyderPluginWidget):
         self.connect_client_to_kernel(client, is_cython=is_cython)
         if client.shellwidget.kernel_manager is None:
             return
-        ipyconsole.register_client(client)
+        ipycon.register_client(client)
 
-    def connect_client_to_kernel(self, client, is_cython=False):
+    def connect_client_to_kernel(self, client, is_cython=False,
+                                 **kwargs):    # kwargs for is_pylab, is_sympy
         """Connect a client to its kernel
 
         Copied and modified from spyder.plugins.ipythonconsole.IPythonConsole
         """
-        ipyconsole = self.main.ipyconsole
+        ipycon = self.main.ipyconsole
 
         connection_file = client.connection_file
 
-        if ipyconsole.test_no_stderr:
-            stderr_file_or_handle = None
+        if ipycon.test_no_stderr:
+            stderr_handle = None
         else:
             if spyder.version_info < (3, 3, 2):
-                stderr_file_or_handle = client.stderr_file
+                stderr_handle = client.stderr_file
             else:
-                stderr_file_or_handle = client.stderr_handle
+                stderr_handle = client.stderr_handle
 
         km, kc = self.create_kernel_manager_and_kernel_client(
                      connection_file,
-                     stderr_file_or_handle,
-                     is_cython=is_cython)
+                     stderr_handle,
+                     is_cython=is_cython, **kwargs)
 
         # An error occurred if this is True
         if is_string(km) and kc is None:
@@ -308,12 +335,21 @@ class ModelxPlugin(MxStackedMixin, SpyderPluginWidget):
             client.show_kernel_error(km)
             return
 
-        kc.started_channels.connect(lambda c=client: self.process_started(c))
-        kc.stopped_channels.connect(lambda c=client: self.process_finished(c))
+        # This avoids a recurrent, spurious NameError when running our
+        # tests in our CIs
+        if not ipycon.testing:
+            kc.started_channels.connect(
+                lambda c=client: self.process_started(c))
+            kc.stopped_channels.connect(
+                lambda c=client: self.process_finished(c))
         kc.start_channels(shell=True, iopub=True)
 
         shellwidget = client.shellwidget
-        if spyder.version_info > (4,):
+        if spyder.version_info > (5,):
+            shellwidget.set_kernel_client_and_manager(kc, km)
+            shellwidget.sig_exception_occurred.connect(
+                self.main.console.handle_exception)
+        elif spyder.version_info > (4,):
             shellwidget.set_kernel_client_and_manager(kc, km)
             shellwidget.sig_exception_occurred.connect(
                 self.main.console.exception_occurred)
@@ -326,24 +362,24 @@ class ModelxPlugin(MxStackedMixin, SpyderPluginWidget):
 
         Copied and modified from spyder.plugins.ipythonconsole.IPythonConsole
         """
-        ipyconsole = self.main.ipyconsole
+        ipycon = self.main.ipyconsole
         # Before creating our kernel spec, we always need to
         # set this value in spyder.ini
-        if spyder.version_info > (3, 3, 1) or not ipyconsole.testing:
+        if spyder.version_info > (3, 3, 1) or not ipycon.testing:
             CONF.set('main', 'spyder_pythonpath',
-                     ipyconsole.main.get_spyder_pythonpath())
-        return MxKernelSpec(is_cython=is_cython)
+                     ipycon.main.get_spyder_pythonpath())
+        return MxKernelSpec(is_cython=is_cython, **kwargs)
 
     def create_kernel_manager_and_kernel_client(self, connection_file,
-                                                stderr_file_or_handle,
+                                                stderr_handle,
                                                 is_cython=False):
 
         if spyder.version_info < (3, 2, 8):
             return IPythonConsole.create_kernel_manager_and_kernel_client(
-                self, connection_file, stderr_file_or_handle)
+                self, connection_file, stderr_handle)
         else:
             return IPythonConsole.create_kernel_manager_and_kernel_client(
-                self, connection_file, stderr_file_or_handle,
+                self, connection_file, stderr_handle,
                 is_cython=is_cython)
 
     def process_started(self, client):

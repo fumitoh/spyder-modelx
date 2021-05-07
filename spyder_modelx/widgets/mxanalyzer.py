@@ -69,14 +69,19 @@ from spyder.config.base import _, debug_print
 from spyder.utils.qthelpers import (add_actions, create_action,
                                     create_toolbutton, create_plugin_layout)
 
-if spyder.version_info < (4,):
-    from spyder.widgets.variableexplorer.arrayeditor import ArrayEditor
-    from spyder.widgets.variableexplorer.collectionseditor import CollectionsEditor
-    from spyder.widgets.variableexplorer.dataframeeditor import DataFrameEditor
-else:
+if spyder.version_info > (5,):
+    from spyder.plugins.variableexplorer.widgets.arrayeditor import ArrayEditor
+    from spyder.widgets.collectionseditor import CollectionsEditor
+    from spyder.plugins.variableexplorer.widgets.dataframeeditor import DataFrameEditor
+elif spyder.version_info > (4,):
     from spyder.plugins.variableexplorer.widgets.arrayeditor import ArrayEditor
     from spyder.plugins.variableexplorer.widgets.collectionseditor import CollectionsEditor
     from spyder.plugins.variableexplorer.widgets.dataframeeditor import DataFrameEditor
+else:
+    from spyder.widgets.variableexplorer.arrayeditor import ArrayEditor
+    from spyder.widgets.variableexplorer.collectionseditor import CollectionsEditor
+    from spyder.widgets.variableexplorer.dataframeeditor import DataFrameEditor
+
 
 from spyder_modelx.util import TupleEncoder
 from spyder_modelx.widgets.mxlineedit import MxPyExprLineEdit
