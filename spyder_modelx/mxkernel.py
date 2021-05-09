@@ -42,6 +42,7 @@
 # FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
 # OTHER DEALINGS IN THE SOFTWARE.
 
+from types import ModuleType
 import json
 import ast
 import spyder
@@ -388,11 +389,13 @@ class ModelxKernel(SpyderKernel):
 
     def _to_sendval(self, value):
         from modelx.core.cells import Interface
+        from modelx.io.baseio import BaseDataClient
         import pandas as pd
         import numpy as np
         import numpy.ma
 
-        if isinstance(value, (Interface, str)):
+        if isinstance(value, (Interface, str, BaseDataClient,
+                              ModuleType)):
             return repr(value)
 
         elif isinstance(value, (pd.DataFrame, pd.Index, pd.Series,

@@ -148,7 +148,10 @@ class NodeItem(object):
             if column == NodeCols.Node:
                 return self.node['repr']
             elif column == NodeCols.Args:
-                return ', '.join(str(arg) for arg in self.node['args'])
+                if self.node['args']:
+                    return ', '.join(str(arg) for arg in self.node['args'])
+                else:
+                    return ''
             elif column == NodeCols.Value:
                 return self.node['value']
             elif column == NodeCols.Space:
@@ -489,9 +492,9 @@ class MxAnalyzerWidget(MxToolBarMixin, QWidget):
 
         # Create main widget
         self.tabwidget = QTabWidget(parent=parent)
-        self.preds = MxAnalyzerTab(parent=self, adjacency='preds')
+        self.preds = MxAnalyzerTab(parent=self, adjacency='precedents')
         self.succs = MxAnalyzerTab(parent=self, adjacency='succs')
-        self.tabs = {'preds': self.preds,
+        self.tabs = {'precedents': self.preds,
                      'succs': self.succs}
 
         self.tabwidget.addTab(self.preds, 'Precedents')

@@ -231,16 +231,16 @@ class MxShellWidget(ShellWidget):
         self.sig_mxanalyzer.connect(self.mxanalyzer.update_node)
         self.sig_mxanalyzer_status.connect(self.mxanalyzer.update_status)
 
-        for adjacency in ['preds', 'succs']:
+        for adjacency in ['precedents', 'succs']:
 
             tab = self.mxanalyzer.tabs[adjacency]
 
             for box in [tab.exprobjbox, tab.exprargbox, tab.argbox]:
                 # adjacenty is a free varible
                 # cannot pass it to update_mxanalyzer in lambda
-                if adjacency == 'preds':
+                if adjacency == 'precedents':
                     box.editingFinished.connect(
-                        lambda: self.update_mxanalyzer('preds')
+                        lambda: self.update_mxanalyzer('precedents')
                     )
                 elif adjacency == 'succs':
                     box.editingFinished.connect(
@@ -344,7 +344,7 @@ class MxShellWidget(ShellWidget):
             self.mx_silent_exec_method(str1+str2+str3, msgtype=msgtype)
 
     def update_mxanalyzer_all(self):
-        for adj in ['preds', 'succs']:
+        for adj in ['precedents', 'succs']:
             self.update_mxanalyzer(adj)
 
     def get_adjacent(self, obj: str, args: tuple, adjacency: str):
@@ -375,7 +375,7 @@ class MxShellWidget(ShellWidget):
             #     method = self.silent_execute
 
             # Wait until the kernel returns the value
-            if adjacency == 'preds':
+            if adjacency == 'precedents':
                 sig = self.sig_mxanalyzer_preds
             elif adjacency == 'succs':
                 sig = self.sig_mxanalyzer_succs
@@ -814,7 +814,7 @@ class MxShellWidget(ShellWidget):
                 self._mx_value = value
                 self.sig_mxmodellist.emit()
             elif msgtype == 'analyze_preds_setnode':
-                self.sig_mxanalyzer.emit('preds', value)
+                self.sig_mxanalyzer.emit('precedents', value)
             elif msgtype == 'analyze_succs_setnode':
                 self.sig_mxanalyzer.emit('succs', value)
             elif msgtype == 'analyze_preds':
