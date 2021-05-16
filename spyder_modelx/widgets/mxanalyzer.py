@@ -492,12 +492,12 @@ class MxAnalyzerWidget(MxToolBarMixin, QWidget):
 
         # Create main widget
         self.tabwidget = QTabWidget(parent=parent)
-        self.preds = MxAnalyzerTab(parent=self, adjacency='precedents')
+        self.precedents = MxAnalyzerTab(parent=self, adjacency='precedents')
         self.succs = MxAnalyzerTab(parent=self, adjacency='succs')
-        self.tabs = {'precedents': self.preds,
+        self.tabs = {'precedents': self.precedents,
                      'succs': self.succs}
 
-        self.tabwidget.addTab(self.preds, 'Precedents')
+        self.tabwidget.addTab(self.precedents, 'Precedents')
         self.tabwidget.addTab(self.succs, 'Dependents')
 
         layout = create_plugin_layout(self.tools_layout, self.tabwidget)

@@ -88,7 +88,7 @@ class MxShellWidget(ShellWidget):
     sig_mxcodelist = Signal(object)
     sig_mxanalyzer = Signal(str, object)
     sig_mxanalyzer_status = Signal(str, bool, str)
-    sig_mxanalyzer_preds = Signal()
+    sig_mxanalyzer_precedents = Signal()
     sig_mxanalyzer_succs = Signal()
     sig_mxanalyzer_getval = Signal()   # Spyder 3 only
     sig_mxupdated = Signal()
@@ -101,9 +101,9 @@ class MxShellWidget(ShellWidget):
                    'codelist',
                    'explorer',
                    'modellist',
-                   'analyze_preds_setnode',
+                   'analyze_precedents_setnode',
                    'analyze_succs_setnode',
-                   'analyze_preds',
+                   'analyze_precedents',
                    'analyze_succs',
                    'analyze_getval',    # Spyder 3 only
                    'property',
@@ -376,7 +376,7 @@ class MxShellWidget(ShellWidget):
 
             # Wait until the kernel returns the value
             if adjacency == 'precedents':
-                sig = self.sig_mxanalyzer_preds
+                sig = self.sig_mxanalyzer_precedents
             elif adjacency == 'succs':
                 sig = self.sig_mxanalyzer_succs
             else:
@@ -763,7 +763,7 @@ class MxShellWidget(ShellWidget):
             if msgtype and msgtype[:len("analyze_")] == "analyze_":
                 local_uuid = self._mx_exec[msg_id].local_uuid
                 result = msg['content']['user_expressions'][local_uuid]
-                adjacency = msgtype[8:13]
+                adjacency = msgtype.split("_")[1]
                 if result['status'] == "error":
                     errmsg = result['ename'] + ": " + result['evalue']
                     self.sig_mxanalyzer_status.emit(adjacency, False, errmsg)
@@ -813,15 +813,15 @@ class MxShellWidget(ShellWidget):
                     raise AssertionError("must not happen")
                 self._mx_value = value
                 self.sig_mxmodellist.emit()
-            elif msgtype == 'analyze_preds_setnode':
+            elif msgtype == 'analyze_precedents_setnode':
                 self.sig_mxanalyzer.emit('precedents', value)
             elif msgtype == 'analyze_succs_setnode':
                 self.sig_mxanalyzer.emit('succs', value)
-            elif msgtype == 'analyze_preds':
+            elif msgtype == 'analyze_precedents':
                 if spyder.version_info > (4,):
                     raise AssertionError("must not happen")
                 self._mx_value = value
-                self.sig_mxanalyzer_preds.emit()
+                self.sig_mxanalyzer_precedents.emit()
             elif msgtype == 'analyze_succs':
                 if spyder.version_info > (4,):
                     raise AssertionError("must not happen")
