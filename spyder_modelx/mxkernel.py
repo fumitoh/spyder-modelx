@@ -53,6 +53,9 @@ else:
     from spyder_kernels.console.kernel import SpyderKernel
 
 from spyder_modelx.utility.tupleencoder import hinted_tuple_hook
+from spyder_modelx.utility.typeutil import (
+    is_instance_of,
+    is_numpy_number, numpy_to_py)
 
 
 class ModelxKernel(SpyderKernel):
@@ -390,20 +393,28 @@ class ModelxKernel(SpyderKernel):
     def _to_sendval(self, value):
         from modelx.core.cells import Interface
         from modelx.io.baseio import BaseDataClient
-        import pandas as pd
-        import numpy as np
-        import numpy.ma
 
         if isinstance(value, (Interface, str, BaseDataClient,
                               ModuleType)):
             return repr(value)
 
-        elif isinstance(value, (pd.DataFrame, pd.Index, pd.Series,
-                                np.ndarray, np.ma.MaskedArray,
-                                list, set, tuple, dict)):
+        elif any(
+                is_instance_of(value, c, "pandas") for c in [
+                    "DataFrame", "Index", "Series"
+                ]):
             return "Type: " + value.__class__.__name__
-        elif isinstance(value, np.float64):
-            return float(value)
+
+        elif any(
+            is_instance_of(value, c, "numpy") for c in [
+                "ndarray", "MaskedArray"
+            ]):
+            return "Type: " + value.__class__.__name__
+
+        elif isinstance(value, (list, set, tuple, dict)):
+            return "Type: " + value.__class__.__name__
+
+        elif is_numpy_number(value):
+            return numpy_to_py[type(value).__name__](value)
         else:
             return value
 
