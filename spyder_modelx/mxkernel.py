@@ -52,7 +52,7 @@ if spyder.version_info < (3, 3, 0):
 else:
     from spyder_kernels.console.kernel import SpyderKernel
 
-from spyder_modelx.util import hinted_tuple_hook
+from spyder_modelx.utility.tupleencoder import hinted_tuple_hook
 
 
 class ModelxKernel(SpyderKernel):

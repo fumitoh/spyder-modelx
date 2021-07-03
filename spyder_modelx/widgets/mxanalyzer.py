@@ -83,7 +83,7 @@ else:
     from spyder.widgets.variableexplorer.dataframeeditor import DataFrameEditor
 
 
-from spyder_modelx.util import TupleEncoder
+from spyder_modelx.utility.tupleencoder import TupleEncoder
 from spyder_modelx.widgets.mxlineedit import MxPyExprLineEdit
 from spyder_modelx.widgets.mxtoolbar import MxToolBarMixin
 from spyder_modelx.widgets.mxcodeeditor import BaseCodePane

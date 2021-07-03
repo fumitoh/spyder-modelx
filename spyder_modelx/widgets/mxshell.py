@@ -61,7 +61,7 @@ else:
 from spyder.utils import encoding
 from spyder.py3compat import PY2, to_text_string
 
-from spyder_modelx.util import TupleEncoder, hinted_tuple_hook
+from spyder_modelx.utility.tupleencoder import TupleEncoder, hinted_tuple_hook
 from spyder_modelx.utility.formula import (
     is_funcdef, is_lambda, replace_funcname, get_funcname)
 
