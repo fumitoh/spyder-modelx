@@ -183,12 +183,9 @@ class ViewItem(BaseItem):
 
 class SpaceContainerItem(InterfaceItem):
     """Base Item class for Models and Spaces which inherit SpaceContainer."""
-    def updateChild(self):
-        self.childItems = self.newChildItems(self.itemData)
 
-    def newChildItems(self, data):
-        return [SpaceItem(space, self)
-                for space in data['spaces']['items'].values()]
+    def updateChild(self):
+        raise NotImplementedError
 
     def getSpaceContainerList(self):
         result = []
@@ -211,6 +208,14 @@ class ModelItem(SpaceContainerItem):
     """Item class for a Model (root item)"""
     def __init__(self, data):
         super(ModelItem, self).__init__(data, parent=None)
+
+    def updateChild(self):
+        data = self.itemData
+        self.childItems.clear()
+        self.childItems.extend(SpaceItem(space, self)
+                               for space in data['spaces']['items'].values())
+        self.childItems.extend(RefItem(ref, self)
+                               for ref in data['refs']['items'].values())
 
     def getParams(self):
         return ''
