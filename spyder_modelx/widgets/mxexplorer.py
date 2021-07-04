@@ -75,7 +75,7 @@ class MxTreeView(QTreeView):
         super().__init__(parent)
 
         self.activated.connect(self.activated_callback)
-        self.doubleClicked.connect(self.doubleClicked_callback)
+        # self.doubleClicked.connect(self.doubleClicked_callback)
 
         self.plugin = parent.plugin
         self.shell = None
@@ -126,11 +126,11 @@ class MxTreeView(QTreeView):
                 self.shell.update_mxproperty(item.itemData['fullname'])
                 # self.plugin.dataview.update_object(item.itemData['fullname'])
 
-    def doubleClicked_callback(self, index):
-        if index.isValid() and index.column() == TreeCol.IS_DERIVED:
-            answer = QMessageBox.warning(self.parent(), _("Warning"),
-                                         str(index.row()),
-                                         QMessageBox.Yes | QMessageBox.No)
+    # def doubleClicked_callback(self, index):
+    #     if index.isValid() and index.column() == TreeCol.IS_DERIVED:
+    #         answer = QMessageBox.warning(self.parent(), _("Warning"),
+    #                                      str(index.row()),
+    #                                      QMessageBox.Yes | QMessageBox.No)
 
 
     def contextMenuEvent(self, event):
