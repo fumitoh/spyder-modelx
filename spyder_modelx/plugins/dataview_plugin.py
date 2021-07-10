@@ -56,7 +56,7 @@ try:
 except ImportError:
     from spyder.plugins import SpyderPluginWidget  # Spyder3
 
-from spyder.utils.qthelpers import create_plugin_layout
+from spyder.utils.qthelpers import create_plugin_layout, create_action
 
 if spyder.version_info > (5,):
     from spyder_modelx.widgets.mxdataviewer.dataframeviewer import MxDataFrameViewer
@@ -195,6 +195,16 @@ class MxDataViewWidget(MxToolBarMixin, QWidget):
         self.attrdict = None
         object_radio.setChecked(True)
 
+    def setup_option_actions(self, *args, **kwargs):
+
+        self.calc_on_update = create_action(self,
+           _("Calculate upon update"),
+           tip=_("Calculate the selected cells if not yet calculated"),
+           toggled=lambda state:
+           self.sig_option_changed.emit('calc_on_update', state))
+        self.calc_on_update.setChecked(True)
+        self.actions = [self.calc_on_update]
+
     def set_shellwidget(self, shellwidget):
         """Bind shellwidget instance to namespace browser"""
         self.shellwidget = shellwidget
@@ -234,17 +244,24 @@ class MxDataViewWidget(MxToolBarMixin, QWidget):
             # assert
             ast.literal_eval(args)
 
-            val = self.shellwidget.update_mxdataview(
+            calc = self.calc_on_update.isChecked()
+
+            val, is_calculated = self.shellwidget.update_mxdataview(
                 is_obj=True,
                 obj=self.attrdict["fullname"],
-                args=args
+                args=args,
+                calc=calc
             )
             self.update_value(val)
+            if is_calculated:
+                self.shellwidget.refresh_namespacebrowser()
+
         elif self.expr_radio.isChecked():
             self.shellwidget.update_mxdataview(
                 is_obj=False,
                 expr=self.exprbox.get_expr()
             )
+            self.shellwidget.refresh_namespacebrowser()
         else:
             raise RuntimeError("MxDataViewer: must not happen")
 
@@ -320,8 +337,13 @@ class MxDataViewPlugin(MxStackedMixin, SpyderPluginWidget):
         pass
 
     def get_plugin_actions(self):
-        """Return a list of actions related to plugin."""
-        return []
+        """Return a list of actions related to plugin"""
+        widget = self.current_widget()
+        if isinstance(widget, self.MX_WIDGET_CLASS):
+            return widget.actions
+        else:
+            # Start-up Label
+            return []
 
     def register_plugin(self):
         """Register plugin in Spyder's main window."""

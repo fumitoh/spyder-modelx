@@ -94,6 +94,7 @@ class MxToolBarMixin:
         else:
             self.tools_layout.addStretch()
 
+        self.setup_option_actions()
         self.setup_options_button()
 
     def get_actions(self):

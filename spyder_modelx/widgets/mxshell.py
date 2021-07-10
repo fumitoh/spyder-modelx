@@ -159,7 +159,8 @@ class MxShellWidget(ShellWidget):
         self.sig_mxdataview_eval.connect(self.mxdataviewer.update_value)
         self.sig_mxproperty.connect(self.mxdataviewer.update_object)
 
-    def get_obj_value(self, msgtype: str, obj: str, args: str):
+    def get_obj_value(self, msgtype: str, obj: str, args: str,
+                      calc: bool=False):
 
         # jsonargs = TupleEncoder(ensure_ascii=True).encode(args)
 
@@ -168,13 +169,13 @@ class MxShellWidget(ShellWidget):
                 interrupt=True,
                 blocking=True,
                 timeout=CALL_KERNEL_TIMEOUT).mx_get_value(
-                msgtype, obj, args
+                msgtype, obj, args, calc
             )
             return result
         else:
             code = (
-                    "get_ipython().kernel.mx_get_value('%s', '%s', '%s')"
-                    % (msgtype, obj, args)
+                    "get_ipython().kernel.mx_get_value('%s', '%s', '%s', %s)"
+                    % (msgtype, obj, args, calc)
             )
 
             # The code below is replaced with silent_exec_method
@@ -195,11 +196,11 @@ class MxShellWidget(ShellWidget):
 
             return self._mx_wait_reply(code, sig)
 
-    def update_mxdataview(self, is_obj, obj=None, args=None, expr=None):
+    def update_mxdataview(self, is_obj, obj=None, args=None, expr=None, calc=False):
         """Update dataview"""
         # expr = self.mxdataviewer.exprbox.get_expr()
         if is_obj:
-            return self.get_obj_value('dataview_getval', obj, args)
+            return self.get_obj_value('dataview_getval', obj, args, calc)
         else:
             if expr:
                 method = "get_ipython().kernel.mx_get_evalresult('dataview', %s)" % expr

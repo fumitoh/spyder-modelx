@@ -419,7 +419,13 @@ class ModelxKernel(SpyderKernel):
             return value
 
 
-    def mx_get_value(self, msgtype, fullname: str, argstr: str):
+    def mx_get_value(self, msgtype, fullname: str, argstr: str, calc: bool):
+        """Get value of modelx object
+
+        Returns a pair of the value and bool to indicate if the value is just
+        calculated
+
+        """
         import modelx as mx
         from modelx.core.reference import ReferenceProxy
         from modelx.core.base import Interface
@@ -427,12 +433,15 @@ class ModelxKernel(SpyderKernel):
         args = ast.literal_eval(argstr)
         obj = mx.get_object(fullname, as_proxy=True)
         if isinstance(obj, ReferenceProxy):
-            value = mx.get_object(fullname)
+            value = [mx.get_object(fullname), False]
         elif isinstance(obj, Interface):
             if args in obj:
-                value = obj(*args)
+                value = [obj(*args), False]
             else:
-                raise KeyError("value for %s not found" % argstr)
+                if calc:
+                    value = [obj(*args), True]
+                else:
+                    raise KeyError("value for %s not found" % argstr)
 
         if spyder.version_info > (4,):
             return value

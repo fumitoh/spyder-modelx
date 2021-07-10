@@ -587,7 +587,7 @@ class MxAnalyzerTree(QTreeView):
             obj = item.node['obj']['fullname']
             args = str(item.node['args'])
 
-            data = self.shell.get_obj_value(
+            data, _ = self.shell.get_obj_value(
                 'analyze_getval', obj, args)
 
             if isinstance(data, (pd.DataFrame, pd.Index, pd.Series)):
