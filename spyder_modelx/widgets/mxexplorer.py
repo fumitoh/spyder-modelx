@@ -366,9 +366,9 @@ class MxTreeView(QTreeView):
                     if answer == QMessageBox.Yes:
                         self.shell.del_object(parent, item.name)
 
-                    QMessageBox.information(
-                        self, "Notice",
-                        "'%s' is deleted from '%s'" % (item.name, parent))
+                        QMessageBox.information(
+                            self, "Notice",
+                            "'%s' is deleted from '%s'" % (item.name, parent))
 
 
 class MxExplorer(QWidget):
