@@ -226,6 +226,8 @@ class ModelxPlugin(MxStackedMixin, SpyderPluginWidget):
                 "options_button": ipycon.options_button,
                 "css_path": ipycon.css_path
             }
+            if spyder.version_info > (4, 2, 0):
+                client_kwargs["ask_before_closing"] = ipycon.get_option('ask_before_closing')
             if "given_name" in kwargs:
                 client_kwargs["given_name"] = kwargs["given_name"]
         elif spyder.version_info > (3, 3, 5):

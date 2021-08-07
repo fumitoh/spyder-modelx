@@ -104,6 +104,8 @@ class MxClientWidget(ClientWidget):
         self.reset_warning = reset_warning
         if "ask_before_restart" in kwargs:
             self.ask_before_restart = kwargs["ask_before_restart"]
+        if "ask_before_closing" in kwargs:
+            self.ask_before_closing = kwargs["ask_before_closing"]
 
         # --- Other attrs
         if spyder.version_info > (4,) and "options_button" in kwargs:
