@@ -80,7 +80,8 @@ class MxStackedMixin:
     def set_current_widget(self, mxwidget):
         self.stack.setCurrentWidget(mxwidget)
         # self.refresh_actions()
-        mxwidget.setup_options_button()
+        if spyder.version_info < (5,):
+            mxwidget.setup_options_button()
 
     def current_widget(self):
         return self.stack.currentWidget()

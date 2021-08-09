@@ -403,85 +403,150 @@ class MxExplorer(QWidget):
             self.treeview.setModel(None)
 
 
-class MxMainWidget(MxToolBarMixin, QWidget):
+if spyder.version_info > (5,):
 
-    def __init__(self, parent, **kwargs):
-        QWidget.__init__(self, parent)
+    class MxMainWidget(QWidget):
 
-        if spyder.version_info > (5,):
+        def __init__(self, parent, **kwargs):
+
+            QWidget.__init__(self, parent)
             self.plugin = parent.get_plugin()
-        else:
-            self.plugin = parent
 
-        # Create tool bar
-        if "options_button" in kwargs:
-            self.options_button = kwargs["options_button"]
-        else:
-            self.options_button = None
-        self.plugin_actions = []
-        MxToolBarMixin.__init__(
-            self,
-            options_button=self.options_button,
-            plugin_actions=self.plugin_actions
-        )
+            # Create and place Model Selector
+            txt = _("Model")
+            if sys.platform == 'darwin':
+                expr_label = QLabel("  " + txt)
+            else:
+                expr_label = QLabel(txt)
 
-        # Create widget and add to dockwindow
-        self.explorer = MxExplorer(self)
+            # expr_label.setAlignment(Qt.AlignCenter | Qt.AlignRight)
+            self.model_selector = MxModelSelector(self)
+            selector_layout = QHBoxLayout()
+            selector_layout.addWidget(expr_label)
+            selector_layout.addWidget(self.model_selector)
+            selector_layout.insertStretch(-1, 1)
+            selector_layout.setStretch(0, 0)
+            selector_layout.setStretch(1, 1)
 
-        # Create code list
-        self.codelist = MxCodeListWidget(self)
-        self.propwidget = MxPropertyWidget(self, orientation=Qt.Vertical)
+            # Create widget and add to dockwindow
+            self.explorer = MxExplorer(self)
 
-        # Create splitter
-        self.splitter = QSplitter(self)
-        self.splitter.setContentsMargins(0, 0, 0, 0)
-        # self.splitter.addWidget(self.widget)
-        # self.splitter.setStretchFactor(0, 5)
-        # self.splitter.setStretchFactor(1, 1)
+            # Create code list
+            self.codelist = MxCodeListWidget(self)
+            self.propwidget = MxPropertyWidget(self, orientation=Qt.Vertical)
 
-        self.tabwidget = QTabWidget(parent=self)
-        # self.tabwidget.setContentsMargins(0, 0, 0, 0)
-        MxMainWidget.IdxProperties = self.tabwidget.addTab(self.propwidget, "Properties")
-        MxMainWidget.IdxFormulas = self.tabwidget.addTab(self.codelist, "Formulas")
+            # Create splitter
+            self.splitter = QSplitter(self)
+            self.splitter.setContentsMargins(0, 0, 0, 0)
+            # self.splitter.addWidget(self.widget)
+            # self.splitter.setStretchFactor(0, 5)
+            # self.splitter.setStretchFactor(1, 1)
 
-        # Layout management
-        self.splitter.addWidget(self.explorer)
-        self.splitter.addWidget(self.tabwidget)
+            self.tabwidget = QTabWidget(parent=self)
+            # self.tabwidget.setContentsMargins(0, 0, 0, 0)
+            MxMainWidget.IdxProperties = self.tabwidget.addTab(self.propwidget, "Properties")
+            MxMainWidget.IdxFormulas = self.tabwidget.addTab(self.codelist, "Formulas")
 
-        layout = create_plugin_layout(self.tools_layout, self.splitter)
+            # Layout management
+            self.splitter.addWidget(self.explorer)
+            self.splitter.addWidget(self.tabwidget)
 
-        self.setFocusPolicy(Qt.ClickFocus)
-        self.setLayout(layout)
+            layout = create_plugin_layout(selector_layout, self.splitter)
+            self.setLayout(layout)
 
-    def set_shellwidget(self, shellwidget):
-        """Bind shellwidget instance to namespace browser"""
-        self.shellwidget = shellwidget
-        self.shellwidget.set_mxexplorer(self.explorer, self.model_selector)
-        self.shellwidget.set_mxcodelist(self.codelist)
-        self.shellwidget.set_mxproperty(self.propwidget)
+            self.setFocusPolicy(Qt.ClickFocus)
 
-    def raise_tab(self, widget):
-        self.tabwidget.setCurrentWidget(widget)
 
-    # MxToolBarMixin interface method
-    def setup_toolbar(self):
+        def set_shellwidget(self, shellwidget):
+            """Bind shellwidget instance to namespace browser"""
+            self.shellwidget = shellwidget
+            self.shellwidget.set_mxexplorer(self.explorer, self.model_selector)
+            self.shellwidget.set_mxcodelist(self.codelist)
+            self.shellwidget.set_mxproperty(self.propwidget)
 
-        txt = _("Model")
-        if sys.platform == 'darwin':
-            expr_label = QLabel("  " + txt)
-        else:
-            expr_label = QLabel(txt)
+        def raise_tab(self, widget):
+            self.tabwidget.setCurrentWidget(widget)
 
-        expr_label.setAlignment(Qt.AlignCenter | Qt.AlignRight)
+else:
+    class MxMainWidget(MxToolBarMixin, QWidget):
 
-        if spyder.version_info < (4,):
-            font = self.plugin.get_plugin_font()
-        else:
-            font = self.plugin.get_font()
+        def __init__(self, parent, **kwargs):
+            QWidget.__init__(self, parent)
 
-        self.model_selector = MxModelSelector(self)
+            if spyder.version_info > (5,):
+                self.plugin = parent.get_plugin()
+            else:
+                self.plugin = parent
 
-        return [expr_label, self.model_selector]
+            # Create tool bar
+            if "options_button" in kwargs:
+                self.options_button = kwargs["options_button"]
+            else:
+                self.options_button = None
+            self.plugin_actions = []
+            MxToolBarMixin.__init__(
+                self,
+                options_button=self.options_button,
+                plugin_actions=self.plugin_actions
+            )
+
+            # Create widget and add to dockwindow
+            self.explorer = MxExplorer(self)
+
+            # Create code list
+            self.codelist = MxCodeListWidget(self)
+            self.propwidget = MxPropertyWidget(self, orientation=Qt.Vertical)
+
+            # Create splitter
+            self.splitter = QSplitter(self)
+            self.splitter.setContentsMargins(0, 0, 0, 0)
+            # self.splitter.addWidget(self.widget)
+            # self.splitter.setStretchFactor(0, 5)
+            # self.splitter.setStretchFactor(1, 1)
+
+            self.tabwidget = QTabWidget(parent=self)
+            # self.tabwidget.setContentsMargins(0, 0, 0, 0)
+            MxMainWidget.IdxProperties = self.tabwidget.addTab(self.propwidget, "Properties")
+            MxMainWidget.IdxFormulas = self.tabwidget.addTab(self.codelist, "Formulas")
+
+            # Layout management
+            self.splitter.addWidget(self.explorer)
+            self.splitter.addWidget(self.tabwidget)
+
+            layout = create_plugin_layout(self.tools_layout, self.splitter)
+
+            self.setFocusPolicy(Qt.ClickFocus)
+            self.setLayout(layout)
+
+        def set_shellwidget(self, shellwidget):
+            """Bind shellwidget instance to namespace browser"""
+            self.shellwidget = shellwidget
+            self.shellwidget.set_mxexplorer(self.explorer, self.model_selector)
+            self.shellwidget.set_mxcodelist(self.codelist)
+            self.shellwidget.set_mxproperty(self.propwidget)
+
+        def raise_tab(self, widget):
+            self.tabwidget.setCurrentWidget(widget)
+
+        # MxToolBarMixin interface method
+        def setup_toolbar(self):
+
+            txt = _("Model")
+            if sys.platform == 'darwin':
+                expr_label = QLabel("  " + txt)
+            else:
+                expr_label = QLabel(txt)
+
+            expr_label.setAlignment(Qt.AlignCenter | Qt.AlignRight)
+
+            if spyder.version_info < (4,):
+                font = self.plugin.get_plugin_font()
+            else:
+                font = self.plugin.get_font()
+
+            self.model_selector = MxModelSelector(self)
+
+            return [expr_label, self.model_selector]
 
 
 class MxModelSelector(QComboBox):

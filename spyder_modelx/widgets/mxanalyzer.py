@@ -471,77 +471,141 @@ def _has_param(data):
         raise RuntimeError("must not happen")
 
 
-class MxAnalyzerWidget(MxToolBarMixin, QWidget):
+if spyder.version_info > (5,):
 
-    def __init__(self, parent, **kwargs):
-        QWidget.__init__(self, parent)
+    class MxAnalyzerWidget(QWidget):
 
-        if spyder.version_info > (5,):
+        def __init__(self, parent, **kwargs):
+            QWidget.__init__(self, parent)
+
             self.plugin = parent.get_plugin()
-        else:
-            self.plugin = parent
 
-        # Create tool bar
-        if "options_button" in kwargs:
-            self.options_button = kwargs["options_button"]
-        else:
-            self.options_button = None
-        self.plugin_actions = []
-        MxToolBarMixin.__init__(
-            self,
-            options_button=self.options_button,
-            plugin_actions=self.plugin_actions
-        )
+            # Create main widget
+            self.tabwidget = QTabWidget(parent=parent)
+            self.precedents = MxAnalyzerTab(parent=self, adjacency='precedents')
+            self.succs = MxAnalyzerTab(parent=self, adjacency='succs')
+            self.tabs = {'precedents': self.precedents,
+                         'succs': self.succs}
 
-        # Create main widget
-        self.tabwidget = QTabWidget(parent=parent)
-        self.precedents = MxAnalyzerTab(parent=self, adjacency='precedents')
-        self.succs = MxAnalyzerTab(parent=self, adjacency='succs')
-        self.tabs = {'precedents': self.precedents,
-                     'succs': self.succs}
+            self.tabwidget.addTab(self.precedents, 'Precedents')
+            self.tabwidget.addTab(self.succs, 'Dependents')
 
-        self.tabwidget.addTab(self.precedents, 'Precedents')
-        self.tabwidget.addTab(self.succs, 'Dependents')
+            # Main Layout
+            layout = QVBoxLayout()
+            layout.setContentsMargins(0, 0, 0, 0)
+            layout.addWidget(self.tabwidget)
+            self.setLayout(layout)
 
-        layout = create_plugin_layout(self.tools_layout, self.tabwidget)
-        self.setFocusPolicy(Qt.ClickFocus)
-        self.setLayout(layout)
+            self.setFocusPolicy(Qt.ClickFocus)
 
-    def set_shellwidget(self, shellwidget):
-        """Bind shellwidget instance to namespace browser"""
-        self.shellwidget = shellwidget
-        for tab in self.tabs.values():
-            tab.shellwidget = shellwidget
-        shellwidget.set_mxanalyzer(self)
+        def set_shellwidget(self, shellwidget):
+            """Bind shellwidget instance to namespace browser"""
+            self.shellwidget = shellwidget
+            for tab in self.tabs.values():
+                tab.shellwidget = shellwidget
+            shellwidget.set_mxanalyzer(self)
 
-    def update_object(self, data, analyze=True):
-        if data is None:
-            return
+        def update_object(self, data, analyze=True):
+            if data is None:
+                return
 
-        tab = self.tabwidget.currentWidget()
+            tab = self.tabwidget.currentWidget()
 
-        tab.attrdict = data
-        if not _has_param(data):
-            tab.argbox.setText("")
+            tab.attrdict = data
+            if not _has_param(data):
+                tab.argbox.setText("")
 
-        tab.objbox.setText(data['_evalrepr'])
+            tab.objbox.setText(data['_evalrepr'])
 
-        if analyze:
-            tab.object_radio.setChecked(True)
-            tab.toggleObject(True)
+            if analyze:
+                tab.object_radio.setChecked(True)
+                tab.toggleObject(True)
 
-    # Slot
-    def update_node(self, adjacency, data):
-        tab = self.tabs[adjacency]
-        tab.replace_model(data)
+        # Slot
+        def update_node(self, adjacency, data):
+            tab = self.tabs[adjacency]
+            tab.replace_model(data)
 
-    def update_status(self, adjacency, success, msg=''):
-        tab = self.tabs[adjacency]
-        if success:
-            tab.status.setText(msg)
-        else:
-            tab.status.setText(msg)
-            tab.replace_model(None)
+        def update_status(self, adjacency, success, msg=''):
+            tab = self.tabs[adjacency]
+            if success:
+                tab.status.setText(msg)
+            else:
+                tab.status.setText(msg)
+                tab.replace_model(None)
+
+else:
+    class MxAnalyzerWidget(MxToolBarMixin, QWidget):
+
+        def __init__(self, parent, **kwargs):
+            QWidget.__init__(self, parent)
+
+            if spyder.version_info > (5,):
+                self.plugin = parent.get_plugin()
+            else:
+                self.plugin = parent
+
+            # Create tool bar
+            if "options_button" in kwargs:
+                self.options_button = kwargs["options_button"]
+            else:
+                self.options_button = None
+            self.plugin_actions = []
+            MxToolBarMixin.__init__(
+                self,
+                options_button=self.options_button,
+                plugin_actions=self.plugin_actions
+            )
+
+            # Create main widget
+            self.tabwidget = QTabWidget(parent=parent)
+            self.precedents = MxAnalyzerTab(parent=self, adjacency='precedents')
+            self.succs = MxAnalyzerTab(parent=self, adjacency='succs')
+            self.tabs = {'precedents': self.precedents,
+                         'succs': self.succs}
+
+            self.tabwidget.addTab(self.precedents, 'Precedents')
+            self.tabwidget.addTab(self.succs, 'Dependents')
+
+            layout = create_plugin_layout(self.tools_layout, self.tabwidget)
+            self.setFocusPolicy(Qt.ClickFocus)
+            self.setLayout(layout)
+
+        def set_shellwidget(self, shellwidget):
+            """Bind shellwidget instance to namespace browser"""
+            self.shellwidget = shellwidget
+            for tab in self.tabs.values():
+                tab.shellwidget = shellwidget
+            shellwidget.set_mxanalyzer(self)
+
+        def update_object(self, data, analyze=True):
+            if data is None:
+                return
+
+            tab = self.tabwidget.currentWidget()
+
+            tab.attrdict = data
+            if not _has_param(data):
+                tab.argbox.setText("")
+
+            tab.objbox.setText(data['_evalrepr'])
+
+            if analyze:
+                tab.object_radio.setChecked(True)
+                tab.toggleObject(True)
+
+        # Slot
+        def update_node(self, adjacency, data):
+            tab = self.tabs[adjacency]
+            tab.replace_model(data)
+
+        def update_status(self, adjacency, success, msg=''):
+            tab = self.tabs[adjacency]
+            if success:
+                tab.status.setText(msg)
+            else:
+                tab.status.setText(msg)
+                tab.replace_model(None)
 
 
 class MxAnalyzerTree(QTreeView):
