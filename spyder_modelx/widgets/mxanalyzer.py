@@ -476,7 +476,10 @@ class MxAnalyzerWidget(MxToolBarMixin, QWidget):
     def __init__(self, parent, **kwargs):
         QWidget.__init__(self, parent)
 
-        self.plugin = parent
+        if spyder.version_info > (5,):
+            self.plugin = parent.get_plugin()
+        else:
+            self.plugin = parent
 
         # Create tool bar
         if "options_button" in kwargs:

@@ -47,6 +47,13 @@ def get_description():
 REQUIREMENTS = ['spyder>=3.2.5', 'modelx>=0.16.1', 'asttokens']
 
 
+spyder_plugins_entry_points = [
+    'modelx_plugin = spyder_modelx.plugins.mxplugin:ModelxPlugin',
+    'mxanalyzer = spyder_modelx.plugins.analyzer_plugin:MxAnalyzerPlugin',
+    'mxdataviewer = spyder_modelx.plugins.dataview_plugin:MxDataViewPlugin'
+]
+
+
 setup(
     name='spyder-modelx',
     version=get_version(),
@@ -80,4 +87,6 @@ setup(
         'Programming Language :: Python :: 3.7',
         'Programming Language :: Python :: 3.8',
         'Programming Language :: Python :: 3.9'
-    ])
+    ],
+    entry_points={'spyder.plugins': spyder_plugins_entry_points}
+)

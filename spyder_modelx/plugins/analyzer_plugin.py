@@ -48,66 +48,178 @@ try:
 except ImportError:
     from spyder.plugins import SpyderPluginWidget # Spyder3
 
+from spyder.config.base import _
+
 from qtpy.QtWidgets import QVBoxLayout
 
 from spyder_modelx.widgets.mxanalyzer import MxAnalyzerWidget
 from .stacked_mixin import MxStackedMixin
 
 
-class MxAnalyzerPlugin(MxStackedMixin, SpyderPluginWidget):
-    """modelx sub-plugin.
+if spyder.version_info > (5,):
 
-    This plugin in registered by the modelx main plugin.
-    """
+    # New plugin API since Spyder 5
+    from spyder.api.plugins import SpyderDockablePlugin, Plugins
+    from qtpy.QtGui import QIcon
+    from spyder.api.widgets.main_widget import PluginMainWidget
+    # from spyder_modelx.plugins.mxplugin import ModelxConfigPage
 
-    CONF_SECTION = 'modelx_analyzer'
-    MX_WIDGET_CLASS = MxAnalyzerWidget
-    CONF_FILE = False
+    class MxAnalyzerMainWidget(MxStackedMixin, PluginMainWidget):
 
-    def __init__(self, parent=None):
+        MX_WIDGET_CLASS = MxAnalyzerWidget
 
-        SpyderPluginWidget.__init__(self, parent)
-        MxStackedMixin.__init__(self, parent)
+        def __init__(self, name=None, plugin=None, parent=None):
+            PluginMainWidget.__init__(self, name, plugin, parent)
+            MxStackedMixin.__init__(self, parent=parent)
 
-        # Layout
-        layout = QVBoxLayout()
-        layout.addWidget(self.stack)
-        if spyder.version_info > (4,):
-            self.options_button.setVisible(False)
-        self.setLayout(layout)
+            # Layout
+            layout = QVBoxLayout()
+            layout.addWidget(self.stack)
+            self.setLayout(layout)
 
-        if spyder.version_info < (4,):
-            # Initialize plugin
-            self.initialize_plugin()
+            self.ipyconsole = plugin.get_plugin(Plugins.IPythonConsole)
 
-    # --- SpyderPluginWidget API ----------------------------------------------
-    def get_plugin_title(self):
-        """Return widget title."""
-        return 'MxAnalyzer'
+        # --- API: methods to define or override
+        # ------------------------------------------------------------------------
+        def get_title(self):
+            """
+            Return the title that will be displayed on dockwidget or window title.
+            """
+            return _('MxAnalyzer')
 
-    def get_focus_widget(self):
-        """Return the widget to give focus to."""
-        return self.current_widget()
+        def setup(self):
+            """
+            Create widget actions, add to menu and other setup requirements.
+            """
+            pass
 
-    def refresh_plugin(self):
-        """Refresh MxExplorer widget."""
-        pass
+        def update_actions(self):
+            """
+            Update the state of exposed actions.
 
-    def get_plugin_actions(self):
-        """Return a list of actions related to plugin."""
-        return []
+            Exposed actions are actions created by the self.create_action method.
+            """
+            pass
 
-    def register_plugin(self):
-        """Register plugin in Spyder's main window."""
-        if spyder.version_info < (4,):
-            self.main.add_dockwidget(self)
-        else:
-            self.add_dockwidget()
+    class MxAnalyzerPlugin(SpyderDockablePlugin):
+        """modelx sub-plugin.
 
-    def on_first_registration(self):
-        """Action to be performed on first plugin registration."""
-        self.main.tabify_plugins(self.main.help, self)
+        This plugin in registered by the modelx main plugin.
+        """
 
-    def apply_plugin_settings(self, options):
-        """Apply configuration file's plugin settings."""
-        pass
+        NAME = 'mxanalyzer'
+        WIDGET_CLASS = MxAnalyzerMainWidget
+        REQUIRES = [Plugins.IPythonConsole, 'modelx_plugin']
+        CONF_SECTION = 'modelx'
+        CONF_FILE = False
+
+        # -------------------------------------------------------------------
+        # --- API: Mandatory methods to define ------------------------------
+
+        def get_name(self):
+            """
+            Return the plugin localized name.
+
+            Returns
+            -------
+            str
+                Localized name of the plugin.
+
+            Notes
+            -----
+            This is a method to be able to update localization without a restart.
+            """
+            return _('MxAnalyzer')
+
+        def get_description(self):
+            """
+            Return the plugin localized description.
+
+            Returns
+            -------
+            str
+                Localized description of the plugin.
+
+            Notes
+            -----
+            This is a method to be able to update localization without a restart.
+            """
+            return _('Widget for tracing modelx node dependency')
+
+        def get_icon(self):
+            """
+            Return the plugin associated icon.
+
+            Returns
+            -------
+            QIcon
+                QIcon instance
+            """
+            return QIcon()
+
+        def register(self):
+            """
+            Setup and register plugin in Spyder's main window and connect it to
+            other plugins.
+            """
+            self.get_plugin('modelx_plugin').get_container().set_child_plugin('analyzer', self.get_container())
+        # -------------------------------------------------------------------
+
+else:
+    class MxAnalyzerPlugin(MxStackedMixin, SpyderPluginWidget):
+        """modelx sub-plugin.
+
+        This plugin in registered by the modelx main plugin.
+        """
+
+        CONF_SECTION = 'modelx_analyzer'
+        MX_WIDGET_CLASS = MxAnalyzerWidget
+        CONF_FILE = False
+
+        def __init__(self, parent=None):
+
+            SpyderPluginWidget.__init__(self, parent)
+            MxStackedMixin.__init__(self, parent)
+
+            # Layout
+            layout = QVBoxLayout()
+            layout.addWidget(self.stack)
+            if spyder.version_info > (4,):
+                self.options_button.setVisible(False)
+            self.setLayout(layout)
+
+            if spyder.version_info < (4,):
+                # Initialize plugin
+                self.initialize_plugin()
+
+        # --- SpyderPluginWidget API ----------------------------------------------
+        def get_plugin_title(self):
+            """Return widget title."""
+            return 'MxAnalyzer'
+
+        def get_focus_widget(self):
+            """Return the widget to give focus to."""
+            return self.current_widget()
+
+        def refresh_plugin(self):
+            """Refresh MxExplorer widget."""
+            pass
+
+        def get_plugin_actions(self):
+            """Return a list of actions related to plugin."""
+            return []
+
+        def register_plugin(self):
+            """Register plugin in Spyder's main window."""
+            if spyder.version_info < (4,):
+                self.main.add_dockwidget(self)
+            else:
+                self.add_dockwidget()
+
+        def on_first_registration(self):
+            """Action to be performed on first plugin registration."""
+            self.main.tabify_plugins(self.main.help, self)
+
+        def apply_plugin_settings(self, options):
+            """Apply configuration file's plugin settings."""
+            pass

@@ -106,7 +106,7 @@ class MxStackedMixin:
         """
         shellwidget_id = id(shellwidget)
         if shellwidget_id not in self.shellwidgets:
-            if spyder.version_info < (4,):
+            if spyder.version_info < (4,) or spyder.version_info > (5,):
                 mxwidget = self.MX_WIDGET_CLASS(self, options_button=None)
             else:
                 self.options_button.setVisible(True)
