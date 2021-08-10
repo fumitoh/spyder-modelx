@@ -99,6 +99,8 @@ class ModelxConfigPage(PluginConfigPage):
 if spyder.version_info > (5,):
 
     # New plugin API since Spyder 5
+    from spyder.plugins.mainmenu.api import (
+        ApplicationMenus, ConsolesMenuSections, HelpMenuSections)
     from spyder.api.plugins import SpyderDockablePlugin, Plugins
     from qtpy.QtGui import QIcon
     from spyder.api.widgets.main_widget import PluginMainWidget
@@ -164,18 +166,33 @@ if spyder.version_info > (5,):
                     section=MxPluginMainWidgetActionsOptionsMenuSections.Main
                 )
 
-            # Add the action to the 'Consoles' menu on the main window
-            main_consoles_menu = self.main.consoles_menu_actions
-            main_consoles_menu.insert(0, create_client_action)
-            self.main.ipyconsole.menu_actions.insert(0, create_client_action)
+            if spyder.version_info > (5, 0, 3):
+                for console_new_action in [create_client_action]:
+                    self.main.mainmenu.add_item_to_application_menu(
+                        console_new_action,
+                        menu_id=ApplicationMenus.Consoles,
+                        section=ConsolesMenuSections.New)
 
-            # Plugin actions
-            self.menu_actions = [create_client_action] + \
-                                self.main.ipyconsole.menu_actions.copy()
+                # Plugin actions
+                self.menu_actions = [create_client_action] + \
+                                    self.ipyconsole.menu_actions.copy()
 
-            add_actions(self.main.ipyconsole.tabwidget.menu,
-                        [create_client_action],
-                        insert_before=main_consoles_menu[1])
+                self.ipyconsole.menu_actions.insert(
+                    0, create_client_action
+                )
+            else:
+                # Add the action to the 'Consoles' menu on the main window
+                main_consoles_menu = self.main.consoles_menu_actions
+                main_consoles_menu.insert(0, create_client_action)
+                self.main.ipyconsole.menu_actions.insert(0, create_client_action)
+
+                # Plugin actions
+                self.menu_actions = [create_client_action] + \
+                                    self.main.ipyconsole.menu_actions.copy()
+
+                add_actions(self.main.ipyconsole.tabwidget.menu,
+                            [create_client_action],
+                            insert_before=main_consoles_menu[1])
 
         def update_actions(self):
             """
