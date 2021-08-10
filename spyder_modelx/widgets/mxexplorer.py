@@ -78,6 +78,10 @@ class MxTreeView(QTreeView):
         # self.doubleClicked.connect(self.doubleClicked_callback)
 
         self.plugin = parent.plugin
+        if spyder.version_info > (5,):
+            self.container = self.plugin.get_container()
+        else:
+            self.container = self.plugin
         self.shell = None
         self.reply = None  # To write dialog box result
         self.setAlternatingRowColors(False)
@@ -315,7 +319,7 @@ class MxTreeView(QTreeView):
                 self.reply = None
 
         elif action == self.action_write_model:
-            model = self.plugin.current_widget().model_selector.get_selected_model()
+            model = self.container.current_widget().model_selector.get_selected_model()
             if not model:
                 QMessageBox.critical(self, "Error", "No model exits.")
                 return
@@ -333,7 +337,7 @@ class MxTreeView(QTreeView):
                 self.reply = None
 
         elif action == self.action_delete_model:
-            model = self.plugin.current_widget().model_selector.get_selected_model()
+            model = self.container.current_widget().model_selector.get_selected_model()
             if model:
                 answer = QMessageBox.question(
                     self, _("Delete Model"),
@@ -355,7 +359,7 @@ class MxTreeView(QTreeView):
                     if index.parent().isValid():
                         parent = index.parent().internalPointer().fullname
                     else:
-                        parent = self.plugin.current_widget().model_selector.get_selected_model()
+                        parent = self.container.current_widget().model_selector.get_selected_model()
                     assert parent
 
                     answer = QMessageBox.question(
