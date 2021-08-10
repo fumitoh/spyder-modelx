@@ -77,6 +77,7 @@ class MxTreeView(QTreeView):
         self.activated.connect(self.activated_callback)
         # self.doubleClicked.connect(self.doubleClicked_callback)
 
+        self.mx_widget = parent.mx_widget
         self.plugin = parent.plugin
         if spyder.version_info > (5,):
             self.container = self.plugin.get_container()
@@ -302,7 +303,7 @@ class MxTreeView(QTreeView):
                 self.reply = None
 
         elif action == self.action_read_model:
-            dialog = ReadModelDialog(self)
+            dialog = ReadModelDialog(self, modelpath=self.mx_widget.last_modelpath)
             dialog.exec()
 
             if self.reply['accepted']:
@@ -315,6 +316,7 @@ class MxTreeView(QTreeView):
                     varname = ''
                 self.reply = None
                 self.shell.read_model(modelpath, name, define_var, varname)
+                self.mx_widget.last_modelpath = modelpath
             else:
                 self.reply = None
 
@@ -324,7 +326,7 @@ class MxTreeView(QTreeView):
                 QMessageBox.critical(self, "Error", "No model exits.")
                 return
 
-            dialog = WriteModelDialog(self)
+            dialog = WriteModelDialog(self, modelpath=self.mx_widget.last_modelpath)
             dialog.exec()
 
             if self.reply['accepted']:
@@ -333,6 +335,7 @@ class MxTreeView(QTreeView):
                 zipmodel = self.reply['zipmodel']
                 self.reply = None
                 self.shell.write_model(model, modelpath, backup, zipmodel)
+                self.mx_widget.last_modelpath = modelpath
             else:
                 self.reply = None
 
@@ -381,6 +384,7 @@ class MxExplorer(QWidget):
     def __init__(self, parent):
         QWidget.__init__(self, parent)
 
+        self.mx_widget = parent
         self.plugin = parent.plugin
         self.setWindowTitle("Mx explorer") # Not visible
 
@@ -415,6 +419,7 @@ if spyder.version_info > (5,):
 
             QWidget.__init__(self, parent)
             self.plugin = parent.get_plugin()
+            self.last_modelpath = None
 
             # Create and place Model Selector
             txt = _("Model")
@@ -481,6 +486,7 @@ else:
                 self.plugin = parent.get_plugin()
             else:
                 self.plugin = parent
+            self.last_modelpath = None
 
             # Create tool bar
             if "options_button" in kwargs:
@@ -748,7 +754,7 @@ class NewModelDialog(QDialog):
 
 class ReadModelDialog(QDialog):
 
-    def __init__(self, parent=None):
+    def __init__(self, parent=None, modelpath=None):
         QDialog.__init__(
             self, parent, flags=Qt.WindowSystemMenuHint | Qt.WindowTitleHint)
         self.setWindowTitle('Read Model')
@@ -767,6 +773,9 @@ class ReadModelDialog(QDialog):
         fixed_dir_layout.addWidget(browse_btn)
         fixed_dir_layout.addWidget(openzip_btn)
         fixed_dir_layout.setContentsMargins(0, 0, 0, 0)
+
+        if modelpath:
+            self.wd_edit.setText(modelpath)
 
         namelabel = QLabel(_("Model Name"))
         self.nameEdit = QLineEdit(self)
@@ -833,7 +842,7 @@ class ReadModelDialog(QDialog):
 
 class WriteModelDialog(QDialog):
 
-    def __init__(self, parent=None):
+    def __init__(self, parent=None, modelpath=None):
         QDialog.__init__(
             self, parent, flags=Qt.WindowSystemMenuHint | Qt.WindowTitleHint)
         self.setWindowTitle('Write Model')
@@ -854,6 +863,12 @@ class WriteModelDialog(QDialog):
 
         namelabel = QLabel(_("Folder/File"))
         self.nameEdit = QLineEdit(self)
+
+        if modelpath:
+            location = "/".join(modelpath.split("/")[:-1])
+            name = modelpath.split("/")[-1]
+            self.wd_edit.setText(location)
+            self.nameEdit.setText(name)
 
         self.backupCheck = QCheckBox(_("Back up old folder"))
         self.backupCheck.setCheckState(Qt.Checked)
