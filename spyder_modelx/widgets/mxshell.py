@@ -620,7 +620,7 @@ class MxShellWidget(ShellWidget):
                 timeout=CALL_KERNEL_TIMEOUT).mx_write_model(
                 model, modelpath, backup, zipmodel)
         else:
-            param = "'%s', '%s', %s" % (model, modelpath, str(backup))
+            param = "'%s', '%s', %s, %s" % (model, modelpath, str(backup), str(zipmodel))
             code = "get_ipython().kernel.mx_write_model(" + param + ")"
             self._mx_wait_reply(
                 None,
