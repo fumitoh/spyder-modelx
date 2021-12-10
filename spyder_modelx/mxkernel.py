@@ -391,10 +391,16 @@ class ModelxKernel(SpyderKernel):
             self.send_mx_msg(msgtype, content=content, data=attrs)
 
     def _to_sendval(self, value):
+        import modelx
+        mxver = tuple(int(i) for i in modelx.__version__.split(".")[:3])
         from modelx.core.cells import Interface
-        from modelx.io.baseio import BaseDataClient
 
-        if isinstance(value, (Interface, str, BaseDataClient,
+        if mxver < (0, 18, 0):
+            from modelx.io.baseio import BaseDataClient as dataspec
+        else:
+            from modelx.io.baseio import BaseDataSpec as dataspec
+
+        if isinstance(value, (Interface, str, dataspec,
                               ModuleType)):
             return repr(value)
 
