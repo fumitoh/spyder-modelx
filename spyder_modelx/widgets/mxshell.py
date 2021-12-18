@@ -94,6 +94,7 @@ class MxShellWidget(ShellWidget):
     sig_mxupdated = Signal()
     sig_mxproperty = Signal(object)
     sig_mxgetattrdict = Signal()     # Spyder 3 only
+    sig_mxgetvalueinfo = Signal(object)     # Spyder 3 only
 
     mx_msgtypes = ['mxupdated',
                    'dataview',
@@ -107,7 +108,9 @@ class MxShellWidget(ShellWidget):
                    'analyze_succs',
                    'analyze_getval',    # Spyder 3 only
                    'property',
-                   'get_attrdict']      # Spyder 3 only
+                   'get_attrdict',      # Spyder 3 only
+                   'get_value_info'     # Spyder 3 only
+                   ]
 
     mx_nondata_msgs = ['mxupdated']
 
@@ -207,6 +210,30 @@ class MxShellWidget(ShellWidget):
                 self.mx_silent_exec_method(method, msgtype='dataview')
 
             return None
+
+    # ---- modelx data list ----
+    def set_mxdatalist(self, datalist):
+        """Set modelx formula list"""
+        self.mxdatalist = datalist
+        self.sig_mxgetvalueinfo.connect(
+            lambda data: self.mxdatalist.process_remote_view(data))
+
+    def update_datalist(self):
+        """Update codelist"""
+        model = self.mxmodelselector.get_selected_model()
+
+        if not model:
+            return
+
+        if spyder.version_info > (4,):
+            result = self.call_kernel(
+                interrupt=True,
+                blocking=True,
+                timeout=CALL_KERNEL_TIMEOUT).mx_get_value_info(model)
+            self.mxdatalist.process_remote_view(result)
+        else:
+            code = "get_ipython().kernel.mx_get_value_info('%s')" % model
+            self.mx_silent_exec_method(code, msgtype='get_value_info')
 
     # ---- modelx code list ----
     def set_mxcodelist(self, codelist):
@@ -662,13 +689,14 @@ class MxShellWidget(ShellWidget):
             """Refresh namespace browser"""
 
             super(MxShellWidget, self).refresh_namespacebrowser()
-
+            if self.kernel_client is None:
+                return
             if self.namespacebrowser:
                 mlist = self.get_modellist()
                 name = self.mxmodelselector.get_selected_model(mlist)
                 self.update_modeltree(name)
                 self.reload_mxproperty()
-                # self.update_mxdataview()
+                self.update_datalist()
                 self.update_mxanalyzer_all()
     else:
         # ---- Override NamespaceBrowserWidget ---
@@ -678,12 +706,16 @@ class MxShellWidget(ShellWidget):
             super(MxShellWidget, self).refresh_namespacebrowser(
                 interrupt=interrupt
             )
+            if self.kernel_client is None:
+                return
+            elif self.kernel_client.comm_channel is None:
+                return
             if self.namespacebrowser and self.spyder_kernel_comm.is_open():
                 mlist = self.get_modellist()
                 name = self.mxmodelselector.get_selected_model(mlist)
                 self.update_modeltree(name)
                 self.reload_mxproperty()
-                # self.update_mxdataview()
+                self.update_datalist()
                 self.update_mxanalyzer_all()
 
     # ---- Private API (defined by us) ------------------------------
@@ -834,11 +866,12 @@ class MxShellWidget(ShellWidget):
                 self._mx_value = value
                 self.sig_mxanalyzer_getval.emit()
             elif msgtype == 'property':
-                self._mx_value = value
                 self.sig_mxproperty.emit(value)
             elif msgtype == 'get_attrdict':
                 self._mx_value = value
                 self.sig_mxgetattrdict.emit()
+            elif msgtype == 'get_value_info':
+                self.sig_mxgetvalueinfo.emit(value)
 
             # Copied _handle_execute_reply
             if info and info.kind == 'silent_exec_method' and not self._hidden:

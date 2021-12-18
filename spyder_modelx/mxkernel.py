@@ -76,7 +76,8 @@ class ModelxKernel(SpyderKernel):
                 ('mx_import_names', self.mx_import_names),
                 ('mx_get_value', self.mx_get_value),
                 ('mx_get_node', self.mx_get_node),
-                ('mx_get_attrdict', self.mx_get_attrdict)
+                ('mx_get_attrdict', self.mx_get_attrdict),
+                ('mx_get_value_info', self.mx_get_value_info)
 
             ]:
                 self.frontend_comm.register_call_handler(
@@ -390,6 +391,32 @@ class ModelxKernel(SpyderKernel):
             content = {'mx_obj': obj, 'mx_args': args, 'mx_adjacency': adjacency}
             self.send_mx_msg(msgtype, content=content, data=attrs)
 
+    def mx_get_value_info(self, model: str):
+
+        import modelx as mx
+
+        values = mx.get_models()[model]._get_assoc_values()
+
+        i = 0
+        size = len(values)
+
+        while i < size:
+            val = values[i]
+
+            val["value"] = self._to_sendval(val["value"])
+            if val["spec"]:
+                val["spec"] = val["spec"]._get_attrdict()
+                if "value" in val["spec"]:
+                    val["spec"]["value"] = val["value"]
+
+            val["refs"] = list(ref._get_attrdict() for ref in val["refs"])
+            i += 1
+
+        if spyder.version_info > (4,):
+            return values
+        else:
+            self.send_mx_msg('get_value_info', content=None, data=values)
+
     def _to_sendval(self, value):
         import modelx
         mxver = tuple(int(i) for i in modelx.__version__.split(".")[:3])
@@ -424,7 +451,6 @@ class ModelxKernel(SpyderKernel):
         else:
             return value
 
-
     def mx_get_value(self, msgtype, fullname: str, argstr: str, calc: bool):
         """Get value of modelx object
 
@@ -448,24 +474,6 @@ class ModelxKernel(SpyderKernel):
                     value = [obj(*args), True]
                 else:
                     raise KeyError("value for %s not found" % argstr)
-
-        if spyder.version_info > (4,):
-            return value
-        else:
-            self.send_mx_msg(msgtype, content=None, data=value)
-
-    def mx_get_allvalues(self, msgtype, fullname: str):
-        """Return data of Cells or Reference"""
-        import modelx as mx
-        from modelx.core.reference import ReferenceProxy
-        from modelx.core.cells import Cells, Interface
-
-        obj = mx.get_object(fullname, as_proxy=True)
-
-        if isinstance(obj, ReferenceProxy):
-            value = mx.get_object(fullname)
-        elif isinstance(obj, Cells):
-            value = dict(obj)
 
         if spyder.version_info > (4,):
             return value

@@ -67,6 +67,7 @@ from spyder_modelx.widgets.mxtreemodel import (
     TreeCol,
     MxTreeModel, ModelItem, ItemSpaceItem,
     ViewItem, SpaceItem, CellsItem, RefItem)
+from spyder_modelx.widgets.mxdatalist import MxDataListWidget
 
 
 class MxTreeView(QTreeView):
@@ -443,6 +444,7 @@ if spyder.version_info > (5,):
             # Create code list
             self.codelist = MxCodeListWidget(self)
             self.propwidget = MxPropertyWidget(self, orientation=Qt.Vertical)
+            self.datalist = MxDataListWidget(self, orientation=Qt.Vertical)
 
             # Create splitter
             self.splitter = QSplitter(self)
@@ -455,6 +457,7 @@ if spyder.version_info > (5,):
             # self.tabwidget.setContentsMargins(0, 0, 0, 0)
             MxMainWidget.IdxProperties = self.tabwidget.addTab(self.propwidget, "Properties")
             MxMainWidget.IdxFormulas = self.tabwidget.addTab(self.codelist, "Formulas")
+            MxMainWidget.IdxDataList = self.tabwidget.addTab(self.datalist, "Data")
 
             # Layout management
             self.splitter.addWidget(self.explorer)
@@ -472,6 +475,7 @@ if spyder.version_info > (5,):
             self.shellwidget.set_mxexplorer(self.explorer, self.model_selector)
             self.shellwidget.set_mxcodelist(self.codelist)
             self.shellwidget.set_mxproperty(self.propwidget)
+            self.shellwidget.set_mxdatalist(self.datalist)
 
         def raise_tab(self, widget):
             self.tabwidget.setCurrentWidget(widget)
@@ -506,6 +510,7 @@ else:
             # Create code list
             self.codelist = MxCodeListWidget(self)
             self.propwidget = MxPropertyWidget(self, orientation=Qt.Vertical)
+            self.datalist = MxDataListWidget(self, orientation=Qt.Vertical)
 
             # Create splitter
             self.splitter = QSplitter(self)
@@ -518,6 +523,7 @@ else:
             # self.tabwidget.setContentsMargins(0, 0, 0, 0)
             MxMainWidget.IdxProperties = self.tabwidget.addTab(self.propwidget, "Properties")
             MxMainWidget.IdxFormulas = self.tabwidget.addTab(self.codelist, "Formulas")
+            MxMainWidget.IdxDataList = self.tabwidget.addTab(self.datalist, "Data")
 
             # Layout management
             self.splitter.addWidget(self.explorer)
@@ -534,6 +540,7 @@ else:
             self.shellwidget.set_mxexplorer(self.explorer, self.model_selector)
             self.shellwidget.set_mxcodelist(self.codelist)
             self.shellwidget.set_mxproperty(self.propwidget)
+            self.shellwidget.set_mxdatalist(self.datalist)
 
         def raise_tab(self, widget):
             self.tabwidget.setCurrentWidget(widget)

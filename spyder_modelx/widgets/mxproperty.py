@@ -18,7 +18,11 @@ Property = namedtuple(
     ["attr", "title", "is_editable", "editor", "is_multiple", "to_text"]
 )
 
-property_defaults = (False, None, False, None)
+property_defaults = (
+    False,      # is_editable
+    None,       # editor
+    False,      # is_multiple
+    None)       # to_text
 
 
 class FormulaPane(BaseCodePane):
@@ -377,9 +381,9 @@ if __name__ == '__main__':
     import sys
     import modelx as mx
 
-    model = mx.read_model(r"C:\Users\fumito\Downloads\tempmodel")
+    model = mx.read_model(r"C:\Users\fumito\Dropbox\pyproj\lifelib\lifelib\libraries\basiclife\BasicTerm_S")
 
-    attrs = model.SpaceB._baseattrs
+    attrs = model.Projection._baseattrs
     data = SpacePropertyData(attrs)
     app = QApplication(sys.argv)
 
