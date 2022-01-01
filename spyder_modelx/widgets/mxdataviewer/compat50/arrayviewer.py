@@ -17,6 +17,7 @@ NumPy Array Editor Dialog based on Qt
 from __future__ import print_function
 
 # Third party imports
+import numpy as np
 from qtpy.compat import from_qvariant, to_qvariant
 from qtpy.QtCore import (QAbstractTableModel, QItemSelection, QLocale,
                          QItemSelectionRange, QModelIndex, Qt, Slot)
@@ -28,7 +29,6 @@ from qtpy.QtWidgets import (QAbstractItemDelegate, QApplication, QCheckBox,
                             QStackedWidget, QTableView, QVBoxLayout,
                             QWidget)
 from spyder_kernels.utils.nsview import value_to_display
-from spyder_kernels.utils.lazymodules import numpy as np
 
 # Local imports
 from spyder.config.base import _
@@ -599,8 +599,25 @@ class ArrayEditorWidget(QWidget):
                                 ylabels=ylabels, readonly=readonly, parent=self)
         self.view = ArrayView(self, self.model, data.dtype, data.shape)
 
+        btn_layout = QHBoxLayout()
+        btn_layout.setAlignment(Qt.AlignLeft)
+        btn = QPushButton(_( "Format"))
+        # disable format button for int type
+        btn.setEnabled(is_float(data.dtype))
+        btn_layout.addWidget(btn)
+        btn.clicked.connect(self.change_format)
+        btn = QPushButton(_( "Resize"))
+        btn_layout.addWidget(btn)
+        btn.clicked.connect(self.view.resize_to_contents)
+        bgcolor = QCheckBox(_( 'Background color'))
+        bgcolor.setChecked(self.model.bgcolor_enabled)
+        bgcolor.setEnabled(self.model.bgcolor_enabled)
+        bgcolor.stateChanged.connect(self.model.bgcolor)
+        btn_layout.addWidget(bgcolor)
+
         layout = QVBoxLayout()
         layout.addWidget(self.view)
+        layout.addLayout(btn_layout)
         self.setLayout(layout)
 
     def accept_changes(self):
@@ -631,10 +648,10 @@ class ArrayEditorWidget(QWidget):
             self.model.set_format(format)
 
 
-class MxArrayViewer(QWidget):   # mx change
+class MxArrayViewer(QWidget):
     """Array Editor Dialog"""
     def __init__(self, parent=None):
-        super().__init__(parent)
+        QWidget.__init__(self, parent)  # mx change
 
         # Destroying the C++ object right after closing the dialog box,
         # otherwise it may be garbage-collected in another QThread
@@ -694,6 +711,7 @@ class MxArrayViewer(QWidget):   # mx change
 
         self.layout = QGridLayout()
         self.setLayout(self.layout)
+        self.setWindowIcon(ima.icon('arredit'))
         if title:
             title = to_text_string(title) + " - " + _("NumPy object array")
         else:
@@ -702,7 +720,7 @@ class MxArrayViewer(QWidget):   # mx change
             title += ' (' + _('read only') + ')'
         self.setWindowTitle(title)
 
-        # ---- Stack widget
+        # Stack widget
         self.stack = QStackedWidget(self)
         if is_record_array:
             for name in data.dtype.names:
@@ -717,34 +735,22 @@ class MxArrayViewer(QWidget):   # mx change
             self.stack.addWidget(ArrayEditorWidget(self, data.mask, readonly,
                                                    xlabels, ylabels))
         elif data.ndim == 3:
-            # We create here the necessary widgets for current_dim_changed to
-            # work. The rest are created below.
-            # QSpinBox
-            self.index_spin = QSpinBox(self, keyboardTracking=False)
-            self.index_spin.valueChanged.connect(self.change_active_widget)
-
-            # Labels
-            self.shape_label = QLabel()
-            self.slicing_label = QLabel()
-
-            # Set the widget to display when launched
-            self.current_dim_changed(self.last_dim)
+            pass
         else:
             self.stack.addWidget(ArrayEditorWidget(self, data, readonly,
                                                    xlabels, ylabels))
-
         self.arraywidget = self.stack.currentWidget()
-        self.arraywidget.model.dataChanged.connect(self.save_and_close_enable)
+        if self.arraywidget:
+            self.arraywidget.model.dataChanged.connect(
+                self.save_and_close_enable)
         self.stack.currentChanged.connect(self.current_widget_changed)
         self.layout.addWidget(self.stack, 1, 0)
 
-        # ---- Top row of buttons
-        btn_layout_top = None
+        # Buttons configuration
+        btn_layout = QHBoxLayout()
         if is_record_array or is_masked_array or data.ndim == 3:
-            btn_layout_top = QHBoxLayout()
-
             if is_record_array:
-                btn_layout_top.addWidget(QLabel(_("Record array fields:")))
+                btn_layout.addWidget(QLabel(_("Record array fields:")))
                 names = []
                 for name in data.dtype.names:
                     field = data.dtype.fields[name]
@@ -757,89 +763,58 @@ class MxArrayViewer(QWidget):   # mx change
                     names.append(text)
             else:
                 names = [_('Masked data'), _('Data'), _('Mask')]
-
             if data.ndim == 3:
+                # QSpinBox
+                self.index_spin = QSpinBox(self, keyboardTracking=False)
+                self.index_spin.valueChanged.connect(self.change_active_widget)
                 # QComboBox
                 names = [str(i) for i in range(3)]
                 ra_combo = QComboBox(self)
                 ra_combo.addItems(names)
                 ra_combo.currentIndexChanged.connect(self.current_dim_changed)
-
                 # Adding the widgets to layout
                 label = QLabel(_("Axis:"))
-                btn_layout_top.addWidget(label)
-                btn_layout_top.addWidget(ra_combo)
-                btn_layout_top.addWidget(self.shape_label)
-
+                btn_layout.addWidget(label)
+                btn_layout.addWidget(ra_combo)
+                self.shape_label = QLabel()
+                btn_layout.addWidget(self.shape_label)
                 label = QLabel(_("Index:"))
-                btn_layout_top.addWidget(label)
-                btn_layout_top.addWidget(self.index_spin)
-
-                btn_layout_top.addWidget(self.slicing_label)
+                btn_layout.addWidget(label)
+                btn_layout.addWidget(self.index_spin)
+                self.slicing_label = QLabel()
+                btn_layout.addWidget(self.slicing_label)
+                # set the widget to display when launched
+                self.current_dim_changed(self.last_dim)
             else:
                 ra_combo = QComboBox(self)
                 ra_combo.currentIndexChanged.connect(self.stack.setCurrentIndex)
                 ra_combo.addItems(names)
-                btn_layout_top.addWidget(ra_combo)
-
+                btn_layout.addWidget(ra_combo)
             if is_masked_array:
-                label = QLabel(
-                    _("<u>Warning</u>: Changes are applied separately")
-                )
-                label.setToolTip(_("For performance reasons, changes applied "
-                                   "to masked arrays won't be reflected in "
+                label = QLabel(_(
+                    "<u>Warning</u>: changes are applied separately"))
+                label.setToolTip(_("For performance reasons, changes applied " \
+                                   "to masked array won't be reflected in " \
                                    "array's data (and vice-versa)."))
-                btn_layout_top.addWidget(label)
+                btn_layout.addWidget(label)
 
-            btn_layout_top.addStretch()
-
-        # ---- Bottom row of buttons
-        btn_layout_bottom = QHBoxLayout()
-
-        btn_format = QPushButton(_("Format"))
-        # disable format button for int type
-        btn_format.setEnabled(is_float(self.arraywidget.data.dtype))
-        btn_layout_bottom.addWidget(btn_format)
-        btn_format.clicked.connect(lambda: self.arraywidget.change_format())
-
-        btn_resize = QPushButton(_("Resize"))
-        btn_layout_bottom.addWidget(btn_resize)
-        btn_resize.clicked.connect(
-            lambda: self.arraywidget.view.resize_to_contents())
-
-        self.bgcolor = QCheckBox(_('Background color'))
-        self.bgcolor.setEnabled(self.arraywidget.model.bgcolor_enabled)
-        self.bgcolor.setChecked(self.arraywidget.model.bgcolor_enabled)
-        self.bgcolor.stateChanged.connect(
-            lambda state: self.arraywidget.model.bgcolor(state))
-        btn_layout_bottom.addWidget(self.bgcolor)
-
-        btn_layout_bottom.addStretch()
+        btn_layout.addStretch()
 
         if not readonly:
             self.btn_save_and_close = QPushButton(_('Save and Close'))
             self.btn_save_and_close.setDisabled(True)
             self.btn_save_and_close.clicked.connect(self.accept)
-            btn_layout_bottom.addWidget(self.btn_save_and_close)
+            btn_layout.addWidget(self.btn_save_and_close)
 
-        # mx change
+            # mx change
         # self.btn_close = QPushButton(_('Close'))
         # self.btn_close.setAutoDefault(True)
         # self.btn_close.setDefault(True)
         # self.btn_close.clicked.connect(self.reject)
-        # btn_layout_bottom.addWidget(self.btn_close)
+        # btn_layout.addWidget(self.btn_close)
+        self.layout.addLayout(btn_layout, 2, 0)
 
-        # ---- Final layout
-        btn_layout_bottom.setContentsMargins(4, 4, 4, 4)
-        if btn_layout_top is not None:
-            btn_layout_top.setContentsMargins(4, 4, 4, 4)
-            self.layout.addLayout(btn_layout_top, 2, 0)
-            self.layout.addLayout(btn_layout_bottom, 3, 0)
-        else:
-            self.layout.addLayout(btn_layout_bottom, 2, 0)
-
-        # Set minimum size
-        self.setMinimumSize(500, 300)
+        self.setMinimumSize(400, 300)
 
         # Make the dialog act as a window
         # self.setWindowFlags(Qt.Window)    # mx change
@@ -857,7 +832,6 @@ class MxArrayViewer(QWidget):   # mx change
     def current_widget_changed(self, index):
         self.arraywidget = self.stack.widget(index)
         self.arraywidget.model.dataChanged.connect(self.save_and_close_enable)
-        self.bgcolor.setChecked(self.arraywidget.model.bgcolor_enabled)
 
     def change_active_widget(self, index):
         """

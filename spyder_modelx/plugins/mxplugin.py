@@ -398,7 +398,12 @@ if spyder.version_info > (5,):
                     is_cython=is_cython)
 
         def process_started(self, client):
-            self.main.ipyconsole.process_started(client)
+            if spyder.version_info > (5, 1):
+                # process_started is renamed
+                # to shellwidget_started in Spyder 5.1
+                self.main.ipyconsole.shellwidget_started(client)
+            else:
+                self.main.ipyconsole.process_started(client)
             self.add_shellwidget(client.shellwidget)
             if self.analyzer is not None:
                 self.analyzer.add_shellwidget(client.shellwidget)
@@ -406,7 +411,12 @@ if spyder.version_info > (5,):
                 self.dataview.add_shellwidget(client.shellwidget)
 
         def process_finished(self, client):
-            self.main.ipyconsole.process_finished(client)
+            if spyder.version_info > (5, 1):
+                self.main.ipyconsole.shellwidget_deleted(client)
+            else:
+                # process_finished is renamed
+                # to shellwidget_deleted in Spyder 5.1
+                self.main.ipyconsole.process_finished(client)
             self.remove_shellwidget(id(client.shellwidget))
             if self.analyzer is not None:
                 self.analyzer.remove_shellwidget(id(client.shellwidget))
@@ -472,6 +482,10 @@ if spyder.version_info > (5,):
             Setup and register plugin in Spyder's main window and connect it to
             other plugins.
             """
+            self.register_subplugin()
+
+        # register renamed to on_initialize from Spyder 5.1
+        def on_initialize(self):
             self.register_subplugin()
 
         # -------------------------------------------------------------------

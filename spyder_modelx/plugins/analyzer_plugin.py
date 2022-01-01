@@ -165,6 +165,15 @@ if spyder.version_info > (5,):
             self.get_plugin('modelx_plugin').get_container().set_child_plugin('analyzer', self.get_container())
         # -------------------------------------------------------------------
 
+        # register renamed to on_initialize from Spyder 5.1
+        def on_initialize(self):
+            """
+            Setup and register plugin in Spyder's main window and connect it to
+            other plugins.
+            """
+            self.get_plugin('modelx_plugin').get_container().set_child_plugin('analyzer', self.get_container())
+
+
 else:
     class MxAnalyzerPlugin(MxStackedMixin, SpyderPluginWidget):
         """modelx sub-plugin.

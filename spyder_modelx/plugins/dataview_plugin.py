@@ -58,10 +58,14 @@ except ImportError:
 
 from spyder.utils.qthelpers import create_plugin_layout, create_action
 
-if spyder.version_info > (5,):
+if spyder.version_info > (5, 1):
     from spyder_modelx.widgets.mxdataviewer.dataframeviewer import MxDataFrameViewer
     from spyder_modelx.widgets.mxdataviewer.arrayviewer import MxArrayViewer
     from spyder_modelx.widgets.mxdataviewer.collectionsviewer import MxCollectionsViewer
+elif spyder.version_info > (5,):
+    from spyder_modelx.widgets.mxdataviewer.compat50.dataframeviewer import MxDataFrameViewer
+    from spyder_modelx.widgets.mxdataviewer.compat50.arrayviewer import MxArrayViewer
+    from spyder_modelx.widgets.mxdataviewer.compat50.collectionsviewer import MxCollectionsViewer
 elif spyder.version_info > (4,):
     from spyder_modelx.widgets.mxdataviewer.compat401.dataframeviewer import MxDataFrameViewer
     from spyder_modelx.widgets.mxdataviewer.compat401.arrayviewer import MxArrayViewer
@@ -628,6 +632,16 @@ if spyder.version_info > (5,):
             """
             self.get_plugin('modelx_plugin').get_container().set_child_plugin('dataview', self.get_container())
         # -------------------------------------------------------------------
+
+        # register renamed to on_initialize from Spyder 5.1
+        def on_initialize(self):
+            """
+            Setup and register plugin in Spyder's main window and connect it to
+            other plugins.
+            """
+            self.get_plugin('modelx_plugin').get_container().set_child_plugin('dataview', self.get_container())
+        # -------------------------------------------------------------------
+
 
 else:
     class MxDataViewPlugin(MxStackedMixin, SpyderPluginWidget):

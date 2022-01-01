@@ -43,14 +43,20 @@ from qtpy.QtWidgets import (QApplication, QCheckBox, QDialog, QGridLayout,
                             QHBoxLayout, QInputDialog, QLineEdit, QMenu,
                             QMessageBox, QPushButton, QTableView,
                             QScrollBar, QTableWidget, QFrame,
-                            QItemDelegate, QWidget) # mx change
-from spyder_kernels.utils.lazymodules import numpy as np, pandas as pd
+                            QItemDelegate, QWidget)
+from pandas import DataFrame, Index, Series, isna
+try:
+    from pandas._libs.tslib import OutOfBoundsDatetime
+except ImportError:  # For pandas version < 0.20
+    from pandas.tslib import OutOfBoundsDatetime
+import numpy as np
 
 # Local imports
 from spyder.api.config.mixins import SpyderConfigurationAccessor
 from spyder.config.base import _
 from spyder.config.fonts import DEFAULT_SMALL_DELTA
 from spyder.config.gui import get_font
+from spyder.config.manager import CONF
 from spyder.py3compat import (io, is_text_string, is_type_text_string, PY2,
                               to_text_string, perf_counter)
 from spyder.utils.icon_manager import ima
@@ -106,8 +112,7 @@ def global_max(col_vals, index):
 
 
 class DataFrameModel(QAbstractTableModel):
-    """
-    DataFrame Table Model.
+    """ DataFrame Table Model.
 
     Partly based in ExtDataModel and ExtFrameModel classes
     of the gtabview project.
@@ -287,7 +292,7 @@ class DataFrameModel(QAbstractTableModel):
         if not self.bgcolor_enabled:
             return
         value = self.get_value(index.row(), column)
-        if self.max_min_col[column] is None or pd.isna(value):
+        if self.max_min_col[column] is None or isna(value):
             color = QColor(BACKGROUND_NONNUMBER_COLOR)
             if is_text_string(value):
                 color.setAlphaF(BACKGROUND_STRING_ALPHA)
@@ -319,7 +324,7 @@ class DataFrameModel(QAbstractTableModel):
         # handling, so fallback uses iloc
         try:
             value = self.df.iat[row, column]
-        except pd._libs.tslib.OutOfBoundsDatetime:
+        except OutOfBoundsDatetime:
             value = self.df.iloc[:, column].astype(str).iat[row]
         except:
             value = self.df.iloc[row, column]
@@ -508,7 +513,7 @@ class DataFrameModel(QAbstractTableModel):
         self.endResetModel()
 
 
-class DataFrameView(QTableView, SpyderConfigurationAccessor):
+class DataFrameView(QTableView):
     """
     Data Frame view class.
 
@@ -520,8 +525,6 @@ class DataFrameView(QTableView, SpyderConfigurationAccessor):
     sig_sort_by_column = Signal()
     sig_fetch_more_columns = Signal()
     sig_fetch_more_rows = Signal()
-
-    CONF_SECTION = 'variable_explorer'
 
     def __init__(self, parent, model, header, hscroll, vscroll):
         """Constructor."""
@@ -536,7 +539,11 @@ class DataFrameView(QTableView, SpyderConfigurationAccessor):
         self.header_class = header
         self.header_class.sectionClicked.connect(self.sortByColumn)
         self.menu = self.setup_menu()
-        self.config_shortcut(self.copy, 'copy', self)
+        CONF.config_shortcut(
+            self.copy,
+            context='variable_explorer',
+            name='copy',
+            parent=self)
         self.horizontalScrollBar().valueChanged.connect(
             self._load_more_columns)
         self.verticalScrollBar().valueChanged.connect(self._load_more_rows)
@@ -749,7 +756,7 @@ class DataFrameHeaderModel(QAbstractTableModel):
         """Get the information to put in the header."""
         if role == Qt.TextAlignmentRole:
             if orientation == Qt.Horizontal:
-                return Qt.AlignCenter
+                return Qt.AlignCenter | Qt.AlignBottom
             else:
                 return Qt.AlignRight | Qt.AlignVCenter
         if role != Qt.DisplayRole and role != Qt.ToolTipRole:
@@ -841,7 +848,7 @@ class DataFrameLevelModel(QAbstractTableModel):
         """
         if role == Qt.TextAlignmentRole:
             if orientation == Qt.Horizontal:
-                return Qt.AlignCenter
+                return Qt.AlignCenter | Qt.AlignBottom
             else:
                 return Qt.AlignRight | Qt.AlignVCenter
         if role != Qt.DisplayRole and role != Qt.ToolTipRole:
@@ -889,8 +896,7 @@ class MxDataFrameViewer(QWidget, SpyderConfigurationAccessor):  # mx change
     CONF_SECTION = 'variable_explorer'
 
     def __init__(self, parent=None):
-        super().__init__(parent)
-
+        QWidget.__init__(self, parent)  # mx change
         # Destroying the C++ object right after closing the dialog box,
         # otherwise it may be garbage-collected in another QThread
         # (e.g. the editor's analysis thread in Spyder), thus leading to
@@ -910,17 +916,18 @@ class MxDataFrameViewer(QWidget, SpyderConfigurationAccessor):  # mx change
 
         self.layout = QGridLayout()
         self.layout.setSpacing(0)
-        self.layout.setContentsMargins(20, 20, 20, 0)
+        self.layout.setContentsMargins(0, 0, 0, 0)
         self.setLayout(self.layout)
+        self.setWindowIcon(ima.icon('arredit'))
         if title:
             title = to_text_string(title) + " - %s" % data.__class__.__name__
         else:
             title = _("%s editor") % data.__class__.__name__
-        if isinstance(data, pd.Series):
+        if isinstance(data, Series):
             self.is_series = True
             data = data.to_frame()
-        elif isinstance(data, pd.Index):
-            data = pd.DataFrame(data)
+        elif isinstance(data, Index):
+            data = DataFrame(data)
 
         self.setWindowTitle(title)
 
@@ -938,7 +945,7 @@ class MxDataFrameViewer(QWidget, SpyderConfigurationAccessor):  # mx change
 
         # Create the model and view of the data
         self.dataModel = DataFrameModel(data, parent=self)
-        # self.dataModel.dataChanged.connect(self.save_and_close_enable)    # mx change
+        # self.dataModel.dataChanged.connect(self.save_and_close_enable)    #mx change
         self.create_data_table()
 
         self.layout.addWidget(self.hscroll, 2, 0, 1, 2)
@@ -957,18 +964,16 @@ class MxDataFrameViewer(QWidget, SpyderConfigurationAccessor):  # mx change
 
         self.setLayout(self.layout)
         # Make the dialog act as a window
-        # self.setWindowFlags(Qt.Window)    # mx change
+        # self.setWindowFlags(Qt.Window)        # mx change
         btn_layout = QHBoxLayout()
-        btn_layout.setSpacing(5)
 
-        btn_format = QPushButton(_("Format"))
+        btn = QPushButton(_("Format"))
         # disable format button for int type
-        btn_layout.addWidget(btn_format)
-        btn_format.clicked.connect(self.change_format)
-
-        btn_resize = QPushButton(_('Resize'))
-        btn_layout.addWidget(btn_resize)
-        btn_resize.clicked.connect(self.resize_to_contents)
+        btn_layout.addWidget(btn)
+        btn.clicked.connect(self.change_format)
+        btn = QPushButton(_('Resize'))
+        btn_layout.addWidget(btn)
+        btn.clicked.connect(self.resize_to_contents)
 
         bgcolor = QCheckBox(_('Background color'))
         bgcolor.setChecked(self.dataModel.bgcolor_enabled)
@@ -997,7 +1002,7 @@ class MxDataFrameViewer(QWidget, SpyderConfigurationAccessor):  # mx change
         # self.btn_close.clicked.connect(self.reject)
         # btn_layout.addWidget(self.btn_close)
 
-        btn_layout.setContentsMargins(0, 16, 0, 16)
+        btn_layout.setContentsMargins(4, 4, 4, 4)
         self.layout.addLayout(btn_layout, 4, 0, 1, 2)
         self.setModel(self.dataModel)
         self.resizeColumnsToContents()
@@ -1025,7 +1030,7 @@ class MxDataFrameViewer(QWidget, SpyderConfigurationAccessor):  # mx change
             self._index_resized)
         self.table_level.verticalHeader().sectionResized.connect(
             self._header_resized)
-        # self.table_level.setItemDelegate(QItemDelegate())     # mx change
+        # self.table_level.setItemDelegate(QItemDelegate())    # mx change
         self.layout.addWidget(self.table_level, 0, 0)
         self.table_level.setContentsMargins(0, 0, 0, 0)
         self.table_level.horizontalHeader().sectionClicked.connect(
@@ -1383,32 +1388,31 @@ def test():
     from numpy import nan
     from pandas.util.testing import assert_frame_equal, assert_series_equal
 
-    df1 = pd.DataFrame(
-        [
-            [True, "bool"],
-            [1+1j, "complex"],
-            ['test', "string"],
-            [1.11, "float"],
-            [1, "int"],
-            [np.random.rand(3, 3), "Unkown type"],
-            ["Large value", 100],
-            ["áéí", "unicode"]
-        ],
-        index=['a', 'b', nan, nan, nan, 'c', "Test global max", 'd'],
-        columns=[nan, 'Type']
-    )
+    df1 = DataFrame([
+        [True, "bool"],
+        [1+1j, "complex"],
+        ['test', "string"],
+        [1.11, "float"],
+        [1, "int"],
+        [np.random.rand(3, 3), "Unkown type"],
+        ["Large value", 100],
+        ["áéí", "unicode"]
+    ],
+        index=['a', 'b', nan, nan, nan, 'c',
+               "Test global max", 'd'],
+        columns=[nan, 'Type'])
     out = test_edit(df1)
     assert_frame_equal(df1, out)
 
-    result = pd.Series([True, "bool"], index=[nan, 'Type'], name='a')
+    result = Series([True, "bool"], index=[nan, 'Type'], name='a')
     out = test_edit(df1.iloc[0])
     assert_series_equal(result, out)
 
-    df1 = pd.DataFrame(np.random.rand(100100, 10))
+    df1 = DataFrame(np.random.rand(100100, 10))
     out = test_edit(df1)
     assert_frame_equal(out, df1)
 
-    series = pd.Series(np.arange(10), name=0)
+    series = Series(np.arange(10), name=0)
     out = test_edit(series)
     assert_series_equal(series, out)
 
