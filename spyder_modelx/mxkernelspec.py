@@ -111,7 +111,7 @@ class MxKernelSpec(SpyderKernelSpec):
             kernel_cmd = [
                 pyexec,
                 '-m',
-                'spyder_modelx.start_kernel',
+                'spymx_kernels.start_kernel',
                 '-f',
                 '{connection_file}'
             ]
@@ -144,7 +144,7 @@ class MxKernelSpec(SpyderKernelSpec):
                 kernel_cmd = [
                     pyexec,
                     '-m',
-                    'spyder_modelx.start_kernel',
+                    'spymx_kernels.start_kernel',
                     '-f',
                     '{connection_file}'
                 ]
