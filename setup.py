@@ -44,7 +44,12 @@ def get_description():
     return data
 
 
-REQUIREMENTS = ['spyder>=3.2.5', 'modelx>=0.18.0', 'asttokens']
+REQUIREMENTS = [
+    'spyder>=3.2.5',
+    'modelx>=0.18.0',
+    'spymx-kernels',
+    'asttokens'
+]
 
 
 spyder_plugins_entry_points = [
