@@ -71,8 +71,12 @@ class MxStackedMixin:
         self.stack.addWidget(self.blankwidget)
 
         # On active tab in IPython console change
-        self.main.ipyconsole.tabwidget.currentChanged.connect(
-            self.on_ipyconsole_current_changed)
+        if spyder.version_info > (5, 2):
+            self.main.ipyconsole.get_widget().tabwidget.currentChanged.connect(
+                self.on_ipyconsole_current_changed)
+        else:
+            self.main.ipyconsole.tabwidget.currentChanged.connect(
+                self.on_ipyconsole_current_changed)
 
     # ----- Stack accesors ----------------------------------------------------
     # Modified from https://github.com/spyder-ide/spyder/blob/v3.3.2/spyder/plugins/variableexplorer.py#L140
@@ -136,7 +140,10 @@ class MxStackedMixin:
 
     def on_ipyconsole_current_changed(self):
         # Slot like IPythonConsole.reflesh_plugin
-        client = self.main.ipyconsole.tabwidget.currentWidget()
+        if spyder.version_info > (5, 2):
+            client = self.main.ipyconsole.get_widget().tabwidget.currentWidget()
+        else:
+            client = self.main.ipyconsole.tabwidget.currentWidget()
         if client:
             sw = client.shellwidget
             self.set_shellwidget_from_id(id(sw))

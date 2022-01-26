@@ -708,6 +708,8 @@ class MxShellWidget(ShellWidget):
             )
             if self.kernel_client is None:
                 return
+            elif not hasattr(self.kernel_client, 'comm_channel'):
+                return
             elif self.kernel_client.comm_channel is None:
                 return
             if self.namespacebrowser and self.spyder_kernel_comm.is_open():
@@ -763,10 +765,18 @@ class MxShellWidget(ShellWidget):
         self._mx_exec[msg_id] = self._MxRequest(
             msgtype=msgtype, code=code, local_uuid=local_uuid,
             usrexp=usrexp[local_uuid] if usrexp else usrexp)
-        self._request_info['execute'][msg_id] = self._ExecutionRequest(
-            msg_id,
-            'mx_silent_exec_method'
-        )
+
+        if spyder.version_info > (5, 2):
+            self._request_info['execute'][msg_id] = self._ExecutionRequest(
+                msg_id,
+                'mx_silent_exec_method',
+                False
+            )
+        else:
+            self._request_info['execute'][msg_id] = self._ExecutionRequest(
+                msg_id,
+                'mx_silent_exec_method'
+            )
 
     def _handle_execute_reply(self, msg):
         """
@@ -789,8 +799,12 @@ class MxShellWidget(ShellWidget):
             self.ipyclient.t0 = time.monotonic()
 
         # Handle silent execution of kernel methods
-        if info and info.kind == 'mx_silent_exec_method' and not self._hidden:
+        if spyder.version_info > (5, 2):
+            cond = info and info.kind == 'mx_silent_exec_method'
+        else:
+            cond = info and info.kind == 'mx_silent_exec_method' and not self._hidden
 
+        if cond:
             msgtype = self._mx_exec[msg_id].msgtype
 
             if msgtype and msgtype[:len("analyze_")] == "analyze_":
