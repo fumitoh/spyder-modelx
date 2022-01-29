@@ -45,9 +45,9 @@ def get_description():
 
 
 REQUIREMENTS = [
-    'spyder>=3.2.5',
+    'spyder>=4.0.0',
     'modelx>=0.18.0',
-    'spymx-kernels',
+    'spymx-kernels>=0.1.1',
     'asttokens'
 ]
 
