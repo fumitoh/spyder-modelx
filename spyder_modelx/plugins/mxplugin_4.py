@@ -452,4 +452,17 @@ class ModelxPlugin(MxStackedMixin, SpyderPluginWidget):
             self.analyzer.add_shellwidget(shellwidget)
         if self.dataview is not None:
             self.dataview.add_shellwidget(shellwidget)
+
+        sw = shellwidget
+        kc = shellwidget.kernel_client
+        self.add_shellwidget(shellwidget)
+
+        kc.stopped_channels.connect(lambda: self.remove_shellwidget(id(sw)))
+        if self.analyzer is not None:
+            self.analyzer.add_shellwidget(shellwidget)
+            kc.stopped_channels.connect(lambda: self.analyzer.remove_shellwidget(id(sw)))
+        if self.dataview is not None:
+            self.dataview.add_shellwidget(shellwidget)
+            kc.stopped_channels.connect(lambda: self.dataview.remove_shellwidget(id(sw)))
+
         self.main.ipyconsole.connect_external_kernel(shellwidget)
