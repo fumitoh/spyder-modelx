@@ -712,7 +712,7 @@ class NewModelDialog(QDialog):
 
     def __init__(self, parent=None):
         QDialog.__init__(
-            self, parent, flags=Qt.WindowSystemMenuHint | Qt.WindowTitleHint)
+            self, parent, Qt.WindowSystemMenuHint | Qt.WindowTitleHint)
         self.setWindowTitle('Create New Model')
         self.treeview = parent
         self.setAttribute(Qt.WA_DeleteOnClose)
@@ -763,7 +763,7 @@ class ReadModelDialog(QDialog):
 
     def __init__(self, parent=None, modelpath=None):
         QDialog.__init__(
-            self, parent, flags=Qt.WindowSystemMenuHint | Qt.WindowTitleHint)
+            self, parent, Qt.WindowSystemMenuHint | Qt.WindowTitleHint)
         self.setWindowTitle('Read Model')
         self.treeview = parent
         self.setAttribute(Qt.WA_DeleteOnClose)
@@ -851,7 +851,7 @@ class WriteModelDialog(QDialog):
 
     def __init__(self, parent=None, modelpath=None):
         QDialog.__init__(
-            self, parent, flags=Qt.WindowSystemMenuHint | Qt.WindowTitleHint)
+            self, parent, Qt.WindowSystemMenuHint | Qt.WindowTitleHint)
         self.setWindowTitle('Write Model')
         self.treeview = parent
         self.setAttribute(Qt.WA_DeleteOnClose)
@@ -929,7 +929,7 @@ class NewSpaceDialog(QDialog):
 
     def __init__(self, parent=None, parentList=(), currIndex=0):
         QDialog.__init__(
-            self, parent, flags=Qt.WindowSystemMenuHint | Qt.WindowTitleHint)
+            self, parent, Qt.WindowSystemMenuHint | Qt.WindowTitleHint)
 
         self.setAttribute(Qt.WA_DeleteOnClose)
         self.setWindowTitle('Create New Space')
@@ -1027,7 +1027,7 @@ class SelectFromListDialog(QDialog):
 
     def __init__(self, parent=None, allItems=(), selectedItems=()):
         QDialog.__init__(
-            self, parent, flags=Qt.WindowSystemMenuHint | Qt.WindowTitleHint)
+            self, parent, Qt.WindowSystemMenuHint | Qt.WindowTitleHint)
 
         self.allItems = allItems
 
@@ -1123,7 +1123,7 @@ class NewCellsDialog(QDialog):
 
     def __init__(self, parent=None, parentList=(), currIndex=0):
         QDialog.__init__(
-            self, parent, flags=Qt.WindowSystemMenuHint | Qt.WindowTitleHint)
+            self, parent, Qt.WindowSystemMenuHint | Qt.WindowTitleHint)
 
         self.setAttribute(Qt.WA_DeleteOnClose)
         self.setWindowTitle('Create New Cells')
@@ -1190,7 +1190,7 @@ class ImportNamesDialog(QDialog):
 
     def __init__(self, parent=None):
         QDialog.__init__(
-            self, parent, flags=Qt.WindowSystemMenuHint | Qt.WindowTitleHint)
+            self, parent, Qt.WindowSystemMenuHint | Qt.WindowTitleHint)
         self.setWindowTitle('Import Names')
         self.treeview = parent
         self.setAttribute(Qt.WA_DeleteOnClose)

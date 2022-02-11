@@ -62,6 +62,8 @@ class FormulaPane(BaseCodePane):
             self.editor.modificationChanged.disconnect(self.activateActions)
         except TypeError:
             pass
+        except RuntimeError:    # PySide throws this
+            pass
         self.editor.setReadOnly(True)
         self.resetModification()
 
@@ -78,7 +80,7 @@ class FormulaPane(BaseCodePane):
         else:
             self.status.setText("")
 
-    @Slot(bool)
+    # @Slot(bool)       # PySide crashes with this decorator.
     def activateActions(self, status):
         if status:
             self.saveButton.setEnabled(True)

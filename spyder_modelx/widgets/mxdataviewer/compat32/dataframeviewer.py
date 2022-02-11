@@ -459,7 +459,7 @@ class FrozenTableView(QTableView):
         self.setVerticalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
         self.show()
 
-        self.setVerticalScrollMode(1)
+        self.setVerticalScrollMode(QTableView.ScrollPerPixel)
 
     def update_geometry(self):
         """Update the frozen column size when an update occurs
@@ -481,8 +481,8 @@ class DataFrameView(QTableView):
         self.frozen_table_view = FrozenTableView(self)
         self.frozen_table_view.update_geometry()
 
-        self.setHorizontalScrollMode(1)
-        self.setVerticalScrollMode(1)
+        self.setHorizontalScrollMode(QTableView.ScrollPerPixel)
+        self.setVerticalScrollMode(QTableView.ScrollPerPixel)
 
         self.horizontalHeader().sectionResized.connect(self.update_section_width)
         self.verticalHeader().sectionResized.connect(self.update_section_height)
