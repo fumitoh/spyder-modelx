@@ -766,7 +766,7 @@ class MxShellWidget(ShellWidget):
             msgtype=msgtype, code=code, local_uuid=local_uuid,
             usrexp=usrexp[local_uuid] if usrexp else usrexp)
 
-        if spyder.version_info > (5, 2):
+        if 'hidden' in self._ExecutionRequest._fields:  # depends on qtconsole version
             self._request_info['execute'][msg_id] = self._ExecutionRequest(
                 msg_id,
                 'mx_silent_exec_method',
@@ -799,10 +799,10 @@ class MxShellWidget(ShellWidget):
             self.ipyclient.t0 = time.monotonic()
 
         # Handle silent execution of kernel methods
-        if spyder.version_info > (5, 2):
-            cond = info and info.kind == 'mx_silent_exec_method'
-        else:
+        if hasattr(self, '_hidden'):    # depends on qtconsole version
             cond = info and info.kind == 'mx_silent_exec_method' and not self._hidden
+        else:
+            cond = info and info.kind == 'mx_silent_exec_method'
 
         if cond:
             msgtype = self._mx_exec[msg_id].msgtype
