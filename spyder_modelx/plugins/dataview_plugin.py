@@ -113,14 +113,14 @@ if spyder.version_info > (5,):
             #        +----------------------------------------------------------+
             #
 
-            button_group = QButtonGroup(parent=self)
-            self.object_radio = object_radio = QRadioButton("Object")
-            self.expr_radio = expr_radio = QRadioButton("Expression")
-            button_group.addButton(object_radio)
-            button_group.addButton(expr_radio)
+            # button_group = QButtonGroup(parent=self)
+            # self.object_radio = object_radio = QRadioButton("Object")
+            # self.expr_radio = expr_radio = QRadioButton("Expression")
+            # button_group.addButton(object_radio)
+            # button_group.addButton(expr_radio)
 
-            object_radio.toggled.connect(self.activateObject)
-            expr_radio.toggled.connect(self.activateExpression)
+            # object_radio.toggled.connect(self.activateObject)
+            # expr_radio.toggled.connect(self.activateExpression)
 
             update_button = QPushButton(text="Update", parent=self)
             update_button.clicked.connect(self.update_data)
@@ -133,7 +133,7 @@ if spyder.version_info > (5,):
 
             font = self.plugin.get_font()
 
-            self.exprbox = MxPyExprLineEdit(self, font=font)
+            # self.exprbox = MxPyExprLineEdit(self, font=font)
             self.objbox = QLabel(parent=self)
             self.argbox = MxPyExprLineEdit(self, font=font)
             self.msgbox = QLabel(parent=self)
@@ -145,18 +145,18 @@ if spyder.version_info > (5,):
             outer_layout.addLayout(upper_layout)
             outer_layout.addWidget(self.msgbox)
 
-            inner_layout = QGridLayout()
-            inner_layout.addWidget(object_radio, 0, 0)
-            inner_layout.addWidget(expr_radio, 1, 0)
-            inner_layout.addWidget(self.exprbox, 1, 1)
+            # inner_layout = QGridLayout()
+            # inner_layout.addWidget(object_radio, 0, 0)
+            # inner_layout.addWidget(expr_radio, 1, 0)
+            # inner_layout.addWidget(self.exprbox, 1, 1)
             objbox_layout = QHBoxLayout()
             objbox_layout.addWidget(self.objbox)
             objbox_layout.addWidget(self.argbox)
             objbox_layout.setStretch(0, 3)  # 3:1
             objbox_layout.setStretch(1, 1)
-            inner_layout.addLayout(objbox_layout, 0, 1)
+            # inner_layout.addLayout(objbox_layout, 0, 1)
 
-            upper_layout.addLayout(inner_layout)
+            upper_layout.addLayout(objbox_layout)
             upper_layout.addWidget(update_button)
 
             # widget = QWidget(parent=self)
@@ -176,7 +176,7 @@ if spyder.version_info > (5,):
 
             margins = (0, 0, 0, 0)
 
-            for lo in [outer_layout, upper_layout, inner_layout, self.msgbox]:
+            for lo in [outer_layout, upper_layout, self.msgbox]:
                 lo.setContentsMargins(*margins)
 
             objbox_layout.setContentsMargins(0, 0, 0, 0)
@@ -184,7 +184,7 @@ if spyder.version_info > (5,):
             self.setLayout(main_layout)
 
             self.attrdict = None
-            object_radio.setChecked(True)
+            # object_radio.setChecked(True)
 
             # self.calc_on_update = create_action(self,
             #     _("Calculate upon update"),
@@ -198,13 +198,13 @@ if spyder.version_info > (5,):
             self.shellwidget = shellwidget
             self.shellwidget.set_mxdataview(self)
 
-        def activateObject(self, checked):
-            self.argbox.setEnabled(checked)
-            self.exprbox.setEnabled(not checked)
+        # def activateObject(self, checked):
+        #     self.argbox.setEnabled(checked)
+        #     self.exprbox.setEnabled(not checked)
 
-        def activateExpression(self, checked):
-            self.argbox.setEnabled(not checked)
-            self.exprbox.setEnabled(checked)
+        # def activateExpression(self, checked):
+        #     self.argbox.setEnabled(not checked)
+        #     self.exprbox.setEnabled(checked)
 
         def update_object(self, data):
             if data is None:
@@ -221,33 +221,33 @@ if spyder.version_info > (5,):
             self.objbox.setText(data['_evalrepr'])
 
         def update_data(self):
-            if self.object_radio.isChecked():
+            # if self.object_radio.isChecked():
 
-                argtxt = self.argbox.get_expr()
-                args = "(" + argtxt + ("," if argtxt else "") + ")"
-                # assert
-                ast.literal_eval(args)
+            argtxt = self.argbox.get_expr()
+            args = "(" + argtxt + ("," if argtxt else "") + ")"
+            # assert
+            ast.literal_eval(args)
 
-                calc = self.plugin.get_container().calc_on_update_action.isChecked()
+            calc = self.plugin.get_container().calc_on_update_action.isChecked()
 
-                val, is_calculated = self.shellwidget.update_mxdataview(
-                    is_obj=True,
-                    obj=self.attrdict["fullname"],
-                    args=args,
-                    calc=calc
-                )
-                self.update_value(val)
-                if is_calculated:
-                    self.shellwidget.refresh_namespacebrowser()
-
-            elif self.expr_radio.isChecked():
-                self.shellwidget.update_mxdataview(
-                    is_obj=False,
-                    expr=self.exprbox.get_expr()
-                )
+            val, is_calculated = self.shellwidget.update_mxdataview(
+                is_obj=True,
+                obj=self.attrdict["fullname"],
+                args=args,
+                calc=calc
+            )
+            self.update_value(val)
+            if is_calculated:
                 self.shellwidget.refresh_namespacebrowser()
-            else:
-                raise RuntimeError("MxDataViewer: must not happen")
+
+            # elif self.expr_radio.isChecked():
+            #     self.shellwidget.update_mxdataview(
+            #         is_obj=False,
+            #         expr=self.exprbox.get_expr()
+            #     )
+            #     self.shellwidget.refresh_namespacebrowser()
+            # else:
+            #     raise RuntimeError("MxDataViewer: must not happen")
 
         def update_value(self, data):
 
