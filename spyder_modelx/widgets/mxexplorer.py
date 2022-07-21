@@ -84,7 +84,7 @@ class MxTreeView(QTreeView):
             self.container = self.plugin.get_container()
         else:
             self.container = self.plugin
-        self.shell = None
+        self.shell = None   # To be set by MxShellWidget
         self.reply = None  # To write dialog box result
         self.setAlternatingRowColors(False)
 
@@ -93,6 +93,12 @@ class MxTreeView(QTreeView):
 
         self.action_update_properties = self.contextMenu.addAction(
             "Show Properties"
+        )
+        self.action_select_dataview = self.contextMenu.addAction(
+            "Select in DataView"
+        )
+        self.action_select_new_dataview = self.contextMenu.addAction(
+            "Select in New DataView"
         )
         self.action_import_names = self.contextMenu.addAction(
             "Import Names"
@@ -125,12 +131,15 @@ class MxTreeView(QTreeView):
             "Delete Model"
         )
 
+    def get_current_item(self):
+        if self.currentIndex().isValid():
+            return self.currentIndex().internalPointer()
+
     def activated_callback(self, index):
         if index.isValid():
             item = self.currentIndex().internalPointer()
             if not isinstance(item, ViewItem):
                 self.shell.update_mxproperty(item.itemData['fullname'])
-                # self.plugin.dataview.update_object(item.itemData['fullname'])
 
     # def doubleClicked_callback(self, index):
     #     if index.isValid() and index.column() == TreeCol.IS_DERIVED:
@@ -138,6 +147,16 @@ class MxTreeView(QTreeView):
     #                                      str(index.row()),
     #                                      QMessageBox.Yes | QMessageBox.No)
 
+    def select_in_dataview(self):
+        item = self.get_current_item()
+        if item is not None:
+            self.shell.mxdataviewer.update_object(item.itemData)
+
+    def select_in_new_dataview(self):
+        item = self.get_current_item()
+        if item is not None:
+            self.shell.mxdataviewer.add_tab()
+            self.shell.mxdataviewer.update_object(item.itemData)
 
     def contextMenuEvent(self, event):
         action = self.contextMenu.exec_(self.mapToGlobal(event.pos()))
@@ -162,6 +181,12 @@ class MxTreeView(QTreeView):
                 item = self.currentIndex().internalPointer()
                 if not isinstance(item, ViewItem):
                     self.shell.update_mxproperty(item.itemData['fullname'])
+
+        elif action == self.action_select_dataview:
+            self.select_in_dataview()
+
+        elif action == self.action_select_new_dataview:
+            self.select_in_new_dataview()
 
         elif action == self.action_import_names:
             index = self.currentIndex()

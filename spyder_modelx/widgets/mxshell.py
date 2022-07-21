@@ -160,7 +160,10 @@ class MxShellWidget(ShellWidget):
         #     self.update_mxdataview)
 
         self.sig_mxdataview_eval.connect(self.mxdataviewer.update_value)
-        self.sig_mxproperty.connect(self.mxdataviewer.update_object)
+        if spyder.version_info > (5,):
+            pass
+        else:
+            self.sig_mxproperty.connect(self.mxdataviewer.update_object)
 
     def get_obj_value(self, msgtype: str, obj: str, args: str,
                       calc: bool=False):

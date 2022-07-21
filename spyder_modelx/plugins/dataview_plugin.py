@@ -47,7 +47,7 @@ import ast
 
 from qtpy.QtWidgets import (
     QVBoxLayout, QWidget, QLabel, QButtonGroup, QRadioButton, QGridLayout,
-    QHBoxLayout, QPushButton
+    QHBoxLayout, QPushButton, QMessageBox
 )
 
 import spyder
@@ -56,6 +56,7 @@ try:
 except ImportError:
     from spyder.plugins import SpyderPluginWidget  # Spyder3
 
+from spyder.widgets.tabs import Tabs
 from spyder.utils.qthelpers import create_plugin_layout, create_action
 
 if spyder.version_info > (5, 1):
@@ -86,54 +87,84 @@ from .stacked_mixin import MxStackedMixin
 
 if spyder.version_info > (5,):
 
+    class MxDataViewTabs(Tabs):
+
+        def __init__(self, parent, **kwargs):
+            super().__init__(parent, menu=parent._options_menu)
+            self.plugin = parent.get_plugin()
+            self.set_close_function(self.close_tab)
+            self.add_tab()
+
+        def add_tab(self):
+            index = self.addTab(MxDataViewWidget(self), '<Empty>')
+            self.setCurrentIndex(index)
+
+        def set_shellwidget(self, shellwidget):
+            self.shellwidget = shellwidget
+            self.shellwidget.set_mxdataview(self)
+
+        def update_object(self, data):
+            self.currentWidget().update_object(data)
+
+        def update_data(self):
+            self.currentWidget().update_data()
+
+        def update_value(self, data):
+            self.currentWidget().update_value(data)
+
+        def clear_contents(self):
+            self.currentWidget().clear_contents()
+
+        def close_tab(self, index=None, tab=None, force=False):
+            """Close client tab from index or widget (or close current tab)"""
+            if not self.count():
+                return
+            elif self.count() == 1:
+                QMessageBox.critical(self, "Error", "Cannot close last tab.")
+                return
+
+            if tab is not None:
+                if tab not in [self.widget(i) for i in range(self.count())]:
+                    # Client already closed
+                    return
+                index = self.tabwidget.indexOf(tab)
+                # if index is not found in tabwidget it's because this client was
+                # already closed and the call was performed by the exit callback
+                if index == -1:
+                    return
+            if index is None and tab is None:
+                index = self.currentIndex()
+            if index is not None:
+                tab = self.widget(index)
+
+            # Note: client index may have changed after closing related widgets
+            self.removeTab(self.indexOf(tab))
+
+
     class MxDataViewWidget(QWidget):
 
         def __init__(self, parent, **kwargs):
             QWidget.__init__(self, parent)
 
-            self.plugin = parent.get_plugin()
-            # self.plugin_actions = []
+            self.plugin = parent.plugin
+            self.parent = parent
 
-            #         outer_layout
-            #        +----------------------------------------------|-----------+
-            #        |   inner_layout                               |           |
-            #        |  +---------|-----------------------------+   |           |
-            #  upper |  |         | +----------------------+    |   |           |
-            # layout |  |obj_radio| |objbox_layout         |    |   |           |
-            #        |  |         | +----------------------+    |   |  update   |
-            #        |  -----------------------------------------   |  button   |
-            #        |  |   expr  |                             |   |           |
-            #        |  |   radio |  exprbox                    |   |           |
-            #        |  +---------|-----------------------------+   |           |
-            #        |                                              |           |
-            #        -----------------------------------------------|------------
-            #        |                                                          |
-            #        |   msgbox                                                 |
-            #        |                                                          |
-            #        +----------------------------------------------------------+
+            # ---- Layouts an widgets in MxDataViewWidget ---
             #
-
-            # button_group = QButtonGroup(parent=self)
-            # self.object_radio = object_radio = QRadioButton("Object")
-            # self.expr_radio = expr_radio = QRadioButton("Expression")
-            # button_group.addButton(object_radio)
-            # button_group.addButton(expr_radio)
-
-            # object_radio.toggled.connect(self.activateObject)
-            # expr_radio.toggled.connect(self.activateExpression)
+            # main_layout
+            #   outer_layout
+            #       upper_layout
+            #           objbox_layout         update_button
+            #               objbox  argbox
+            #
+            #       self.msgbox
+            #   self.widget
+            #
 
             update_button = QPushButton(text="Update", parent=self)
             update_button.clicked.connect(self.update_data)
 
-            # txt = _("Expression")
-            # if sys.platform == 'darwin':
-            #     expr_label = QLabel("  " + txt)
-            # else:
-            #     expr_label = QLabel(txt)
-
             font = self.plugin.get_font()
-
-            # self.exprbox = MxPyExprLineEdit(self, font=font)
             self.objbox = QLabel(parent=self)
             self.argbox = MxPyExprLineEdit(self, font=font)
             self.msgbox = QLabel(parent=self)
@@ -145,34 +176,22 @@ if spyder.version_info > (5,):
             outer_layout.addLayout(upper_layout)
             outer_layout.addWidget(self.msgbox)
 
-            # inner_layout = QGridLayout()
-            # inner_layout.addWidget(object_radio, 0, 0)
-            # inner_layout.addWidget(expr_radio, 1, 0)
-            # inner_layout.addWidget(self.exprbox, 1, 1)
             objbox_layout = QHBoxLayout()
             objbox_layout.addWidget(self.objbox)
             objbox_layout.addWidget(self.argbox)
             objbox_layout.setStretch(0, 3)  # 3:1
             objbox_layout.setStretch(1, 1)
-            # inner_layout.addLayout(objbox_layout, 0, 1)
 
             upper_layout.addLayout(objbox_layout)
             upper_layout.addWidget(update_button)
 
-            # widget = QWidget(parent=self)
-            # widget.setLayout(outer_layout)
-
             # Create main widget
-            self.widget = QWidget(parent=self) # MxDataFrameViewer(self)
+            self.widget = QWidget(parent=self)
 
             self.main_layout = main_layout = QVBoxLayout()
             main_layout.addLayout(outer_layout)
             main_layout.addWidget(self.widget)
             main_layout.setStretch(1, 1)
-
-            # Main layout of this widget
-            # layout = create_plugin_layout(self.tools_layout)
-            # layout.addLayout(main_layout)
 
             margins = (0, 0, 0, 0)
 
@@ -184,27 +203,10 @@ if spyder.version_info > (5,):
             self.setLayout(main_layout)
 
             self.attrdict = None
-            # object_radio.setChecked(True)
 
-            # self.calc_on_update = create_action(self,
-            #     _("Calculate upon update"),
-            #     tip=_("Calculate the selected cells if not yet calculated"))
-            # self.calc_on_update.setChecked(True)
-            #
-            # self.actions = [self.calc_on_update]
-
-        def set_shellwidget(self, shellwidget):
-            """Bind shellwidget instance to namespace browser"""
-            self.shellwidget = shellwidget
-            self.shellwidget.set_mxdataview(self)
-
-        # def activateObject(self, checked):
-        #     self.argbox.setEnabled(checked)
-        #     self.exprbox.setEnabled(not checked)
-
-        # def activateExpression(self, checked):
-        #     self.argbox.setEnabled(not checked)
-        #     self.exprbox.setEnabled(checked)
+        @property
+        def shellwidget(self):
+            return self.parent.shellwidget
 
         def update_object(self, data):
             if data is None:
@@ -219,9 +221,12 @@ if spyder.version_info > (5,):
                 self.argbox.setEnabled(True)
 
             self.objbox.setText(data['_evalrepr'])
+            self.parent.setTabText(
+                self.parent.indexOf(self),
+                data['name']
+            )
 
         def update_data(self):
-            # if self.object_radio.isChecked():
 
             argtxt = self.argbox.get_expr()
             args = "(" + argtxt + ("," if argtxt else "") + ")"
@@ -239,15 +244,6 @@ if spyder.version_info > (5,):
             self.update_value(val)
             if is_calculated:
                 self.shellwidget.refresh_namespacebrowser()
-
-            # elif self.expr_radio.isChecked():
-            #     self.shellwidget.update_mxdataview(
-            #         is_obj=False,
-            #         expr=self.exprbox.get_expr()
-            #     )
-            #     self.shellwidget.refresh_namespacebrowser()
-            # else:
-            #     raise RuntimeError("MxDataViewer: must not happen")
 
         def update_value(self, data):
 
@@ -278,6 +274,22 @@ if spyder.version_info > (5,):
 
             self.main_layout.addWidget(self.widget)
             self.main_layout.setStretchFactor(self.widget, 1)
+
+        def clear_contents(self):
+            if self.widget:
+                self.widget.deleteLater()
+                self.widget = QWidget(parent=self)
+                self.attrdict = None
+                self.objbox.setText("")
+                self.argbox.setText("")
+                self.msgbox.setText("")
+                self.parent.setTabText(
+                    self.parent.indexOf(self),
+                    "<Empty>"
+                )
+                self.main_layout.addWidget(self.widget)
+                self.main_layout.setStretchFactor(self.widget, 1)
+
 
 else:
 
@@ -510,6 +522,8 @@ if spyder.version_info > (5,):
 
     class MxDataViewMainWidgetActions:
 
+        AddNewTab = 'add_new_tab'
+        ClearContents = 'clear_contents'
         CalcOnUpdate = 'calc_on_update'
 
     class MxDataViewMainWidgetActionsOptionsMenuSections:
@@ -518,7 +532,7 @@ if spyder.version_info > (5,):
 
     class MxDataViewMainWidget(MxStackedMixin, PluginMainWidget):
 
-        MX_WIDGET_CLASS = MxDataViewWidget
+        MX_WIDGET_CLASS = MxDataViewTabs
 
         def __init__(self, name=None, plugin=None, parent=None):
             PluginMainWidget.__init__(self, name, plugin, parent)
@@ -545,6 +559,18 @@ if spyder.version_info > (5,):
             """
 
             # ---- Toolbar actions
+            self.new_action = self.create_action(
+                MxDataViewMainWidgetActions.AddNewTab,
+                text=_("New tab"),
+                icon=self.create_icon("newwindow"),
+                triggered=self.add_new_tab
+            )
+            self.clear_action = self.create_action(
+                MxDataViewMainWidgetActions.ClearContents,
+                text=_("Clear"),
+                icon=self.create_icon("editdelete"),
+                triggered=self.clear_contents
+            )
             self.calc_on_update_action = self.create_action(
                 MxDataViewMainWidgetActions.CalcOnUpdate,
                 text=_('Calculate on update'),
@@ -555,12 +581,38 @@ if spyder.version_info > (5,):
 
             # Options menu
             options_menu = self.get_options_menu()
-            for item in [self.calc_on_update_action]:
+            for item in [self.new_action,
+                         self.clear_action,
+                         self.calc_on_update_action]:
                 self.add_item_to_menu(
                     item,
                     menu=options_menu,
                     section=MxDataViewMainWidgetActionsOptionsMenuSections.Main
                 )
+
+            # Widgets for the tab corner
+            self.new_button = self.create_toolbutton(
+                MxDataViewMainWidgetActions.AddNewTab,
+                text=_("New tab"),
+                tip=_("Create a new tab"),
+                icon=self.create_icon("newwindow"),
+                triggered=self.add_new_tab,
+            )
+            self.clear_button = self.create_toolbutton(
+                MxDataViewMainWidgetActions.ClearContents,
+                text=_("Clear"),
+                tip=_("Clear"),
+                icon=self.create_icon("editdelete"),
+                triggered=self.clear_contents,
+            )
+            self.add_corner_widget(MxDataViewMainWidgetActions.AddNewTab, self.new_button)
+            self.add_corner_widget(MxDataViewMainWidgetActions.ClearContents, self.clear_button)
+
+        def add_new_tab(self):
+            self.current_widget().add_tab()
+
+        def clear_contents(self):
+            self.current_widget().clear_contents()
 
         def update_actions(self):
             """

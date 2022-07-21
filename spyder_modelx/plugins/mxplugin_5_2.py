@@ -51,9 +51,17 @@ class MxPluginMainWidgetActions:
 
     OpenNewConsole = 'new_console'
     ConnectToKernel = 'connect_to_kernel'
+    SelectInDataView = 'select_in_dataview'
+    SelectInNewDataView = 'select_in_new_dataview'
+
+
+class MxPluginMainWidgetMainToolBarSections:
+    Main = 'main_section'
+
 
 class MxPluginMainWidgetOptionsMenuSections:
     Consoles = 'mxconsoles_section'
+
 
 class MxPluginMainWidget(MxStackedMixin, PluginMainWidget):
 
@@ -106,6 +114,20 @@ class MxPluginMainWidget(MxStackedMixin, PluginMainWidget):
         """
 
         # ---- Toolbar actions
+        self.select_dataview_action = select_dataview_action = self.create_action(
+            MxPluginMainWidgetActions.SelectInDataView,
+            text=_('Select in DataView'),
+            icon=self.create_icon('newwindow'),
+            triggered=self.select_in_dataview
+        )
+
+        self.select_new_dataview_action = select_new_dataview = self.create_action(
+            MxPluginMainWidgetActions.SelectInNewDataView,
+            text=_('Select in New DataView'),
+            icon=self.create_icon('newwindow'),
+            triggered=self.select_in_new_dataview
+        )
+
         self.create_client_action = new_console_action = self.create_action(
             MxPluginMainWidgetActions.OpenNewConsole,
             text=_('New MxConsole'),
@@ -131,6 +153,15 @@ class MxPluginMainWidget(MxStackedMixin, PluginMainWidget):
                 before_section=IPythonConsoleWidgetOptionsMenuSections.Consoles
             )
 
+        # Main toolbar
+        main_toolbar = self.get_main_toolbar()
+        for item in [select_dataview_action, select_new_dataview]:
+            self.add_item_to_toolbar(
+                item,
+                toolbar=main_toolbar,
+                section=MxPluginMainWidgetMainToolBarSections.Main,
+            )
+
     def update_actions(self):
         """
         Update the state of exposed actions.
@@ -138,6 +169,12 @@ class MxPluginMainWidget(MxStackedMixin, PluginMainWidget):
         Exposed actions are actions created by the self.create_action method.
         """
         pass
+
+    def select_in_dataview(self):
+        self.current_widget().explorer.treeview.select_in_dataview()
+
+    def select_in_new_dataview(self):
+        self.current_widget().explorer.treeview.select_in_new_dataview()
 
     # --- IPython Console methods
     # ------------------------------------------------------------------------
