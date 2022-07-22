@@ -47,7 +47,9 @@
 
 import spyder
 
-if spyder.version_info > (5, 2):
+if spyder.version_info > (5, 3):
+    from .mxplugin_5_3 import ModelxPlugin_5_3 as ModelxPlugin
+elif spyder.version_info > (5, 2):
     from .mxplugin_5_2 import ModelxPlugin
 elif spyder.version_info > (5,):
     from .mxplugin_5 import ModelxPlugin

@@ -76,6 +76,133 @@ except AttributeError:
     time.monotonic = time.time
 
 
+class MxClientWidget_5_3(ClientWidget):
+    """Custom client widget for modelx
+
+    The only difference from ClientWidget is its
+    shell member being MxShellWidget
+    """
+    def __init__(self, parent, id_,
+                 history_filename, config_options,
+                 additional_options, interpreter_versions,
+                 connection_file=None, hostname=None,
+                 context_menu_actions=(),
+                 menu_actions=None,
+                 is_external_kernel=False,
+                 is_spyder_kernel=True,
+                 given_name='MxConsole',
+                 give_focus=True,
+                 options_button=None,
+                 time_label=None,
+                 show_elapsed_time=False,
+                 reset_warning=True,
+                 ask_before_restart=True,
+                 ask_before_closing=False,
+                 css_path=None,
+                 configuration=None,    # ~5.3.1
+                 handlers={},
+                 stderr_obj = None,
+                 stdout_obj = None,
+                 fault_obj = None):
+        super(ClientWidget, self).__init__(parent)
+        SaveHistoryMixin.__init__(self, history_filename)
+
+        # --- Init attrs
+        self.container = parent
+        self.id_ = id_
+        self.connection_file = connection_file
+        self.hostname = hostname
+        self.menu_actions = menu_actions
+        self.is_external_kernel = is_external_kernel
+        self.given_name = given_name
+        self.show_elapsed_time = show_elapsed_time
+        self.reset_warning = reset_warning
+        self.ask_before_restart = ask_before_restart
+        self.ask_before_closing = ask_before_closing
+
+        # --- Other attrs
+        self.context_menu_actions = context_menu_actions
+        self.time_label = time_label
+        self.options_button = options_button
+        self.history = []
+        self.allow_rename = True
+        self.is_error_shown = False
+        self.error_text = None
+        self.restart_thread = None
+        self.give_focus = give_focus
+
+        if css_path is None:
+            self.css_path = CSS_PATH
+        else:
+            self.css_path = css_path
+
+        # --- Widgets
+        self.shellwidget = MxShellWidget(
+            config=config_options,
+            ipyclient=self,
+            additional_options=additional_options,
+            interpreter_versions=interpreter_versions,
+            is_external_kernel=is_external_kernel,
+            is_spyder_kernel=is_spyder_kernel,
+            handlers=handlers,
+            local_kernel=True)
+        self.infowidget = self.container.infowidget
+        self.blank_page = self._create_blank_page()
+        self.loading_page = self._create_loading_page()
+        # To keep a reference to the page to be displayed
+        # in infowidget
+        self.info_page = None
+        self._before_prompt_is_ready()
+
+        # Elapsed time
+        self.t0 = time.monotonic()
+        self.timer = QTimer(self)
+
+        # --- Layout
+        self.layout = QVBoxLayout()
+        self.layout.setContentsMargins(0, 0, 0, 0)
+        self.layout.addWidget(self.shellwidget)
+        if self.infowidget is not None:
+            self.layout.addWidget(self.infowidget)
+        self.setLayout(self.layout)
+
+        # --- Exit function
+        self.exit_callback = lambda: self.container.close_client(client=self)
+
+        # --- Dialog manager
+        self.dialog_manager = DialogManager()
+
+        # --- Standard files handling
+        self.stderr_obj = stderr_obj
+        self.stdout_obj = stdout_obj
+        self.fault_obj = fault_obj
+        self.std_poll_timer = None
+        if self.stderr_obj is not None or self.stdout_obj is not None:
+            self.std_poll_timer = QTimer(self)
+            self.std_poll_timer.timeout.connect(self.poll_std_file_change)
+            self.std_poll_timer.setInterval(1000)
+            self.std_poll_timer.start()
+            self.shellwidget.executed.connect(self.poll_std_file_change)
+
+        self.start_successful = False
+
+    def get_name(self):
+        """Return client name"""
+        if self.given_name is None:
+            # Name according to host
+            if self.hostname is None:
+                name = _("Console")
+            else:
+                name = self.hostname
+            # Adding id to name
+            client_id = self.id_['int_id'] + u'/' + self.id_['str_id']
+            name = name + u' ' + client_id
+        else:
+            client_id = self.id_['int_id'] + u'/' + self.id_['str_id']
+            name = self.given_name + u' ' + client_id
+        return name
+
+
 class MxClientWidget(ClientWidget):
     """Custom client widget for modelx
 
