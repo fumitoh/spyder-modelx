@@ -636,20 +636,40 @@ if spyder.version_info > (5,):
         # -------------------------------------------------------------------
         # --- API: Mandatory methods to define ------------------------------
 
-        def get_name(self):
-            """
-            Return the plugin localized name.
+        # For breaking change. see https://github.com/spyder-ide/spyder/issues/16966
+        if spyder.version_info > (5, 2):
 
-            Returns
-            -------
-            str
-                Localized name of the plugin.
+            @staticmethod
+            def get_name():
+                """
+                Return the plugin localized name.
 
-            Notes
-            -----
-            This is a method to be able to update localization without a restart.
-            """
-            return _('MxDataViewer')
+                Returns
+                -------
+                str
+                    Localized name of the plugin.
+
+                Notes
+                -----
+                This is a method to be able to update localization without a restart.
+                """
+                return _('MxDataViewer')
+
+        else:
+            def get_name(self):
+                """
+                Return the plugin localized name.
+
+                Returns
+                -------
+                str
+                    Localized name of the plugin.
+
+                Notes
+                -----
+                This is a method to be able to update localization without a restart.
+                """
+                return _('MxDataViewer')
 
         def get_description(self):
             """
