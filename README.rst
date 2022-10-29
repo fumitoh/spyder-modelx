@@ -29,16 +29,13 @@ Spyder plugin for modelx.
 Installation
 ------------
 
-Using pip
+Using pip:
 
-`pip install spyder-modelx`
+``pip install spyder-modelx``
 
-Anaconda users should manualy install `modelx`
-and put `--no-deps` otpion for `spyder-modelx`:
+Using conda:
 
-`pip intasll modelx`
-
-`pip intasll --no-deps spyer-modelx`
+``conda install -c conda-forge spyder-modelx``
 
 Usage
 -----
