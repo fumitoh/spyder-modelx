@@ -42,7 +42,9 @@ class MxConsoleAPI_5_3:
     @Slot(bool, bool)
     @Slot(bool, str, bool)
     def create_new_client(self, give_focus=True, filename='', is_cython=False,
-                          is_pylab=False, is_sympy=False, given_name=None):
+                          is_pylab=False, is_sympy=False, given_name=None,
+                          initial_cwd=None  # 5.3.3-
+                          ):
         """Create a new client
 
         Copied and modified from spyder.plugins.ipythonconsole.IPythonConsole
@@ -70,7 +72,8 @@ class MxConsoleAPI_5_3:
             'handlers': ipycon.registered_spyder_kernel_handlers,
             'stderr_obj': stderr_obj,
             'stdout_obj': stdout_obj,
-            'fault_obj': fault_obj
+            'fault_obj': fault_obj,
+            'initial_cwd': initial_cwd  # 5.3.3-
         }
         if spyder.version_info < (5, 2):
             client_kwargs['configuration'] = ipycon.CONFIGURATION
@@ -137,6 +140,7 @@ class MxConsoleAPI_5_3:
         if client.shellwidget.kernel_manager is None:
             return
         ipycon.register_client(client, give_focus=give_focus)
+        return client   # 5.3.3
 
     @Slot()
     def create_client_for_kernel(self):

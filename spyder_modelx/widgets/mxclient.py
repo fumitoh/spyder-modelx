@@ -93,7 +93,7 @@ class MxClientWidget_5_3(ClientWidget):
                  given_name='MxConsole',
                  give_focus=True,
                  options_button=None,
-                 time_label=None,
+                 time_label=None,       # ~5.3.2
                  show_elapsed_time=False,
                  reset_warning=True,
                  ask_before_restart=True,
@@ -101,9 +101,11 @@ class MxClientWidget_5_3(ClientWidget):
                  css_path=None,
                  configuration=None,    # ~5.3.1
                  handlers={},
-                 stderr_obj = None,
-                 stdout_obj = None,
-                 fault_obj = None):
+                 stderr_obj=None,
+                 stdout_obj=None,
+                 fault_obj=None,
+                 initial_cwd=None   # 5.3.3~
+                 ):
         super(ClientWidget, self).__init__(parent)
         SaveHistoryMixin.__init__(self, history_filename)
 
@@ -119,10 +121,11 @@ class MxClientWidget_5_3(ClientWidget):
         self.reset_warning = reset_warning
         self.ask_before_restart = ask_before_restart
         self.ask_before_closing = ask_before_closing
+        self.initial_cwd = initial_cwd  # 5.3.3~
 
         # --- Other attrs
         self.context_menu_actions = context_menu_actions
-        self.time_label = time_label
+        self.time_label = time_label    # ~5.3.2
         self.options_button = options_button
         self.history = []
         self.allow_rename = True
