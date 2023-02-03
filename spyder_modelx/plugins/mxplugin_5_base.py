@@ -8,6 +8,11 @@ from spyder.api.plugin_registration.decorators import on_plugin_available
 from spyder.plugins.ipythonconsole.widgets.main_widget import (
     IPythonConsoleWidgetOptionsMenuSections)
 
+if spyder.version_info > (5, 4, 0):
+    from spyder.plugins.ipythonconsole.widgets.main_widget import (
+        IPythonConsoleWidgetTabsContextMenuSections
+    )
+
 from spyder_modelx.widgets.mxexplorer import MxMainWidget
 from .stacked_mixin import MxStackedMixin
 
@@ -32,7 +37,11 @@ class MxPluginMainWidgetMainToolBarSections:
 
 
 class MxPluginMainWidgetOptionsMenuSections:
-    Consoles = 'mxconsoles_section'
+    Consoles = 'mx_consoles_section'
+
+
+class MxConsoleWidgetTabsContextMenuSections:
+    Consoles = 'mx_tabs_consoles_section'
 
 
 class MxPluginMainWidgetBase(MxStackedMixin, PluginMainWidget):
@@ -123,6 +132,16 @@ class MxPluginMainWidgetBase(MxStackedMixin, PluginMainWidget):
                 toolbar=main_toolbar,
                 section=MxPluginMainWidgetMainToolBarSections.Main,
             )
+
+        if spyder.version_info > (5, 4, 0):
+            # Tabs context menu
+            tabs_context_menu = self.ipyconsole.tabwidget.menu
+            for item in [new_console_action, self.connect_to_kernel_action]:
+                tabs_context_menu.add_action(
+                    item,
+                    section=MxConsoleWidgetTabsContextMenuSections.Consoles,
+                    before_section=IPythonConsoleWidgetTabsContextMenuSections.Consoles,
+                )
 
     def update_actions(self):
         """

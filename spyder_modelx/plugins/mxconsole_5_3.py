@@ -18,13 +18,26 @@ from spyder.utils import encoding, programs, sourcecode
 
 from spyder.plugins.ipythonconsole.plugin import IPythonConsole
 from spyder.plugins.ipythonconsole.widgets import KernelConnectionDialog
-from spyder.plugins.ipythonconsole.widgets.main_widget import (
-    IPythonConsoleWidgetOptionsMenuSections,
-    SPYDER_KERNELS_VERSION,
-    SPYDER_KERNELS_VERSION_MSG,
-    SPYDER_KERNELS_CONDA,
-    SPYDER_KERNELS_PIP
-)
+
+if spyder.version_info > (5, 4):
+
+    from spyder.plugins.ipythonconsole import (
+        SPYDER_KERNELS_VERSION,
+        SPYDER_KERNELS_CONDA,
+        SPYDER_KERNELS_PIP
+    )
+    from spyder.plugins.ipythonconsole.widgets.client import SPYDER_KERNELS_VERSION_MSG
+
+else:
+    from spyder.plugins.ipythonconsole.widgets.main_widget import (
+        IPythonConsoleWidgetOptionsMenuSections,
+        SPYDER_KERNELS_VERSION,
+        SPYDER_KERNELS_VERSION_MSG,
+        SPYDER_KERNELS_CONDA,
+        SPYDER_KERNELS_PIP
+    )
+
+
 from spyder.plugins.ipythonconsole.utils.stdfile import StdFile
 
 from spyder_modelx.mxkernelspec import MxKernelSpec
