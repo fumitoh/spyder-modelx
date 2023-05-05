@@ -11,7 +11,7 @@ from qtpy.QtCore import Qt, Signal, Slot
 from qtpy.QtWidgets import (QMessageBox)
 
 from spyder.config.base import DEV, get_conf_path, get_home_dir, get_module_path
-from spyder.py3compat import is_string, PY2, to_text_string
+from spyder.py3compat import is_string, to_text_string
 
 from spyder.config.manager import CONF
 from spyder.utils import encoding, programs, sourcecode

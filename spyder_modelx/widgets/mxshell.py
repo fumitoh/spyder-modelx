@@ -59,7 +59,7 @@ if spyder.version_info < (4,):
 else:
     from spyder.plugins.ipythonconsole.widgets.client import ShellWidget
 from spyder.utils import encoding
-from spyder.py3compat import PY2, to_text_string
+from spyder.py3compat import to_text_string
 
 from spyder_modelx.utility.tupleencoder import TupleEncoder, hinted_tuple_hook
 from spyder_modelx.utility.formula import (
@@ -837,10 +837,7 @@ class MxShellWidget(ShellWidget):
         if msgtype in self.mx_msgtypes:
             # Deserialize data
             try:
-                if PY2:
-                    value = cloudpickle.loads(msg['buffers'][0])
-                else:
-                    value = cloudpickle.loads(bytes(msg['buffers'][0]))
+                value = cloudpickle.loads(bytes(msg['buffers'][0]))
             except Exception as msg:
                 value = None
                 self._kernel_reply = repr(msg)
