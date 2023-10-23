@@ -243,7 +243,7 @@ class DataFrameModel(QAbstractTableModel):
         if self.df.shape[0] == 0: # If no rows to compute max/min then return
             return
         self.max_min_col = []
-        for dummy, col in self.df.iteritems():
+        for dummy, col in self.df.items():
             if col.dtype in REAL_NUMBER_TYPES + COMPLEX_NUMBER_TYPES:
                 if col.dtype in REAL_NUMBER_TYPES:
                     vmax = col.max(skipna=True)
