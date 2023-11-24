@@ -36,11 +36,11 @@
 # Copyright(c) 2014-2015: Scott Hansen <firecat4153@gmail.com>
 # Licensed under the terms of the MIT License
 #
-
-
+import os.path
+import sys
 from qtpy.QtGui import QFont
 from qtpy.QtWidgets import (QLabel, QVBoxLayout, QWidget, QMenu,
-                            QMainWindow, QScrollArea,
+                            QMainWindow, QScrollArea, QSplitter,
                             QAbstractItemView)
 
 import spyder
@@ -198,7 +198,7 @@ class BaseCodePane(QWidget):
             font = QFont("Courier New", 10)
             color_scheme = 'Spyder'
 
-        editor.setup_editor(linenumbers=False, language='Python',
+        editor.setup_editor(linenumbers=True, language='Python',
                             markers=True, tab_mode=False,
                             font=font,
                             show_blanks=False,
@@ -207,9 +207,54 @@ class BaseCodePane(QWidget):
 
         editor.fontMetrics().lineSpacing()
 
+        # Unhighlight and rehighlight current line to prevent a visual glitch
+        # when opening files.
+        # Fixes spyder-ide/spyder#20033
+        editor.unhighlight_current_line()
+        editor.highlight_current_line()
+
         self.layout = QVBoxLayout()
         self.layout.setContentsMargins(0, 0, 0, 0)
         if title:
             self.layout.addWidget(QLabel(title))
         self.layout.addWidget(editor)  # , stretch=1)
         self.setLayout(self.layout)
+
+
+# =============================================================================
+# Editor + Class browser test
+# =============================================================================
+class TestWidget(QSplitter):
+    def __init__(self, parent):
+        QSplitter.__init__(self, parent)
+        self.editor = MxCodeEditor(self)
+        self.editor.setup_editor(linenumbers=True, markers=True, tab_mode=False,
+                                 font=QFont("Courier New", 10),
+                                 show_blanks=True, color_scheme='Spyder')
+        self.addWidget(self.editor)
+        self.setWindowIcon(ima.icon('spyder'))
+
+    def load(self, filename):
+        self.editor.set_text_from_file(filename)
+        self.setWindowTitle("%s - %s (%s)" % (_("Editor"),
+                                              os.path.basename(filename),
+                                              os.path.dirname(filename)))
+        self.editor.hide_tooltip()
+
+
+def test(fname):
+    from spyder.utils.qthelpers import qapplication
+    app = qapplication(test_time=5)
+    win = TestWidget(None)
+    win.show()
+    win.load(fname)
+    win.resize(900, 700)
+    sys.exit(app.exec_())
+
+
+if __name__ == '__main__':
+    if len(sys.argv) > 1:
+        fname = sys.argv[1]
+    else:
+        fname = __file__
+    test(fname)

@@ -74,7 +74,7 @@ class CodePane(BaseCodePane):
                   + (pdoc.documentMargin() + self.editor.frameWidth()) * 2 \
                   + margins.top() + margins.bottom()
 
-        return nHeight
+        return int(nHeight)
 
 
 class CodeList(QWidget):
