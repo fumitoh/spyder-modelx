@@ -61,7 +61,7 @@ if spyder.version_info > (4, 1):    # 4.1.0 onwards
     from spyder.utils.conda import (add_quotes, get_conda_activation_script,
                                     get_conda_env_path, is_conda_env)
 
-if spyder.version_info >= (4, 1, 1):  # 4.1.1 onwards
+if spyder.version_info >= (4, 1, 1) and spyder.version_info <= (5, 5, 1):  # 4.1.1 - 5.5.1
     from spyder.plugins.ipythonconsole.utils.kernelspec import is_different_interpreter
 
 
@@ -118,9 +118,11 @@ class MxKernelSpec(SpyderKernelSpec):
         else:
             if spyder.version_info == (4, 1, 1):
                 is_different = False    # pyexec != sys.executable
-            else:
+            elif spyder.version_info <= (5, 5, 1):
                 # Part of spyder-ide/spyder#11819
                 is_different = is_different_interpreter(pyexec)
+            else:   # Spyder 5.5.3 onward
+                is_different = False  # True starts a standard kernel
 
             if is_different and is_conda_env(pyexec=pyexec):
                 # If this is a conda environment we need to call an intermediate
