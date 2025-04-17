@@ -43,6 +43,7 @@
 # OTHER DEALINGS IN THE SOFTWARE.
 
 """modelx Widget."""
+import logging
 import ast
 import uuid
 import time
@@ -70,6 +71,7 @@ if spyder.version_info > (4,):
         CALL_KERNEL_TIMEOUT
     )
 
+logger = logging.getLogger(__name__)
 
 def _quote_string(arg):
     if arg:
@@ -167,6 +169,7 @@ class MxShellWidget(ShellWidget):
 
     def get_obj_value(self, msgtype: str, obj: str, args: str,
                       calc: bool=False):
+
 
         # jsonargs = TupleEncoder(ensure_ascii=True).encode(args)
 
@@ -338,6 +341,8 @@ class MxShellWidget(ShellWidget):
                     timeout=CALL_KERNEL_TIMEOUT).mx_get_node(
                     msgtype, obj, args
                 )
+                # logger.debug(f"_update_mxanalyzer_obj:args: {args}")
+                # logger.debug(f"_update_mxanalyzer_obj:reesults: {result}")
                 self.mxanalyzer.update_status(adjacency, True)
                 self.sig_mxanalyzer.emit(adjacency, result)
             except Exception as e:
@@ -723,6 +728,7 @@ class MxShellWidget(ShellWidget):
                 self.update_datalist()
                 self.update_mxanalyzer_all()
 
+
     # ---- Private API (defined by us) ------------------------------
     def mx_silent_exec_method(self, usrexp=None, code='', msgtype=None):
         """Silently execute a kernel method and save its reply
@@ -795,9 +801,10 @@ class MxShellWidget(ShellWidget):
         # Refresh namespacebrowser after the kernel starts running
         exec_count = msg['content'].get('execution_count', '')
         if exec_count == 0 and self._kernel_is_starting:
-            if self.namespacebrowser is not None:
-                self.set_namespace_view_settings()
-                self.refresh_namespacebrowser()
+            if spyder.version_info < (6,):
+                if self.namespacebrowser is not None:
+                    self.set_namespace_view_settings()
+                    self.refresh_namespacebrowser()
             self._kernel_is_starting = False
             self.ipyclient.t0 = time.monotonic()
 

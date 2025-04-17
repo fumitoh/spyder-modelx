@@ -69,6 +69,9 @@ from spyder.config.base import _, debug_print
 from spyder.utils.qthelpers import (add_actions, create_action,
                                     create_toolbutton, create_plugin_layout)
 
+if spyder.version_info > (6,):
+    from spyder.api.fonts import SpyderFontType
+
 if spyder.version_info > (5,):
     from spyder.plugins.variableexplorer.widgets.arrayeditor import ArrayEditor
     from spyder.widgets.collectionseditor import CollectionsEditor
@@ -370,7 +373,10 @@ class MxAnalyzerTab(QSplitter):
             obj_label = QLabel(txt)
         expr_layout.addWidget(obj_label)
 
-        if spyder.version_info < (4,):
+        if spyder.version_info > (6,):
+            font = parent.plugin.get_font(font_type=SpyderFontType.Interface)
+
+        elif spyder.version_info < (4,):
             font = parent.plugin.get_plugin_font()
         else:
             font = parent.plugin.get_font()

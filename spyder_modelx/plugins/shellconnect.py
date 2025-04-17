@@ -42,20 +42,36 @@
 # FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
 # OTHER DEALINGS IN THE SOFTWARE.
 
+import logging
+from spyder.api.shellconnect.main_widget import ShellConnectMainWidget
+from spyder_modelx.widgets.mxshell import MxShellWidget
 
-"""modelx analyzer Plugin."""
+# Logging
+logger = logging.getLogger(__name__)
 
-import spyder
+class MxShellConnectMainWidget(ShellConnectMainWidget):
 
-if spyder.version_info > (6,):
-    from .analyzer_plugin_6 import MxAnalyzerPlugin
-else:
-    from .analyzer_plugin_5 import MxAnalyzerPlugin
+    def add_shellwidget(self, shellwidget):
+        # logger.debug(f"Adding {repr(shellwidget)}")
+        if isinstance(shellwidget, MxShellWidget):
+            super().add_shellwidget(shellwidget)
+        else:
+            pass # Do Nothing
 
+    # ---- ShellConnectMainWidget API
+    # ------------------------------------------------------------------------
+    def create_new_widget(self, shellwidget):
+        """Create a widget to communicate with shellwidget."""
+        # logger.debug(f"New {self.MX_WIDGET_CLASS} instance created.")
+        widget = self.MX_WIDGET_CLASS(self, options_button=None)
+        widget.set_shellwidget(shellwidget)
+        return widget
 
+    def close_widget(self, widget):
+        """Close the widget."""
+        widget.close()
+        widget.setParent(None)
 
-
-
-
-
-
+    def switch_widget(self, widget, old_widget):
+        """Switch the current widget."""
+        pass

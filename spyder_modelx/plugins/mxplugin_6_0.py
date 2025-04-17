@@ -14,97 +14,54 @@
 # You should have received a copy of the GNU Lesser General Public
 # License along with this library.  If not, see <http://www.gnu.org/licenses/>.
 
-# The source code contains parts copied and modified from Spyder project:
-# https://github.com/spyder-ide/spyder
-# See below for the original copyright notice.
-
-#
-# Copyright (c) Spyder Project Contributors
-#
-# Permission is hereby granted, free of charge, to any person
-# obtaining a copy of this software and associated documentation
-# files (the "Software"), to deal in the Software without
-# restriction, including without limitation the rights to use,
-# copy, modify, merge, publish, distribute, sublicense, and/or sell
-# copies of the Software, and to permit persons to whom the
-# Software is furnished to do so, subject to the following
-# conditions:
-#
-# The above copyright notice and this permission notice shall be
-# included in all copies or substantial portions of the Software.
-#
-# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
-# EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES
-# OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
-# NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT
-# HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY,
-# WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
-# FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
-# OTHER DEALINGS IN THE SOFTWARE.
-
-from qtpy.QtCore import Signal, Slot
-from qtpy.QtWidgets import QVBoxLayout
+# from qtpy.QtWidgets import QVBoxLayout
+from qtpy.QtGui import QIcon
 import spyder
-
-from spyder.config.base import _
-from spyder.api.preferences import PluginConfigPage
+from spyder.api.plugins import Plugins
+from spyder.api.shellconnect.mixins import ShellConnectPluginMixin
+from spyder.api.plugins import SpyderDockablePlugin
 from spyder.api.plugin_registration.decorators import on_plugin_available
-from spyder.plugins.ipythonconsole.widgets.main_widget import (
-    IPythonConsoleWidgetOptionsMenuSections)
-
-if spyder.version_info > (5, 4, 0):
-    from spyder.plugins.ipythonconsole.widgets.main_widget import (
-        IPythonConsoleWidgetTabsContextMenuSections
-    )
-
-from spyder_modelx.widgets.mxexplorer import MxMainWidget
-from .stacked_mixin import MxStackedMixin
-
-# New plugin API since Spyder 5
 from spyder.plugins.mainmenu.api import (
     ApplicationMenus, ConsolesMenuSections)
-from spyder.api.plugins import SpyderDockablePlugin, Plugins
-from qtpy.QtGui import QIcon
-from spyder.api.widgets.main_widget import PluginMainWidget
+
+# from .mxplugin_6_base import ModelxPlugin as _ModelxPlugin, MxPluginMainWidgetBase
+from .mxconsole_6_0 import MxConsoleAPI_6_0
+
+# class MxPluginMainWidget_6_0(MxConsoleAPI_6_0, MxPluginMainWidgetBase):
+#     pass
+
+# class ModelxPlugin_6_0(_ModelxPlugin, ShellConnectPluginMixin):
+#     WIDGET_CLASS = MxPluginMainWidget_6_0
+#     # REQUIRES = [Plugins.IPythonConsole]
 
 
-class MxPluginMainWidgetActions:
+from .shellconnect import MxShellConnectMainWidget
 
-    OpenNewConsole = 'new_console'
-    ConnectToKernel = 'connect_to_kernel'
-    SelectInDataView = 'select_in_dataview'
-    SelectInNewDataView = 'select_in_new_dataview'
+from .mxplugin_5_base import (
+    _,
+    Plugins,
+    ModelxConfigPage,
+    IPythonConsoleWidgetTabsContextMenuSections,
+    MxPluginMainWidgetActions,
+    MxPluginMainWidgetMainToolBarSections,
+    MxPluginMainWidgetOptionsMenuSections,
+    MxConsoleWidgetTabsContextMenuSections
+)
+from spyder_modelx.widgets.mxexplorer import MxMainWidget
 
-
-class MxPluginMainWidgetMainToolBarSections:
-    Main = 'main_section'
-
-
-class MxPluginMainWidgetOptionsMenuSections:
-    Consoles = 'mx_consoles_section'
-
-
-class MxConsoleWidgetTabsContextMenuSections:
-    Consoles = 'mx_tabs_consoles_section'
-
-
-class MxPluginMainWidgetBase(MxStackedMixin, PluginMainWidget):
+class MxPluginMainWidget(MxConsoleAPI_6_0, MxShellConnectMainWidget):
 
     MX_WIDGET_CLASS = MxMainWidget
 
     def __init__(self, name=None, plugin=None, parent=None):
-        PluginMainWidget.__init__(self, name, plugin, parent)
-        MxStackedMixin.__init__(self, parent=parent)
+        super().__init__(name, plugin, parent)
 
         # Layout
-        layout = QVBoxLayout()
-        layout.addWidget(self.stack)
-        self.setLayout(layout)
+        # layout = QVBoxLayout()
+        # layout.addWidget(self.stack)
+        # self.setLayout(layout)
 
-        if spyder.version_info > (5, 2):
-            self.ipyconsole = plugin.get_plugin(Plugins.IPythonConsole).get_widget()
-        else:
-            self.ipyconsole = plugin.get_plugin(Plugins.IPythonConsole)
+        self.ipyconsole = plugin.get_plugin(Plugins.IPythonConsole).get_widget()
 
         # To avoid circular dependency,
         # Set by MxAnalyzer and MxDataViewer's register method
@@ -155,18 +112,19 @@ class MxPluginMainWidgetBase(MxStackedMixin, PluginMainWidget):
                text=_("Connect to an existing MxKernel"),
                icon=None,
                tip=_("Open a new IPython console connected to an existing MxKernel"),
-               triggered=self.create_client_for_kernel
+               triggered=self._create_client_for_kernel
         )
 
-        # Options menu
-        options_menu = self.ipyconsole.get_options_menu()
-        for item in [new_console_action, self.connect_to_kernel_action]:
-            # Bypass SpyderMenuMixin.add_item_to_menu because of missing before_section parameter.
-            options_menu.add_action(
-                item,
-                section=MxPluginMainWidgetOptionsMenuSections.Consoles,
-                before_section=IPythonConsoleWidgetOptionsMenuSections.Consoles
-            )
+        if spyder.version_info < (6,):
+            # Options menu
+            options_menu = self.ipyconsole.get_options_menu()
+            for item in [new_console_action, self.connect_to_kernel_action]:
+                # Bypass SpyderMenuMixin.add_item_to_menu because of missing before_section parameter.
+                options_menu.add_action(
+                    item,
+                    section=MxPluginMainWidgetOptionsMenuSections.Consoles,
+                    before_section=IPythonConsoleWidgetOptionsMenuSections.Consoles
+                )
 
         # Main toolbar
         main_toolbar = self.get_main_toolbar()
@@ -202,21 +160,12 @@ class MxPluginMainWidgetBase(MxStackedMixin, PluginMainWidget):
         self.current_widget().explorer.treeview.select_in_new_dataview()
 
 
-class ModelxConfigPage(PluginConfigPage):
-    """modelx plugin preferences."""
 
-    def get_name(self):
-        return _('modelx')
-
-    def setup_page(self):
-        pass
-
-
-class ModelxPlugin(SpyderDockablePlugin):
+class ModelxPlugin(SpyderDockablePlugin, ShellConnectPluginMixin):
     """modelx plugin."""
 
     NAME = 'modelx_plugin'
-    WIDGET_CLASS = None # To be defined in each version
+    WIDGET_CLASS = MxPluginMainWidget
     REQUIRES = [Plugins.IPythonConsole, Plugins.MainMenu]
     CONF_SECTION = 'modelx'
     CONFIGWIDGET_CLASS = ModelxConfigPage
@@ -241,7 +190,8 @@ class ModelxPlugin(SpyderDockablePlugin):
         """
         return _('MxExplorer')
 
-    def get_description(self):
+    @staticmethod
+    def get_description():
         """
         Return the plugin localized description.
 
@@ -256,7 +206,8 @@ class ModelxPlugin(SpyderDockablePlugin):
         """
         return _('Main widget of the plugin for modelx')
 
-    def get_icon(self):
+    @classmethod
+    def get_icon(cls):
         """
         Return the plugin associated icon.
 
@@ -278,7 +229,9 @@ class ModelxPlugin(SpyderDockablePlugin):
     def on_initialize(self):
         pass
 
-    @on_plugin_available(plugin=Plugins.IPythonConsole)
+    # Do not override @on_plugin_available(plugin=Plugins.IPythonConsole)
+
+    @on_plugin_available(plugin=Plugins.MainMenu)
     def on_main_menu_available(self):
         widget = self.get_widget()
         mainmenu = self.get_plugin(Plugins.MainMenu)
@@ -293,3 +246,7 @@ class ModelxPlugin(SpyderDockablePlugin):
                 menu_id=ApplicationMenus.Consoles,
                 before_section=ConsolesMenuSections.New,
             )
+
+
+
+

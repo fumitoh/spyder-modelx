@@ -58,7 +58,9 @@ else:
         ClientWidget,
         CSS_PATH)
 
-if spyder.version_info > (5, 2):
+if spyder.version_info > (6,):
+    pass
+elif spyder.version_info > (5, 2):
     from spyder.plugins.ipythonconsole.utils.stdfile import StdFile
 
 from spyder.widgets.mixins import SaveHistoryMixin
@@ -74,6 +76,102 @@ try:
     time.monotonic  # time.monotonic new in 3.3
 except AttributeError:
     time.monotonic = time.time
+
+if spyder.version_info > (6,):
+    from spyder.config.base import (
+        get_home_dir, get_module_source_path, get_conf_path)
+
+class MxClientWidget_6_0(ClientWidget):
+    """Custom client widget for modelx
+
+    The only difference from ClientWidget is its
+    shell member being MxShellWidget
+    """
+
+    def __init__(
+        self,
+        parent,
+        id_,
+        config_options,
+        additional_options,
+        menu_actions=None,
+        given_name='MxConsole', # mx_change
+        give_focus=True,
+        options_button=None,
+        handlers=None,
+        initial_cwd=None,
+        forcing_custom_interpreter=False,
+        special_kernel=None,
+        server_id=None,
+        can_close=True,
+    ):
+        """Modified from ClientWidget.__init__ in Spyder 6.0.4"""
+        super(ClientWidget, self).__init__(parent)
+        SaveHistoryMixin.__init__(self, get_conf_path('history.py'))
+
+        # --- Init attrs
+        self.container = parent
+        self.id_ = id_
+        self.menu_actions = menu_actions
+        self.given_name = given_name
+        self.initial_cwd = initial_cwd
+        self.forcing_custom_interpreter = forcing_custom_interpreter
+        self.server_id = server_id
+        self.can_close = can_close
+
+        # --- Other attrs
+        self.kernel_handler = None
+        self.hostname = None
+        self.show_elapsed_time = self.get_conf('show_elapsed_time')
+        self.reset_warning = self.get_conf('show_reset_namespace_warning')
+        self.options_button = options_button
+        self.history = []
+        self.allow_rename = True
+        self.error_text = None
+        self.give_focus = give_focus
+        self.kernel_id = None
+        self.__on_close = lambda: None
+
+        css_path = self.get_conf('css_path', section='appearance')
+        if css_path is None:
+            self.css_path = CSS_PATH
+        else:
+            self.css_path = css_path
+
+        # --- Widgets
+        self.shellwidget = MxShellWidget(
+            config=config_options,
+            ipyclient=self,
+            additional_options=additional_options,
+            handlers=handlers,
+            local_kernel=True,
+            special_kernel=special_kernel,
+            server_id=server_id,
+        )
+        self.infowidget = self.container.infowidget
+        self.blank_page = self._create_blank_page()
+        self.loading_page = self._create_loading_page()
+        # To keep a reference to the page to be displayed
+        # in infowidget
+        self.info_page = None
+
+        # Elapsed time
+        self.t0 = time.monotonic()
+        self.timer = QTimer(self)
+
+        # --- Layout
+        self.layout = QVBoxLayout()
+        self.layout.setContentsMargins(0, 0, 0, 0)
+        self.layout.addWidget(self.shellwidget)
+        if self.infowidget is not None:
+            self.layout.addWidget(self.infowidget)
+        self.setLayout(self.layout)
+
+        # --- Exit function
+        self.exit_callback = lambda: self.container.close_client(client=self)
+
+        # --- Dialog manager
+        self.dialog_manager = DialogManager()
 
 
 class MxClientWidget_5_3(ClientWidget):

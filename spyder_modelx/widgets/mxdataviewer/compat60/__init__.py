@@ -42,20 +42,6 @@
 # FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
 # OTHER DEALINGS IN THE SOFTWARE.
 
-
-"""modelx analyzer Plugin."""
-
-import spyder
-
-if spyder.version_info > (6,):
-    from .analyzer_plugin_6 import MxAnalyzerPlugin
-else:
-    from .analyzer_plugin_5 import MxAnalyzerPlugin
-
-
-
-
-
-
-
-
+from .dataframeviewer import MxDataFrameViewer
+from .arrayviewer import MxArrayViewer
+from .collectionsviewer import MxCollectionsViewer

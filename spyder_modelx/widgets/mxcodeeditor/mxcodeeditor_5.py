@@ -56,7 +56,7 @@ if spyder.version_info < (4,):
         to_text_string,
         QTextCursor
     )
-else:
+elif spyder.version_info < (6,):
     from spyder.plugins.editor.widgets.codeeditor import (
         create_action,
         ima,
@@ -67,7 +67,23 @@ else:
         to_text_string,
         QTextCursor
     )
+else:   # Spyder 6
+    from spyder.plugins.editor.widgets.codeeditor.codeeditor import (
+        # create_action,
+        # ima,
+        _,
+        CodeEditor,
+        # CONF,
+        # add_actions,
+        # to_text_string,
+        # QTextCursor
+        CodeEditorActions,
+        CodeEditorMenus,
+        CodeEditorContextMenuSections
+    )
 
+if spyder.version_info > (6,):
+    from spyder.api.fonts import SpyderFontType
 
 class MxCodeEditor(CodeEditor):
 
@@ -113,6 +129,160 @@ class MxCodeEditor(CodeEditor):
             self.readonly_menu = QMenu(self)
             add_actions(self.readonly_menu,
                         (self.copy_action, selectall_action))
+
+    elif spyder.version_info > (6,):
+
+        def setup_context_menu(self):
+            """Setup context menu"""
+
+            # self.undo_action = self.create_action(
+            #     self, _("Undo"), icon=self.create_icon('undo'),
+            #     shortcut=CONF.get_shortcut('editor', 'undo'), triggered=self.undo)
+            # self.redo_action = self.create_action(
+            #     self, _("Redo"), icon=self.create_icon('redo'),
+            #     shortcut=CONF.get_shortcut('editor', 'redo'), triggered=self.redo)
+            # self.cut_action = self.create_action(
+            #     self, _("Cut"), icon=self.create_icon('editcut'),
+            #     shortcut=CONF.get_shortcut('editor', 'cut'), triggered=self.cut)
+            # self.copy_action = self.create_action(
+            #     self, _("Copy"), icon=self.create_icon('editcopy'),
+            #     shortcut=CONF.get_shortcut('editor', 'copy'), triggered=self.copy)
+            # self.paste_action = self.create_action(
+            #     self, _("Paste"), icon=self.create_icon('editpaste'),
+            #     shortcut=CONF.get_shortcut('editor', 'paste'),
+            #     triggered=self.paste)
+            # selectall_action =self.create_action(
+            #     self, _("Select All"), icon=self.create_icon('selectall'),
+            #     shortcut=CONF.get_shortcut('editor', 'select all'),
+            #     triggered=self.selectAll)
+            # toggle_comment_action = self.create_action(
+            #     self, _("Comment")+"/"+_("Uncomment"), icon=self.create_icon('comment'),
+            #     shortcut=CONF.get_shortcut('editor', 'toggle comment'),
+            #     triggered=self.toggle_comment)
+
+            # -- Actions
+            self.undo_action = self.create_action(
+                CodeEditorActions.Undo,
+                text=_('Undo'),
+                icon=self.create_icon('undo'),
+                register_shortcut=True,
+                register_action=False,
+                triggered=self.undo,
+            )
+            self.redo_action = self.create_action(
+                CodeEditorActions.Redo,
+                text=_("Redo"),
+                icon=self.create_icon('redo'),
+                register_shortcut=True,
+                register_action=False,
+                triggered=self.redo
+            )
+            self.cut_action = self.create_action(
+                CodeEditorActions.Cut,
+                text=_("Cut"),
+                icon=self.create_icon('editcut'),
+                register_shortcut=True,
+                register_action=False,
+                triggered=self.cut
+            )
+            self.copy_action = self.create_action(
+                CodeEditorActions.Copy,
+                text=_("Copy"),
+                icon=self.create_icon('editcopy'),
+                register_shortcut=True,
+                register_action=False,
+                triggered=self.copy
+            )
+            self.paste_action = self.create_action(
+                CodeEditorActions.Paste,
+                text=_("Paste"),
+                icon=self.create_icon('editpaste'),
+                register_shortcut=True,
+                register_action=False,
+                triggered=self.paste
+            )
+            selectall_action = self.create_action(
+                CodeEditorActions.SelectAll,
+                text=_("Select All"),
+                icon=self.create_icon('selectall'),
+                register_shortcut=True,
+                register_action=False,
+                triggered=self.selectAll
+            )
+            toggle_comment_action = self.create_action(
+                CodeEditorActions.ToggleComment,
+                text=_('Comment') + '/' + _('Uncomment'),
+                icon=self.create_icon('comment'),
+                register_shortcut=True,
+                register_action=False,
+                triggered=self.toggle_comment
+            )
+
+            # # Build menu
+            # self.menu = QMenu(self)
+            # actions_1 = [self.undo_action,
+            #              self.redo_action, None, self.cut_action,
+            #              self.copy_action, self.paste_action, selectall_action]
+            # actions_2 = [None, toggle_comment_action]
+            # actions = actions_1 + actions_2
+            # add_actions(self.menu, actions)
+            #
+            # # Read-only context-menu
+            # self.readonly_menu = QMenu(self)
+            # add_actions(self.readonly_menu,
+            #             (self.copy_action, selectall_action))
+
+
+            # -- Build menu
+            self.menu = self.create_menu(
+                CodeEditorMenus.ContextMenu, register=False
+            )
+
+
+            # Undo/redo section
+            undo_redo_actions = [self.undo_action, self.redo_action]
+            for menu_action in undo_redo_actions:
+                self.add_item_to_menu(
+                    menu_action,
+                    self.menu,
+                    section=CodeEditorContextMenuSections.UndoRedoSection
+                )
+
+            # Edit section
+            edit_actions = [
+                self.cut_action,
+                self.copy_action,
+                self.paste_action,
+                selectall_action
+            ]
+            for menu_action in edit_actions:
+                self.add_item_to_menu(
+                    menu_action,
+                    self.menu,
+                    section=CodeEditorContextMenuSections.EditSection
+                )
+
+
+            # -- Read-only context-menu
+            self.readonly_menu = self.create_menu(
+                CodeEditorMenus.ReadOnlyMenu, register=False
+            )
+
+            # Copy section
+            self.add_item_to_menu(
+                self.copy_action,
+                self.readonly_menu,
+                section=CodeEditorContextMenuSections.CopySection
+            )
+
+            # Others section
+            other_actions = [selectall_action]
+            for menu_action in other_actions:
+                self.add_item_to_menu(
+                    self.copy_action,
+                    self.readonly_menu,
+                    section=CodeEditorContextMenuSections.OthersSection
+                )
 
     else:
 
@@ -190,6 +360,8 @@ class BaseCodePane(QWidget):
         if self.plugin:
             if spyder.version_info < (4,):
                 font = self.plugin.get_plugin_font()
+            elif spyder.version_info > (6,):
+                font = self.plugin.get_font(font_type=SpyderFontType.Interface)
             else:
                 font = self.plugin.get_font()
 

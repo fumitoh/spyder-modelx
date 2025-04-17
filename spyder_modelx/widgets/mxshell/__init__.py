@@ -43,14 +43,15 @@
 # OTHER DEALINGS IN THE SOFTWARE.
 
 
-"""modelx analyzer Plugin."""
+"""modelx Plugin."""
 
 import spyder
 
 if spyder.version_info > (6,):
-    from .analyzer_plugin_6 import MxAnalyzerPlugin
+    from .mxshell_6 import MxShellWidget
 else:
-    from .analyzer_plugin_5 import MxAnalyzerPlugin
+    from .mxshell_5 import MxShellWidget
+
 
 
 
