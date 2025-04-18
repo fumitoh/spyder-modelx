@@ -31,6 +31,7 @@ import textwrap
 from typing import Any, Callable, Optional
 import warnings
 
+import spyder
 # Third party imports
 from qtpy.compat import getsavefilename, to_qvariant
 from qtpy.QtCore import (
@@ -61,8 +62,13 @@ from spyder.utils.qthelpers import mimedata2url
 from spyder.utils.stringmatching import get_search_scores, get_search_regex
 from spyder.plugins.variableexplorer.widgets.collectionsdelegate import (
     CollectionsDelegate,
-    SELECT_ROW_BUTTON_SIZE,
 )
+
+if spyder.version_info > (6, 0, 3):
+    from spyder.plugins.variableexplorer.widgets.collectionsdelegate import (
+        SELECT_ROW_BUTTON_SIZE,
+    )
+
 from spyder.plugins.variableexplorer.widgets.importwizard import ImportWizard
 from spyder.widgets.helperwidgets import CustomSortFilterProxy
 from spyder.plugins.variableexplorer.widgets.basedialog import BaseDialog
@@ -1107,29 +1113,37 @@ class BaseTableView(QTableView, SpyderWidgetMixin):
         # single click.
         pass
 
-    def mouseMoveEvent(self, event):
-        """Actions to take when the mouse moves over the widget."""
-        self.over_select_row_button = False
-        self._update_hovered_row(event)
+    if spyder.version_info > (6, 0, 3):
+        def mouseMoveEvent(self, event):
+            """Actions to take when the mouse moves over the widget."""
+            self.over_select_row_button = False
+            self._update_hovered_row(event)
 
-        if self.rowAt(event.y()) != -1:
-            # The +3 here is necessary to avoid mismatches when trying to click
-            # the button in a position too close to its left border.
-            select_row_button_width = SELECT_ROW_BUTTON_SIZE + 3
+            if self.rowAt(event.y()) != -1:
+                # The +3 here is necessary to avoid mismatches when trying to click
+                # the button in a position too close to its left border.
+                select_row_button_width = SELECT_ROW_BUTTON_SIZE + 3
 
-            # Include scrollbar width when computing the select row button
-            # width
-            if self.verticalScrollBar().isVisible():
-                select_row_button_width += self.verticalScrollBar().width()
+                # Include scrollbar width when computing the select row button
+                # width
+                if self.verticalScrollBar().isVisible():
+                    select_row_button_width += self.verticalScrollBar().width()
 
-            # Decide if the cursor is on top of the select row button
-            if (self.width() - event.x()) < select_row_button_width:
-                self.over_select_row_button = True
-                self.setCursor(Qt.ArrowCursor)
+                # Decide if the cursor is on top of the select row button
+                if (self.width() - event.x()) < select_row_button_width:
+                    self.over_select_row_button = True
+                    self.setCursor(Qt.ArrowCursor)
+                else:
+                    self.setCursor(Qt.PointingHandCursor)
             else:
+                self.setCursor(Qt.ArrowCursor)
+    else:
+        def mouseMoveEvent(self, event):
+            """Change cursor shape."""
+            if self.rowAt(event.y()) != -1:
                 self.setCursor(Qt.PointingHandCursor)
-        else:
-            self.setCursor(Qt.ArrowCursor)
+            else:
+                self.setCursor(Qt.ArrowCursor)
 
     def keyPressEvent(self, event):
         """Reimplement Qt methods"""
