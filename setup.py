@@ -47,7 +47,7 @@ def get_description():
 REQUIREMENTS = [
     'spyder>=4.0.0',
     'modelx>=0.18.0',
-    'spymx-kernels>=0.1.1',
+    'spymx-kernels>=0.2.0',
     'asttokens'
 ]
 
@@ -87,10 +87,13 @@ setup(
         'Operating System :: MacOS',
         'Operating System :: Microsoft :: Windows',
         'Operating System :: POSIX :: Linux',
-        'Programming Language :: Python :: 3.6',
         'Programming Language :: Python :: 3.7',
         'Programming Language :: Python :: 3.8',
-        'Programming Language :: Python :: 3.9'
+        'Programming Language :: Python :: 3.9',
+        'Programming Language :: Python :: 3.10',
+        'Programming Language :: Python :: 3.11',
+        'Programming Language :: Python :: 3.12',
+        'Programming Language :: Python :: 3.13'
     ],
     entry_points={'spyder.plugins': spyder_plugins_entry_points}
 )
