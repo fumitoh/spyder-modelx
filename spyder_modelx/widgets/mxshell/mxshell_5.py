@@ -369,15 +369,34 @@ class MxShellWidget(ShellWidget):
             return
 
         if objexpr:
-            expr = objexpr + ".node(" + argexpr + ")"
-            msgtype = "analyze_" + adjacency + "_setnode"
-            msgtype_quotes = "\"" + msgtype + "\""
 
-            str1 = "get_ipython().kernel.mx_get_evalresult"
-            str2 = "(%s, %s." % (msgtype_quotes, expr)
-            str3 = "_get_attrdict(recursive=False, extattrs=['formula']))"
+            # Contribution from bakerwy
+            # https://github.com/fumitoh/modelx/discussions/183#discussion-8668563
 
-            self.mx_silent_exec_method(str1+str2+str3, msgtype=msgtype)
+            if spyder.version_info > (4,):  # This part added
+
+                try:
+                    argstr = "(" + argexpr + ("," if argexpr else "") + ")"
+                    result = self.call_kernel(
+                        interrupt=True, blocking=True,
+                        timeout=CALL_KERNEL_TIMEOUT
+                    ).mx_eval_node(objexpr, argstr)
+
+                    self.mxanalyzer.update_status(adjacency, True)
+                    self.sig_mxanalyzer.emit(adjacency, result)
+                except Exception as e:
+                    self.mxanalyzer.update_status(
+                        adjacency, False, f"{type(e).__name__}: {e}")
+            else:
+                expr = objexpr + ".node(" + argexpr + ")"
+                msgtype = "analyze_" + adjacency + "_setnode"
+                msgtype_quotes = "\"" + msgtype + "\""
+
+                str1 = "get_ipython().kernel.mx_get_evalresult"
+                str2 = "(%s, %s." % (msgtype_quotes, expr)
+                str3 = "_get_attrdict(recursive=False, extattrs=['formula']))"
+
+                self.mx_silent_exec_method(str1+str2+str3, msgtype=msgtype)
 
     def update_mxanalyzer_all(self):
         for adj in ['precedents', 'succs']:
