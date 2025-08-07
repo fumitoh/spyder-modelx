@@ -351,27 +351,27 @@ class MxAnalyzerTab(QSplitter):
         self.tree = MxAnalyzerTree(treepane, self.model)
         self.shellwidget = None # Set by parent
 
-        # button_group = QButtonGroup(parent=self)
-        # self.object_radio = object_radio = QRadioButton("Object")
-        # self.expr_radio = expr_radio = QRadioButton("Expression")
-        # button_group.addButton(object_radio)
-        # button_group.addButton(expr_radio)
-        # object_radio.setChecked(True)
-        #
-        # object_radio.toggled.connect(self.toggleObject)
+        button_group = QButtonGroup(parent=self)
+        self.object_radio = object_radio = QRadioButton("Object")
+        self.expr_radio = expr_radio = QRadioButton("Expression")
+        button_group.addButton(object_radio)
+        button_group.addButton(expr_radio)
+        object_radio.setChecked(True)
+        
+        object_radio.toggled.connect(self.toggleObject)
 
         # # Layout of the top area in the plugin widget
-        # expr_layout = QHBoxLayout()
-        # expr_layout.setContentsMargins(0, 0, 0, 0)
-        #
+        expr_layout = QHBoxLayout()
+        expr_layout.setContentsMargins(0, 0, 0, 0)
+        
         # # Add Object textbox
-        # expr_layout.addSpacing(10)
-        # txt = _("Object")
-        # if sys.platform == 'darwin':
-        #     obj_label = QLabel("  " + txt)
-        # else:
-        #     obj_label = QLabel(txt)
-        # expr_layout.addWidget(obj_label)
+        expr_layout.addSpacing(10)
+        txt = _("Object")
+        if sys.platform == 'darwin':
+            obj_label = QLabel("  " + txt)
+        else:
+            obj_label = QLabel(txt)
+        expr_layout.addWidget(obj_label)
 
         font = parent.plugin.get_font(font_type=SpyderFontType.Interface)
 
@@ -385,29 +385,29 @@ class MxAnalyzerTab(QSplitter):
         objbox_layout.setStretch(0, 3)  # 3:1
         objbox_layout.setStretch(1, 1)
 
-        # self.exprobjbox = MxPyExprLineEdit(treepane, font=font)
-        # expr_layout.addWidget(self.exprobjbox)
-        # expr_layout.addSpacing(10)
+        self.exprobjbox = MxPyExprLineEdit(treepane, font=font)
+        expr_layout.addWidget(self.exprobjbox)
+        expr_layout.addSpacing(10)
 
         # # Add Object textbox
-        # txt = _("Args")
-        # if sys.platform == 'darwin':
-        #     arg_label = QLabel("  " + txt)
-        # else:
-        #     arg_label = QLabel(txt)
-        # expr_layout.addWidget(arg_label)
+        txt = _("Args")
+        if sys.platform == 'darwin':
+            arg_label = QLabel("  " + txt)
+        else:
+            arg_label = QLabel(txt)
+        expr_layout.addWidget(arg_label)
 
-        # self.exprargbox = MxPyExprLineEdit(treepane, font=font)
-        # expr_layout.addWidget(self.exprargbox)
-        # # expr_layout.addSpacing(5)
+        self.exprargbox = MxPyExprLineEdit(treepane, font=font)
+        expr_layout.addWidget(self.exprargbox)
+        # expr_layout.addSpacing(5)
 
-        # top_layout = QGridLayout()
-        # top_layout.addWidget(object_radio, 0, 0)
-        # top_layout.addWidget(expr_radio, 1, 0)
-        # top_layout.addLayout(objbox_layout, 0, 1)
-        # objbox_layout.setContentsMargins(0, 0, 0, 5)
-        # top_layout.addLayout(expr_layout, 1, 1)
-        # top_layout.setContentsMargins(5, 5, 5, 5)
+        top_layout = QGridLayout()
+        top_layout.addWidget(object_radio, 0, 0)
+        top_layout.addWidget(expr_radio, 1, 0)
+        top_layout.addLayout(objbox_layout, 0, 1)
+        objbox_layout.setContentsMargins(0, 0, 0, 5)
+        top_layout.addLayout(expr_layout, 1, 1)
+        top_layout.setContentsMargins(5, 5, 5, 5)
 
         #  top_layout
         #       object_radio    objbox_layout
@@ -417,7 +417,7 @@ class MxAnalyzerTab(QSplitter):
         #
 
         # Main layout of this widget
-        layout = create_plugin_layout(objbox_layout, self.tree)
+        layout = create_plugin_layout(top_layout, self.tree)
         treepane.setLayout(layout)
 
         self.status = QLabel()
@@ -435,17 +435,17 @@ class MxAnalyzerTab(QSplitter):
         self.model = model
         self.tree.setModel(model)
 
-    # def toggleObject(self, checked):
-    #
-    #     if checked:
-    #         self.exprobjbox.setEnabled(False)
-    #         self.exprargbox.setEnabled(False)
-    #     else:
-    #         self.argbox.setEnabled(False)
-    #         self.exprobjbox.setEnabled(True)
-    #         self.exprargbox.setEnabled(True)
-    #
-    #     self.shellwidget.update_mxanalyzer(self.adjacency, update_attrdict=False)
+    def toggleObject(self, checked):
+    
+        if checked:
+            self.exprobjbox.setEnabled(False)
+            self.exprargbox.setEnabled(False)
+        else:
+            self.argbox.setEnabled(False)
+            self.exprobjbox.setEnabled(True)
+            self.exprargbox.setEnabled(True)
+    
+        self.shellwidget.update_mxanalyzer(self.adjacency, update_attrdict=False)
 
     def set_argbox(self):
         if self.attrdict:
@@ -496,6 +496,8 @@ class MxAnalyzerWidget(QWidget):
         self.tabwidget.addTab(self.succs, 'Dependents')
 
         # Main Layout
+        
+        
         layout = QVBoxLayout()
         layout.setContentsMargins(0, 0, 0, 0)
         layout.addWidget(self.tabwidget)
@@ -523,9 +525,9 @@ class MxAnalyzerWidget(QWidget):
         tab.objbox.setText(data['_evalrepr'])
 
         if analyze:
-            # tab.object_radio.setChecked(True)
-            # tab.toggleObject(True)
-            self.shellwidget.update_mxanalyzer(tab.adjacency, update_attrdict=False)
+            tab.object_radio.setChecked(True)
+            tab.toggleObject(True)
+            # self.shellwidget.update_mxanalyzer(tab.adjacency, update_attrdict=False)
 
     # Slot
     def update_node(self, adjacency, data):
