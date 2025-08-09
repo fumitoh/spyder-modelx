@@ -179,19 +179,19 @@ class MxShellWidget(ShellWidget):
 
             tab = self.mxanalyzer.tabs[adjacency]
 
-            box = tab.argbox
-            # adjacenty is a free varible
-            # cannot pass it to update_mxanalyzer in lambda
-            if adjacency == 'precedents':
-                box.editingFinished.connect(
-                    lambda: self.update_mxanalyzer('precedents')
-                )
-            elif adjacency == 'succs':
-                box.editingFinished.connect(
-                    lambda: self.update_mxanalyzer('succs')
-                )
-            else:
-                RuntimeError('must not happen')
+            for box in [tab.exprobjbox, tab.exprargbox, tab.argbox]:
+                # adjacenty is a free varible
+                # cannot pass it to update_mxanalyzer in lambda
+                if adjacency == 'precedents':
+                    box.editingFinished.connect(
+                        lambda: self.update_mxanalyzer('precedents')
+                    )
+                elif adjacency == 'succs':
+                    box.editingFinished.connect(
+                        lambda: self.update_mxanalyzer('succs')
+                    )
+                else:
+                    RuntimeError('must not happen')
 
     def get_attrdict(self, fullname=None, attrs=None, recursive=False):
 
@@ -206,19 +206,23 @@ class MxShellWidget(ShellWidget):
 
         tab = self.mxanalyzer.tabs[adjacency]
 
-        if not tab.attrdict:
-            return
-        if update_attrdict:
-            tab.attrdict = self.get_attrdict(
-                fullname=tab.attrdict['fullname'],
-                attrs=['formula', '_evalrepr', 'allow_none', 'parameters'],
-                recursive=False
-            )
-        if not tab.attrdict:
-            tab.clear_obj()
-            return
-        tab.set_argbox()
-        self._update_mxanalyzer_obj(adjacency, update_attrdict)
+        if tab.object_radio.isChecked():
+            if not tab.attrdict:
+                return
+            if update_attrdict:
+                tab.attrdict = self.get_attrdict(
+                    fullname=tab.attrdict['fullname'],
+                    attrs=['formula', '_evalrepr', 'allow_none', 'parameters'],
+                    recursive=False
+                )
+            if not tab.attrdict:
+                tab.clear_obj()
+                return
+            tab.set_argbox()
+            self._update_mxanalyzer_obj(adjacency, update_attrdict)
+            
+        elif tab.expr_radio.isChecked():
+            self._update_mxanalyzer_expr(adjacency)
 
     def _update_mxanalyzer_obj(self, adjacency, update_attrdict):
 
@@ -243,6 +247,37 @@ class MxShellWidget(ShellWidget):
         except Exception as e:
             msg = e.__class__.__name__ + ": " + str(e)
             self.mxanalyzer.update_status(adjacency, False, msg)
+
+    def _update_mxanalyzer_expr(self, adjacency):
+        """Update dataview"""
+
+        tab = self.mxanalyzer.tabs[adjacency]
+        objexpr = tab.exprobjbox.get_expr()
+        argexpr = tab.exprargbox.get_expr()
+
+        # Invalid expression
+        if objexpr is None or argexpr is None:
+            return
+
+        if objexpr:
+
+            # Contribution from bakerwy
+            # https://github.com/fumitoh/modelx/discussions/183#discussion-8668563
+
+
+            try:
+                argstr = "(" + argexpr + ("," if argexpr else "") + ")"
+                result = self.call_kernel(
+                    interrupt=True, blocking=True,
+                    timeout=CALL_KERNEL_TIMEOUT
+                ).mx_eval_node(objexpr, argstr)
+
+                self.mxanalyzer.update_status(adjacency, True)
+                self.mxanalyzer.update_node(adjacency, result)
+            except Exception as e:
+                self.mxanalyzer.update_status(
+                    adjacency, False, f"{type(e).__name__}: {e}")
+
 
 
     def update_mxanalyzer_all(self):
