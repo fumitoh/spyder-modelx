@@ -264,13 +264,12 @@ class MxShellWidget(ShellWidget):
             # Contribution from bakerwy
             # https://github.com/fumitoh/modelx/discussions/183#discussion-8668563
 
-
             try:
                 argstr = "(" + argexpr + ("," if argexpr else "") + ")"
-                result = self.call_kernel(
+                result = cloudpickle.loads(self.call_kernel(
                     interrupt=True, blocking=True,
                     timeout=CALL_KERNEL_TIMEOUT
-                ).mx_eval_node(objexpr, argstr)
+                ).mx_eval_node(objexpr, argstr))
 
                 self.mxanalyzer.update_status(adjacency, True)
                 self.mxanalyzer.update_node(adjacency, result)

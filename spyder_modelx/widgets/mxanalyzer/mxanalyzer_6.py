@@ -58,6 +58,7 @@
 
 import sys
 import enum
+import logging
 from qtpy.QtWidgets import (QApplication, QTreeView, QWidget, QHBoxLayout,
                             QLabel, QTabWidget, QSplitter, QVBoxLayout,
                             QGridLayout,
@@ -90,6 +91,8 @@ from spyder_modelx.utility.tupleencoder import TupleEncoder
 from spyder_modelx.widgets.mxlineedit import MxPyExprLineEdit
 from spyder_modelx.widgets.mxtoolbar import MxToolBarMixin
 from spyder_modelx.widgets.mxcodeeditor import BaseCodePane
+
+logger = logging.getLogger(__name__)
 
 class NodeCols(enum.IntEnum):
     Node = 0
