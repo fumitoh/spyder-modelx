@@ -21,8 +21,8 @@ In the `spyder_modelx/plugins/` directory:
 
 - `mxplugin.py` - Main dispatcher that detects Spyder version and imports the correct implementation
 - `mxplugin_4.py` - Implementation for Spyder 4.x
-- `mxplugin_5.py` - Implementation for Spyder 5.0-5.2
-- `mxplugin_5_2.py` - Implementation for Spyder 5.2
+- `mxplugin_5.py` - Implementation for Spyder 5.0-5.1
+- `mxplugin_5_2.py` - Implementation for Spyder 5.2.1+
 - `mxplugin_5_3.py` - Implementation for Spyder 5.3+
 - `mxplugin_6_0.py` - Implementation for Spyder 6.0+
 
@@ -50,7 +50,7 @@ else:
 The plugin consists of several main components, each with version-specific implementations:
 
 1. **Main Plugin** (`mxplugin*.py`) - Core plugin integration with Spyder
-2. **Console** (`mxconsole*.py`) - Custom IPython console for modelx
+2. **Console** (`mxconsole_5_3.py`, `mxconsole_6_0.py`) - Custom IPython console for modelx (integrated into main plugin for older versions)
 3. **Analyzer Plugin** (`analyzer_plugin*.py`) - Code analysis features
 4. **Data View Plugin** (`dataview_plugin*.py`) - Data visualization widgets
 5. **Widgets** - Various UI components in the `widgets/` directory
