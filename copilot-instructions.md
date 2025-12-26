@@ -2,7 +2,7 @@
 
 ## Project Overview
 
-spyder-modelx is a plugin for Spyder. It adds widgets and a custom IPython console to enable the use of Spyder for developing modelx models.
+spyder-modelx is a plugin for [Spyder](https://github.com/spyder-ide/spyder). It adds widgets and a custom IPython console to enable the use of Spyder for developing [modelx](https://github.com/fumitoh/modelx) models.
 
 Because spyder-modelx depends on Spyder's source code, updates to Spyder can introduce compatibility issues. Therefore, for each component in spyder-modelx, different source files are included to support different Spyder versions.
 
@@ -67,7 +67,7 @@ When modifying or adding features:
 
 ## Dependencies
 
-- `spyder>=4.0.0` - The IDE this plugin extends
-- `modelx>=0.18.0` - The modeling library this plugin supports
-- `spymx-kernels>=0.2.3` - Custom kernel support
+- [`spyder>=4.0.0`](https://github.com/spyder-ide/spyder) - The IDE this plugin extends
+- [`modelx>=0.18.0`](https://github.com/fumitoh/modelx) - The modeling library this plugin supports
+- [`spymx-kernels>=0.2.3`](https://github.com/fumitoh/spymx-kernels) - A custom IPython kernel derived from [spyder-kernels](https://github.com/spyder-ide/spyder-kernels)
 - `asttokens` - Token utilities for code analysis
