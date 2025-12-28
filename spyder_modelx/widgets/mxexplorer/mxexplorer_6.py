@@ -54,7 +54,6 @@ from qtpy.QtWidgets import (QHBoxLayout, QLabel, QMenu, QMessageBox, QAction,
 from qtpy.QtGui import QPalette
 from qtpy.compat import getexistingdirectory, getopenfilename
 import spyder
-from spyder.py3compat import to_text_string
 from spyder.config.base import _
 from spyder.utils.qthelpers import create_plugin_layout
 from spyder.utils.misc import getcwd_or_home
@@ -768,7 +767,7 @@ class ReadModelDialog(QDialog):
 
     def select_directory(self):
         """Select directory (Not Used)"""
-        basedir = to_text_string(self.wd_edit.text())
+        basedir = str(self.wd_edit.text())
         if not os.path.isdir(basedir):
             basedir = getcwd_or_home()
         directory = getexistingdirectory(self, _("Select directory"), basedir)
@@ -777,7 +776,7 @@ class ReadModelDialog(QDialog):
 
     def select_model(self):
         """Select Model file/dir"""
-        basedir = to_text_string(self.wd_edit.text())
+        basedir = str(self.wd_edit.text())
         if not os.path.isdir(basedir):
             basedir = getcwd_or_home()
         file, no_use = getopenfilename(self, _("Select Model"), basedir)
@@ -855,7 +854,7 @@ class WriteModelDialog(QDialog):
 
     def select_directory(self):
         """Select directory"""
-        basedir = to_text_string(self.wd_edit.text())
+        basedir = str(self.wd_edit.text())
         if not os.path.isdir(basedir):
             basedir = getcwd_or_home()
         directory = getexistingdirectory(self, _("Select directory"), basedir)

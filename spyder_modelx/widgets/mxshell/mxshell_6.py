@@ -57,7 +57,6 @@ import spyder
 from spyder.config.base import _, debug_print
 from spyder.plugins.ipythonconsole.widgets.client import ShellWidget
 from spyder.utils import encoding
-from spyder.py3compat import to_text_string
 
 from spyder_modelx.utility.tupleencoder import TupleEncoder, hinted_tuple_hook
 from spyder_modelx.utility.formula import (

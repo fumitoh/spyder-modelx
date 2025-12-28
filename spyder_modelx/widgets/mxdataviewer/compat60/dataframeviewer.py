@@ -62,12 +62,18 @@ from spyder.plugins.variableexplorer.widgets.basedialog import BaseDialog
 from spyder.plugins.variableexplorer.widgets.preferences import (
     PreferencesDialog
 )
-from spyder.py3compat import (is_text_string, is_type_text_string,
-                              to_text_string)
 from spyder.utils.icon_manager import ima
 from spyder.utils.palette import SpyderPalette
 from spyder.utils.qthelpers import keybinding, qapplication
 from spyder.utils.stylesheet import AppStyle, MAC
+
+
+# =============================================================================
+# ---- Utility functions for Python 3 compatibility
+# =============================================================================
+def is_type_text_string(obj):
+    """Check if object type is text-like (str or bytes)"""
+    return isinstance(type(obj), type) and issubclass(type(obj), (str, bytes))
 
 
 # =============================================================================
@@ -409,7 +415,7 @@ class DataFrameModel(QAbstractTableModel, SpyderFontsMixin):
         value = self.get_value(index.row(), column)
         if self.max_min_col[column] is None or pd.isna(value):
             color = QColor(BACKGROUND_NONNUMBER_COLOR)
-            if is_text_string(value):
+            if isinstance(value, str):
                 color.setAlphaF(BACKGROUND_STRING_ALPHA)
             else:
                 color.setAlphaF(BACKGROUND_MISC_ALPHA)
@@ -477,7 +483,7 @@ class DataFrameModel(QAbstractTableModel, SpyderFontsMixin):
                 return value
             else:
                 try:
-                    return to_qvariant(to_text_string(value))
+                    return to_qvariant(str(value))
                 except Exception:
                     self.display_error_idxs.append(index)
                     return u'Display Error!'
@@ -528,12 +534,12 @@ class DataFrameModel(QAbstractTableModel, SpyderFontsMixin):
                     # Not possible to sort on duplicate columns
                     # See spyder-ide/spyder#5225.
                     QMessageBox.critical(self.dialog, "Error",
-                                         "ValueError: %s" % to_text_string(e))
+                                         "ValueError: %s" % str(e))
                 except SystemError as e:
                     # Not possible to sort on category dtypes
                     # See spyder-ide/spyder#5361.
                     QMessageBox.critical(self.dialog, "Error",
-                                         "SystemError: %s" % to_text_string(e))
+                                         "SystemError: %s" % str(e))
             else:
                 # Update index list
                 self.recalculate_index()
@@ -576,7 +582,7 @@ class DataFrameModel(QAbstractTableModel, SpyderFontsMixin):
                 val = bool_false_check(val)
             supported_types = (bool, np.bool_) + REAL_NUMBER_TYPES
             if (isinstance(current_value, supported_types) or
-                    is_text_string(current_value)):
+                    isinstance(current_value, str)):
                 try:
                     self.df.iloc[row, column] = current_value.__class__(val)
                 except (ValueError, OverflowError) as e:
@@ -919,7 +925,7 @@ class DataFrameView(QTableView, SpyderWidgetMixin):
             (_("Complex"), complex, DataframeEditorActions.ConvertToComplex),
             (_("Int"), int, DataframeEditorActions.ConvertToInt),
             (_("Float"), float, DataframeEditorActions.ConvertToFloat),
-            (_("Str"), to_text_string, DataframeEditorActions.ConvertToStr)
+            (_("Str"), str, DataframeEditorActions.ConvertToStr)
         )
         for text, func, name in functions:
             def slot():
@@ -1529,7 +1535,7 @@ class DataFrameHeaderModel(QAbstractTableModel, SpyderFontsMixin):
             # the data present in the dataframe and
             # what is shown by Spyder
             if not is_type_text_string(header):
-                header = to_text_string(header)
+                header = str(header)
 
         return header
 
@@ -1567,7 +1573,7 @@ class DataFrameHeaderModel(QAbstractTableModel, SpyderFontsMixin):
         # the data present in the dataframe and
         # what is shown by Spyder
         if not is_type_text_string(header):
-            header = to_text_string(header)
+            header = str(header)
 
         return header
 
@@ -1688,7 +1694,7 @@ class DataFrameLevelModel(QAbstractTableModel, SpyderFontsMixin):
             return None
         elif self.model.header_shape[1] <= 1 and orientation == Qt.Vertical:
             return None
-        return _('Index') + ' ' + to_text_string(section)
+        return _('Index') + ' ' + str(section)
 
     def data(self, index, role):
         """Get the information of the levels."""
@@ -1768,7 +1774,7 @@ class MxDataFrameViewer(QWidget, SpyderWidgetMixin):    # mx_change
         types for data are DataFrame, Series and Index.
         """
         if title:
-            title = to_text_string(title) + " - %s" % data.__class__.__name__
+            title = str(title) + " - %s" % data.__class__.__name__
         else:
             title = _("%s editor") % data.__class__.__name__
 

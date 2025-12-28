@@ -43,8 +43,6 @@ from qtpy.QtWidgets import (QLabel, QVBoxLayout, QWidget, QMenu,
                             QMainWindow, QScrollArea, QSplitter,
                             QAbstractItemView)
 
-from spyder.py3compat import to_text_string, is_string
-
 import spyder
 # Spyder 6
 from spyder.plugins.editor.widgets.codeeditor.codeeditor import (
@@ -226,10 +224,10 @@ class MxCodeEditor(CodeEditor):
 
         # Code duplication go_to_definition_from_cursor and mouse_move_event
         cursor = self.textCursor()
-        text = to_text_string(cursor.selectedText())
+        text = str(cursor.selectedText())
         if len(text) == 0:
             cursor.select(QTextCursor.WordUnderCursor)
-            text = to_text_string(cursor.selectedText())
+            text = str(cursor.selectedText())
 
         self.undo_action.setEnabled(self.document().isUndoAvailable())
         self.redo_action.setEnabled(self.document().isRedoAvailable())
