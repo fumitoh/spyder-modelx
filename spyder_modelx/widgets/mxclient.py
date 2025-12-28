@@ -45,6 +45,7 @@
 """modelx Widget."""
 
 import time
+import typing
 
 from qtpy.QtCore import QTimer, Signal, Slot, Qt
 from qtpy.QtWidgets import (QHBoxLayout, QLabel, QMenu, QMessageBox, QAction,
@@ -69,6 +70,13 @@ from spyder.utils import icon_manager as ima
 from spyder.utils.qthelpers import (add_actions, create_action,
                                     create_toolbutton, DialogManager,
                                     MENU_SEPARATOR)
+
+if spyder.version_info > (6, 1):
+    if typing.TYPE_CHECKING:
+        from spyder.plugins.remoteclient.api.modules import JupyterAPI
+        from spyder.plugins.remoteclient.api.modules.file_services import (
+            SpyderRemoteFileServicesAPI,
+        )
 
 from spyder_modelx.widgets.mxshell import MxShellWidget
 
@@ -102,7 +110,9 @@ class MxClientWidget_6_0(ClientWidget):
         initial_cwd=None,
         forcing_custom_interpreter=False,
         special_kernel=None,
-        server_id=None,
+        server_id=None, # mx_change: Removed from Spyder 6.1.x
+        jupyter_api=None, # mx_change: Added in Spyder 6.1.x
+        files_api=None, # mx_change: Added in Spyder 6.1.x
         can_close=True,
     ):
         """Modified from ClientWidget.__init__ in Spyder 6.0.4"""
@@ -116,7 +126,14 @@ class MxClientWidget_6_0(ClientWidget):
         self.given_name = given_name
         self.initial_cwd = initial_cwd
         self.forcing_custom_interpreter = forcing_custom_interpreter
-        self.server_id = server_id
+        self.server_id = server_id  # mx_change: Removed from Spyder 6.1.x
+
+        if spyder.version_info > (6, 1):
+            self._jupyter_api: typing.Optional[JupyterAPI] = jupyter_api
+            self._files_api: typing.Optional[
+                SpyderRemoteFileServicesAPI
+            ] = files_api
+
         self.can_close = can_close
 
         # --- Other attrs
@@ -150,10 +167,22 @@ class MxClientWidget_6_0(ClientWidget):
         )
         self.infowidget = self.container.infowidget
         self.blank_page = self._create_blank_page()
-        self.loading_page = self._create_loading_page()
-        # To keep a reference to the page to be displayed
-        # in infowidget
-        self.info_page = None
+
+        if spyder.version_info > (6, 1):
+            self.kernel_loading_page = self._create_loading_page()
+            self.env_loading_page = self._create_loading_page(env=True)
+
+            if self.is_remote():
+                # Keep a reference
+                self.info_page = None
+            else:
+                # Initially show environment loading page
+                self.info_page = self.env_loading_page
+        else:
+            self.loading_page = self._create_loading_page()
+            # To keep a reference to the page to be displayed
+            # in infowidget
+            self.info_page = None
 
         # Elapsed time
         self.t0 = time.monotonic()
@@ -172,6 +201,11 @@ class MxClientWidget_6_0(ClientWidget):
 
         # --- Dialog manager
         self.dialog_manager = DialogManager()
+
+        if spyder.version_info > (6, 1):
+            #--- Remote kernels states
+            self.__remote_restart_requested = False
+            self.__remote_reconnect_requested = False
 
 
 class MxClientWidget_5_3(ClientWidget):
