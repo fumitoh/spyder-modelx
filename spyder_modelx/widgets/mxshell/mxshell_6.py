@@ -82,6 +82,8 @@ class MxShellWidget(ShellWidget):
     def __init__(self, *args, **kw):
 
         self._mx_exec = {}
+        # Extract server_id before passing to parent (for Spyder 6.1.x compatibility)
+        self.server_id = kw.get('server_id', None)
         super(MxShellWidget, self).__init__(*args, **kw)
         self.sig_kernel_state_arrived.connect(self.update_mx_widgets)
 

@@ -131,6 +131,8 @@ class MxClientWidget_6_0(ClientWidget):
         self.give_focus = give_focus
         self.kernel_id = None
         self.__on_close = lambda: None
+        # For Spyder 6.1.x compatibility - initialize _jupyter_api
+        self._jupyter_api = None
 
         css_path = self.get_conf('css_path', section='appearance')
         if css_path is None:
