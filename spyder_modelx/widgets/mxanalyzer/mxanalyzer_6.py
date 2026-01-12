@@ -126,6 +126,19 @@ class NodeItem(object):
         else:
             self.adjacency = parent.adjacency
 
+    def __eq__(self, other):
+
+        return (self.node['obj']['namedid'] == other.node['obj']['namedid'] and 
+                self.node['args'] == other.node['args'] and
+                self.node['valid'] == other.node['valid'])
+
+    def __hash__(self):
+        return hash((
+            self.node['obj']['namedid'],
+            self.node['args'],
+            self.node['valid'],
+        ))
+
     def childCount(self):
         if self.isChildLoaded:
             return len(self.childItems)
@@ -148,6 +161,16 @@ class NodeItem(object):
         if not self.isChildLoaded:
             self._reloadChildren()
         return self.childItems[row]
+
+    def row(self):
+        if self.parentItem:
+            return self.parentItem.childItems.index(self)
+        return 0
+
+    def getChildren(self):
+        if not self.isChildLoaded:
+            self._reloadChildren()
+        return self.childItems
 
     def data(self, column):
         try:
@@ -204,6 +227,50 @@ class MxAnalyzerModel(QAbstractItemModel):
             self.rootItem = NodeItem(
                 root, parent=None, model=self, adjacency=adjacency)
             self.insertRows([0], self.rootItem, parent=QModelIndex())
+
+    def updateRoot(self, item):
+
+        if self.updateItem(self.createIndex(0, 0, self.rootItem), item):
+            # Refresh view when data changed
+            # https://www.qtcentre.org/threads/48230-QTreeView-How-to-refresh-the-view?p=270537#post270537
+            self.dataChanged.emit(QModelIndex(), QModelIndex())
+
+    def getItem(self, index):
+        if not index.isValid():
+            return self.rootItem
+        else:
+            return index.internalPointer()
+
+    def updateItem(self, index, newitem, recursive=True):
+
+        updated = False
+
+        if not index.isValid():
+            # must not happen
+            raise RuntimeError("Cannot update root item")
+        else:
+            item = index.internalPointer()
+
+        if not item.isChildLoaded:
+            return False
+
+        newitem.getChildren()  # Load children
+
+        if set(item.childItems) != set(newitem.childItems):
+            item.isChildLoaded = False
+            self.removeRows(0, len(item.childItems), parent=index)
+            self.insertRows(
+                list(range(len(newitem.childItems))), newitem, parent=index)
+
+            return True
+
+        if recursive:
+            for row, child in enumerate(item.childItems):
+                child_index = self.index(row, 0, index)
+                assert child == newitem.childItems[row]
+                updated = self.updateItem(child_index, newitem.childItems[row]) or updated
+
+        return updated
 
     def get_shell(self):
         return self.tab.shellwidget
@@ -297,9 +364,9 @@ class MxAnalyzerModel(QAbstractItemModel):
         self.beginInsertRows(parent, rows[0], rows[-1])
 
         if parent.isValid():
-            # for row in rows:
-            #     parent.internalPointer().childItems.append(row)
-            raise RuntimeError('not implemented')
+            item = parent.internalPointer()
+            for row in rows:
+                item.childItems.append(newitem.childItems[row])
         else:
             self.rootItem = newitem
 
@@ -313,8 +380,10 @@ class MxAnalyzerModel(QAbstractItemModel):
         self.beginRemoveRows(parent, position, position + rows - 1)
 
         if parent.isValid():
-            for row in range(position, position + rows):
-                parent.internalPointer().childItems.pop(row)
+            item = parent.internalPointer()
+            while rows > 0:
+                item.childItems.pop(position)
+                rows -= 1
         else:
             self.rootItem = None
 
@@ -534,8 +603,14 @@ class MxAnalyzerWidget(QWidget):
 
     # Slot
     def update_node(self, adjacency, data):
+
+        # logger.debug(f"update_node: adjacency={adjacency}, data={data}")
         tab = self.tabs[adjacency]
-        tab.replace_model(data)
+        rootItem = NodeItem(data, parent=None, model=tab.model, adjacency=adjacency)
+        if tab.model.rootItem and tab.model.rootItem == rootItem:
+            tab.model.updateRoot(rootItem)
+        else:
+            tab.replace_model(data)
 
     def update_status(self, adjacency, success, msg=''):
         tab = self.tabs[adjacency]
