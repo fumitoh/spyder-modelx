@@ -102,8 +102,11 @@ class MxTreeView(QTreeView):
         self.action_import_names = self.contextMenu.addAction(
             "Import Names"
         )
-        self.action_analyze_selected = self.contextMenu.addAction(
-            "Analyze Selected"
+        self.action_analyze_preds = self.contextMenu.addAction(
+            "Analyze Precedents"
+        )
+        self.action_analyze_deps = self.contextMenu.addAction(
+            "Analyze Dependents"
         )
         self.action_update_formulas = self.contextMenu.addAction(
             "Show Formulas"
@@ -224,12 +227,19 @@ class MxTreeView(QTreeView):
                                     replace_existing
                                     )
 
-        elif action == self.action_analyze_selected:
+        elif action == self.action_analyze_preds:
             index = self.currentIndex()
             if index.isValid():
                 item = self.currentIndex().internalPointer()
                 if isinstance(item, CellsItem):
-                    self.shell.mxanalyzer.update_object(item.itemData)
+                    self.shell.mxanalyzer.update_object(item.itemData, tab=0)
+
+        elif action == self.action_analyze_deps:
+            index = self.currentIndex()
+            if index.isValid():
+                item = self.currentIndex().internalPointer()
+                if isinstance(item, CellsItem):
+                    self.shell.mxanalyzer.update_object(item.itemData, tab=1)
 
         elif action == self.action_new_model:
             dialog = NewModelDialog(self)

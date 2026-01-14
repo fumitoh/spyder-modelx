@@ -552,6 +552,9 @@ def _has_param(data):
 
 class MxAnalyzerWidget(QWidget):
 
+    PREDS_ID = 0
+    DEPS_ID = 1    
+
     def __init__(self, parent, **kwargs):
         QWidget.__init__(self, parent)
 
@@ -584,11 +587,15 @@ class MxAnalyzerWidget(QWidget):
             tab.shellwidget = shellwidget
         shellwidget.set_mxanalyzer(self)
 
-    def update_object(self, data, analyze=True):
+    def update_object(self, data, analyze=True, tab=None):
         if data is None:
             return
 
-        tab = self.tabwidget.currentWidget()
+        if tab is None:
+            tab = self.tabwidget.currentWidget()
+        else:
+            tab = self.tabwidget.widget(tab)
+            self.tabwidget.setCurrentWidget(tab)
 
         tab.attrdict = data
         if not _has_param(data):
