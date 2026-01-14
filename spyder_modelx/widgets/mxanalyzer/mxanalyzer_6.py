@@ -251,16 +251,15 @@ class MxAnalyzerModel(QAbstractItemModel):
         else:
             item = index.internalPointer()
 
-        if not item.isChildLoaded:
+        if (not item.childCount()) and (not newitem.childCount()):
             return False
 
-        newitem.getChildren()  # Load children
+        if set(item.getChildren()) != set(newitem.getChildren()):
+            item.node = newitem.node
 
-        if set(item.childItems) != set(newitem.childItems):
-            item.isChildLoaded = False
-            self.removeRows(0, len(item.childItems), parent=index)
+            self.removeRows(0, item.childCount(), parent=index)
             self.insertRows(
-                list(range(len(newitem.childItems))), newitem, parent=index)
+                list(range(newitem.childCount())), newitem, parent=index)
 
             return True
 
