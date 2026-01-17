@@ -127,17 +127,10 @@ class NodeItem(object):
             self.adjacency = parent.adjacency
 
     def __eq__(self, other):
-
-        return (self.node['obj']['namedid'] == other.node['obj']['namedid'] and 
-                self.node['args'] == other.node['args'] and
-                self.node['valid'] == other.node['valid'])
+        return all(v == other.node[k] for k, v in self.node.items() if k != 'value')
 
     def __hash__(self):
-        return hash((
-            self.node['obj']['namedid'],
-            self.node['args'],
-            self.node['valid'],
-        ))
+        return hash((self.node['obj']['fullname'], self.node['args']))
 
     def childCount(self):
         if self.isChildLoaded:
@@ -230,10 +223,10 @@ class MxAnalyzerModel(QAbstractItemModel):
 
     def updateRoot(self, item):
 
-        if self.updateItem(self.createIndex(0, 0, self.rootItem), item):
-            # Refresh view when data changed
-            # https://www.qtcentre.org/threads/48230-QTreeView-How-to-refresh-the-view?p=270537#post270537
-            self.dataChanged.emit(QModelIndex(), QModelIndex())
+        self.updateItem(self.createIndex(0, 0, self.rootItem), item)
+        # Refresh view when data changed
+        # https://www.qtcentre.org/threads/48230-QTreeView-How-to-refresh-the-view?p=270537#post270537
+        self.dataChanged.emit(QModelIndex(), QModelIndex())
 
     def getItem(self, index):
         if not index.isValid():
@@ -243,33 +236,28 @@ class MxAnalyzerModel(QAbstractItemModel):
 
     def updateItem(self, index, newitem, recursive=True):
 
-        updated = False
-
         if not index.isValid():
             # must not happen
             raise RuntimeError("Cannot update root item")
         else:
             item = index.internalPointer()
 
-        if (not item.childCount()) and (not newitem.childCount()):
-            return False
-
-        if set(item.getChildren()) != set(newitem.getChildren()):
-            item.node = newitem.node
-
+        if item.childCount() == 0:
+            assert newitem.childCount() == 0
+            return
+        elif not item.isChildLoaded:
+            return
+        elif item.getChildren() != newitem.getChildren():   # newitem.childItems loaded here
             self.removeRows(0, item.childCount(), parent=index)
             self.insertRows(
                 list(range(newitem.childCount())), newitem, parent=index)
-
-            return True
+            return
 
         if recursive:
             for row, child in enumerate(item.childItems):
                 child_index = self.index(row, 0, index)
                 assert child == newitem.childItems[row]
-                updated = self.updateItem(child_index, newitem.childItems[row]) or updated
-
-        return updated
+                self.updateItem(child_index, newitem.childItems[row])
 
     def get_shell(self):
         return self.tab.shellwidget
@@ -614,7 +602,10 @@ class MxAnalyzerWidget(QWidget):
         tab = self.tabs[adjacency]
         rootItem = NodeItem(data, parent=None, model=tab.model, adjacency=adjacency)
         if tab.model.rootItem and tab.model.rootItem == rootItem:
-            tab.model.updateRoot(rootItem)
+            try:
+                tab.model.updateRoot(rootItem)
+            except Exception as e:
+                self.update_status(adjacency, False, str(e))
         else:
             tab.replace_model(data)
 
