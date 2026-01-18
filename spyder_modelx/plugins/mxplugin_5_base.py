@@ -74,6 +74,8 @@ class MxPluginMainWidgetActions:
     ConnectToKernel = 'connect_to_kernel'
     SelectInDataView = 'select_in_dataview'
     SelectInNewDataView = 'select_in_new_dataview'
+    AnalyzePreds = 'analyze_preds'
+    AnalyzeDeps = 'analyze_deps'
 
 
 class MxPluginMainWidgetMainToolBarSections:

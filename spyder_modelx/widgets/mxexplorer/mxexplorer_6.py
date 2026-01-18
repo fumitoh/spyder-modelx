@@ -149,6 +149,7 @@ class MxTreeView(QTreeView):
     #                                      str(index.row()),
     #                                      QMessageBox.Yes | QMessageBox.No)
 
+    # --- Context menu actions and explorer toolbar actions
     def select_in_dataview(self):
         item = self.get_current_item()
         if item is not None:
@@ -159,6 +160,13 @@ class MxTreeView(QTreeView):
         if item is not None:
             self.shell.mxdataviewer.add_tab()
             self.shell.mxdataviewer.update_object(item.itemData)
+
+    def analyze_current(self, tab):
+        index = self.currentIndex()
+        if index.isValid():
+            item = self.currentIndex().internalPointer()
+            if isinstance(item, CellsItem):
+                self.shell.mxanalyzer.update_object(item.itemData, tab=tab)
 
     def contextMenuEvent(self, event):
         action = self.contextMenu.exec_(self.mapToGlobal(event.pos()))
@@ -228,18 +236,10 @@ class MxTreeView(QTreeView):
                                     )
 
         elif action == self.action_analyze_preds:
-            index = self.currentIndex()
-            if index.isValid():
-                item = self.currentIndex().internalPointer()
-                if isinstance(item, CellsItem):
-                    self.shell.mxanalyzer.update_object(item.itemData, tab=0)
+            self.analyze_current(tab=0)
 
         elif action == self.action_analyze_deps:
-            index = self.currentIndex()
-            if index.isValid():
-                item = self.currentIndex().internalPointer()
-                if isinstance(item, CellsItem):
-                    self.shell.mxanalyzer.update_object(item.itemData, tab=1)
+            self.analyze_current(tab=1)
 
         elif action == self.action_new_model:
             dialog = NewModelDialog(self)

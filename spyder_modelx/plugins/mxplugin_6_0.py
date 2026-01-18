@@ -17,6 +17,12 @@
 # from qtpy.QtWidgets import QVBoxLayout
 from qtpy.QtGui import QIcon
 import spyder
+
+# For toolbar icons
+import qtawesome as qta
+from spyder.utils.icon_manager import ima
+from spyder.utils.palette import SpyderPalette
+
 from spyder.api.plugins import Plugins
 from spyder.api.shellconnect.mixins import ShellConnectPluginMixin
 from spyder.api.plugins import SpyderDockablePlugin
@@ -85,19 +91,36 @@ class MxPluginMainWidget(MxConsoleAPI_6_0, MxShellConnectMainWidget):
         Create widget actions, add to menu and other setup requirements.
         """
 
+        qta_args, qta_kwargs = ima._qtaargs['newwindow']    # Use kwargs only
+        qta_kwargs['color_disabled'] = SpyderPalette.COLOR_DISABLED
+
         # ---- Toolbar actions
         self.select_dataview_action = select_dataview_action = self.create_action(
             MxPluginMainWidgetActions.SelectInDataView,
             text=_('Select in DataView'),
-            icon=self.create_icon('newwindow'),
-            triggered=self.select_in_dataview
+            icon=qta.icon('mdi.table-large', **qta_kwargs),     #self.create_icon('select_in_dataview'),
+            triggered=lambda: self.current_widget().explorer.treeview.select_in_dataview() if self.current_widget() else None
         )
 
         self.select_new_dataview_action = select_new_dataview = self.create_action(
             MxPluginMainWidgetActions.SelectInNewDataView,
             text=_('Select in New DataView'),
-            icon=self.create_icon('newwindow'),
-            triggered=self.select_in_new_dataview
+            icon=qta.icon('mdi.table-large-plus', **qta_kwargs),     #self.create_icon('newwindow'),
+            triggered=lambda: self.current_widget().explorer.treeview.select_in_new_dataview() if self.current_widget() else None
+        )
+
+        self.analyze_preds_action = analyze_preds = self.create_action(
+            MxPluginMainWidgetActions.AnalyzePreds,
+            text=_('Analyze Precedents'),
+            icon=qta.icon('mdi.file-tree', **qta_kwargs),
+            triggered=lambda: self.current_widget().explorer.treeview.analyze_current(tab=0) if self.current_widget() else None
+        )
+
+        self.analyze_deps_action = analyze_deps = self.create_action(
+            MxPluginMainWidgetActions.AnalyzeDeps,
+            text=_('Analyze Dependents'),
+            icon=qta.icon('mdi.file-tree-outline', **qta_kwargs),
+            triggered=lambda: self.current_widget().explorer.treeview.analyze_current(tab=1) if self.current_widget() else None
         )
 
         self.create_client_action = new_console_action = self.create_action(
@@ -128,7 +151,7 @@ class MxPluginMainWidget(MxConsoleAPI_6_0, MxShellConnectMainWidget):
 
         # Main toolbar
         main_toolbar = self.get_main_toolbar()
-        for item in [select_dataview_action, select_new_dataview]:
+        for item in [select_dataview_action, select_new_dataview, analyze_preds, analyze_deps]:
             self.add_item_to_toolbar(
                 item,
                 toolbar=main_toolbar,
@@ -152,13 +175,6 @@ class MxPluginMainWidget(MxConsoleAPI_6_0, MxShellConnectMainWidget):
         Exposed actions are actions created by the self.create_action method.
         """
         pass
-
-    def select_in_dataview(self):
-        self.current_widget().explorer.treeview.select_in_dataview()
-
-    def select_in_new_dataview(self):
-        self.current_widget().explorer.treeview.select_in_new_dataview()
-
 
 
 class ModelxPlugin(SpyderDockablePlugin, ShellConnectPluginMixin):
