@@ -228,12 +228,6 @@ class MxAnalyzerModel(QAbstractItemModel):
         # https://www.qtcentre.org/threads/48230-QTreeView-How-to-refresh-the-view?p=270537#post270537
         self.dataChanged.emit(QModelIndex(), QModelIndex())
 
-    def getItem(self, index):
-        if not index.isValid():
-            return self.rootItem
-        else:
-            return index.internalPointer()
-
     def updateItem(self, index, newitem, recursive=True):
 
         if not index.isValid():
@@ -248,9 +242,10 @@ class MxAnalyzerModel(QAbstractItemModel):
         elif not item.isChildLoaded:
             return
         elif item.getChildren() != newitem.getChildren():   # newitem.childItems loaded here
-            self.removeRows(0, item.childCount(), parent=index)
-            self.insertRows(
-                list(range(newitem.childCount())), newitem, parent=index)
+            # self.removeRows(0, item.childCount(), parent=index)
+            # self.insertRows(
+            #     list(range(newitem.childCount())), newitem, parent=index)
+            self.removeAllRows(index)
             return
 
         if recursive:
@@ -359,23 +354,36 @@ class MxAnalyzerModel(QAbstractItemModel):
 
         self.endInsertRows()
 
-    def removeRows(self, position, rows, parent=QModelIndex()):
+    # def removeRows(self, position, rows, parent=QModelIndex()):
+    #
+    #     if rows < 1:
+    #         return
+    #
+    #     self.beginRemoveRows(parent, position, position + rows - 1)
+    #
+    #     if parent.isValid():
+    #         item = parent.internalPointer()
+    #         while rows > 0:
+    #             item.childItems.pop(position)
+    #             rows -= 1
+    #     else:
+    #         self.rootItem = None
+    #
+    #     self.endRemoveRows()
 
-        if rows < 1:
-            return
+    def removeAllRows(self, parent):
 
-        self.beginRemoveRows(parent, position, position + rows - 1)
+        assert parent.isValid()
+        item = parent.internalPointer()
+        rows = len(item.childItems)
+        if rows > 0:
 
-        if parent.isValid():
-            item = parent.internalPointer()
-            while rows > 0:
-                item.childItems.pop(position)
-                rows -= 1
-        else:
-            self.rootItem = None
+            self.beginRemoveRows(parent, 0, rows - 1)
+            item.childItems.clear()
+            self.endRemoveRows()
 
-        self.endRemoveRows()
-
+        item.isChildLoaded = False
+        return
 
 class AnalyzerCodePane(BaseCodePane):
 
