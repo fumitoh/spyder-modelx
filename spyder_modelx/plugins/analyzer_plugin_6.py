@@ -47,6 +47,12 @@ import spyder
 from spyder.config.base import _
 
 from qtpy.QtWidgets import QVBoxLayout
+
+# For toolbar icons
+import qtawesome as qta
+from spyder.utils.icon_manager import ima
+from spyder.utils.palette import SpyderPalette
+
 # from spyder.api.shellconnect.main_widget import ShellConnectMainWidget
 from spyder_modelx.widgets.mxanalyzer import MxAnalyzerWidget
 from spyder.api.shellconnect.mixins import ShellConnectPluginMixin
@@ -57,6 +63,15 @@ from qtpy.QtGui import QIcon
 from spyder.api.widgets.main_widget import PluginMainWidget
 from .shellconnect import MxShellConnectMainWidget
 
+
+class MxAnalyzerMainWidgetActions:
+
+    ShowValue = 'show_value'
+    AnalyzePreds = 'analyze_preds'
+    AnalyzeDeps = 'analyze_deps'
+
+class MxAnalyzerMainWidgetMainToolBarSections:
+    Main = 'main_section'
 
 class MxAnalyzerMainWidget(MxShellConnectMainWidget):
 
@@ -85,7 +100,61 @@ class MxAnalyzerMainWidget(MxShellConnectMainWidget):
         """
         Create widget actions, add to menu and other setup requirements.
         """
-        pass
+        qta_args, qta_kwargs = ima._qtaargs['newwindow']    # Use kwargs only
+        qta_kwargs['color_disabled'] = SpyderPalette.COLOR_DISABLED
+
+        self.show_value_action = show_value = self.create_action(
+            MxAnalyzerMainWidgetActions.ShowValue,
+            text=_('Show Value'),
+            icon=qta.icon('mdi.table-arrow-up', **qta_kwargs),
+            triggered=self.show_value
+        )
+
+        self.analyze_preds_action = analyze_preds = self.create_action(
+            MxAnalyzerMainWidgetActions.AnalyzePreds,
+            text=_('Analyze Precedents'),
+            icon=qta.icon('mdi.file-tree', **qta_kwargs),
+            triggered=lambda: self.analyze_current('precedents')
+        )
+
+        self.analyze_deps_action = analyze_deps = self.create_action(
+            MxAnalyzerMainWidgetActions.AnalyzeDeps,
+            text=_('Analyze Dependents'),
+            icon=qta.icon('mdi.file-tree-outline', **qta_kwargs),
+            triggered=lambda: self.analyze_current('succs')
+        )
+
+        # Main toolbar
+        toolbar = self.get_main_toolbar()
+        for item in [show_value, analyze_preds, analyze_deps]:
+            self.add_item_to_toolbar(
+                item,
+                toolbar=toolbar,
+                section=MxAnalyzerMainWidgetMainToolBarSections.Main,
+            )
+
+    def show_value(self):
+        if self.current_widget():
+            tab_widget = self.current_widget().tabwidget
+            
+            if tab_widget.currentWidget():
+                tree = tab_widget.currentWidget().tree
+                tree.show_value()
+        
+        return
+    
+    def analyze_current(self, adjacency):
+        """Analyze current node's precedents or dependents."""
+        if self.current_widget():
+            tab_widget = self.current_widget().tabwidget
+            
+            if tab_widget.currentWidget():
+                tree = tab_widget.currentWidget().tree
+                tree.analyze_current(adjacency)
+        
+        return
+
+
 
     def update_actions(self):
         """

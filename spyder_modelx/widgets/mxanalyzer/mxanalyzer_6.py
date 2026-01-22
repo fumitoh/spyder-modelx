@@ -402,6 +402,7 @@ class MxAnalyzerTab(QSplitter):
         QSplitter.__init__(self, parent, orientation=Qt.Vertical)
 
         self.plugin = parent.plugin
+        self.analyzer_widget = parent
         self.adjacency = adjacency
 
         treepane = QWidget(parent=self)
@@ -415,7 +416,7 @@ class MxAnalyzerTab(QSplitter):
         )
         # from .modeltest import ModelTest
         # self.modeltest = ModelTest(self.model, self)
-        self.tree = MxAnalyzerTree(treepane, self.model)
+        self.tree = MxAnalyzerTree(treepane, self.analyzer_widget, self.model)
         self.shellwidget = None # Set by parent
 
         button_group = QButtonGroup(parent=self)
@@ -628,8 +629,9 @@ class MxAnalyzerWidget(QWidget):
 
 class MxAnalyzerTree(QTreeView):
 
-    def __init__(self, parent, model):
+    def __init__(self, parent, analyzer_widget, model):
         QTreeView.__init__(self, parent)
+        self.analyzer_widget = analyzer_widget
         self.setModel(model)
         self.setAlternatingRowColors(True)
         self.doubleClicked.connect(self.doubleClicked_callback)
@@ -640,19 +642,54 @@ class MxAnalyzerTree(QTreeView):
         self.action_show_value = self.contextMenu.addAction(
             "Show Value"
         )
+        self.action_analyze_current_preds = self.contextMenu.addAction(
+            "Analyze Precedents"
+        )
+        self.action_analyze_current_deps = self.contextMenu.addAction(
+            "Analyze Dependents"
+        )
 
     def contextMenuEvent(self, event):
         action = self.contextMenu.exec_(self.mapToGlobal(event.pos()))
 
         if action == self.action_show_value:
+            self.show_value()
+
+        elif action == self.action_analyze_current_preds:
+            self.analyze_current('precedents')
+                
+        elif action == self.action_analyze_current_deps:
+            self.analyze_current('succs')
+
+
+    def show_value(self):
+        current = self.currentIndex()
+
+        if current.isValid():
+            # replace column
+            idx = self.model().index(
+                current.row(), NodeCols.Value, current.parent())
+
+            self.doubleClicked_callback(idx)        
+
+    def analyze_current(self, adjacency):
             current = self.currentIndex()
-
+            
             if current.isValid():
-                # replace column
-                idx = self.model().index(
-                    current.row(), NodeCols.Value, current.parent())
+                item = current.internalPointer()
+                if item.node['obj']['type'] != 'Cells':
+                    return
+                #     Tree.Pane.Tab.Tabwiget
+                tab = self.analyzer_widget.tabs[adjacency]
+                sw = tab.shellwidget
+                tab.attrdict = obj = sw.get_attrdict(
+                    item.node['obj']['fullname'],
+                    attrs=['_evalrepr']) # to update objbox/argbox
+                tab.objbox.setText(obj['_evalrepr'])
+                tab.argbox.setText(", ".join(repr(arg) for arg in item.node['args']))
 
-                self.doubleClicked_callback(idx)
+                sw.update_mxanalyzer(adjacency, update_attrdict=False)
+                self.analyzer_widget.tabwidget.setCurrentWidget(tab)
 
 
     def currentChanged(self, current: QModelIndex, previous: QModelIndex) -> None:
