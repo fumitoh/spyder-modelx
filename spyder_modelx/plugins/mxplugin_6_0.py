@@ -126,7 +126,7 @@ class MxPluginMainWidget(MxConsoleAPI_6_0, MxShellConnectMainWidget):
         self.import_names_action = import_names = self.create_action(
             MxPluginMainWidgetActions.ImportNames,
             text=_('Import Names'),
-            icon=qta.icon('mdi.file-import', **qta_kwargs),
+            icon=qta.icon('mdi.import', **qta_kwargs),
             triggered=lambda: self.current_widget().explorer.treeview.import_names_action() if self.current_widget() else None
         )
 
