@@ -429,22 +429,9 @@ class MxExplorer(QWidget):
 
         self.treeview = treeview = MxTreeView(self)
 
-        # Create toolbar
-        toolbar_layout = QHBoxLayout()
-        toolbar_layout.setContentsMargins(0, 0, 0, 0)
-
-        # Create Import Names toolbar button
-        self.import_names_btn = QToolButton(self)
-        self.import_names_btn.setIcon(ima.icon('edit_add'))
-        self.import_names_btn.setToolTip(_("Import Names"))
-        self.import_names_btn.clicked.connect(self.treeview.import_names_action)
-        toolbar_layout.addWidget(self.import_names_btn)
-        toolbar_layout.addStretch()
-
         # Main layout
         layout = QVBoxLayout()
         layout.setContentsMargins(0, 0, 0, 0)
-        layout.addLayout(toolbar_layout)
         layout.addWidget(self.treeview)
         self.setLayout(layout)
 
