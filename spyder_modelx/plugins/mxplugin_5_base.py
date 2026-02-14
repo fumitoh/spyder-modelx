@@ -76,6 +76,7 @@ class MxPluginMainWidgetActions:
     SelectInNewDataView = 'select_in_new_dataview'
     AnalyzePreds = 'analyze_preds'
     AnalyzeDeps = 'analyze_deps'
+    ImportNames = 'import_names'
 
 
 class MxPluginMainWidgetMainToolBarSections:

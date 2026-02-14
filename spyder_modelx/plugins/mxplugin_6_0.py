@@ -123,6 +123,13 @@ class MxPluginMainWidget(MxConsoleAPI_6_0, MxShellConnectMainWidget):
             triggered=lambda: self.current_widget().explorer.treeview.analyze_current(tab=1) if self.current_widget() else None
         )
 
+        self.import_names_action = import_names = self.create_action(
+            MxPluginMainWidgetActions.ImportNames,
+            text=_('Import Names'),
+            icon=qta.icon('mdi.import', **qta_kwargs),
+            triggered=lambda: self.current_widget().explorer.treeview.import_names_action() if self.current_widget() else None
+        )
+
         self.create_client_action = new_console_action = self.create_action(
             MxPluginMainWidgetActions.OpenNewConsole,
             text=_('New MxConsole'),
@@ -151,7 +158,7 @@ class MxPluginMainWidget(MxConsoleAPI_6_0, MxShellConnectMainWidget):
 
         # Main toolbar
         main_toolbar = self.get_main_toolbar()
-        for item in [select_dataview_action, select_new_dataview, analyze_preds, analyze_deps]:
+        for item in [select_dataview_action, select_new_dataview, analyze_preds, analyze_deps, import_names]:
             self.add_item_to_toolbar(
                 item,
                 toolbar=main_toolbar,
