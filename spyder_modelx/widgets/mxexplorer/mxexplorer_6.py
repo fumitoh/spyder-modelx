@@ -176,7 +176,7 @@ class MxTreeView(QTreeView):
 
             if isinstance(item, SpaceItem):
                 has_children = True
-            elif isinstance(item, CellsItem) or isinstance(item, RefItem):
+            elif isinstance(item, (CellsItem, RefItem)):
                 has_children = False
             else:
                 return
@@ -432,7 +432,7 @@ class MxExplorer(QWidget):
         # Create toolbar
         toolbar_layout = QHBoxLayout()
         toolbar_layout.setContentsMargins(0, 0, 0, 0)
-        
+
         # Create Import Names toolbar button
         self.import_names_btn = QToolButton(self)
         self.import_names_btn.setIcon(ima.icon('edit_add'))
