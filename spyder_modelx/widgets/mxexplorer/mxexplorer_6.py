@@ -168,6 +168,44 @@ class MxTreeView(QTreeView):
             if isinstance(item, CellsItem):
                 self.shell.mxanalyzer.update_object(item.itemData, tab=tab)
 
+    def import_names_action(self):
+        """Handle import names action from toolbar or context menu."""
+        index = self.currentIndex()
+        if index.isValid():
+            item = self.currentIndex().internalPointer()
+
+            if isinstance(item, SpaceItem):
+                has_children = True
+            elif isinstance(item, CellsItem) or isinstance(item, RefItem):
+                has_children = False
+            else:
+                return
+        else:
+            return
+
+        if has_children:
+            dialog = ImportNamesDialog(self)
+            dialog.exec()
+
+            if self.reply['accepted']:
+                import_selected = self.reply['import_selected']
+                import_children = self.reply['import_children']
+                replace_existing = self.reply['replace_existing']
+                self.reply = None
+            else:
+                self.reply = None
+                return
+        else:
+            import_selected = True
+            import_children = False
+            replace_existing = True
+
+        self.shell.import_names(item.itemData['fullname'],
+                                import_selected,
+                                import_children,
+                                replace_existing
+                                )
+
     def contextMenuEvent(self, event):
         action = self.contextMenu.exec_(self.mapToGlobal(event.pos()))
 
@@ -199,41 +237,7 @@ class MxTreeView(QTreeView):
             self.select_in_new_dataview()
 
         elif action == self.action_import_names:
-            index = self.currentIndex()
-            if index.isValid():
-                item = self.currentIndex().internalPointer()
-
-                if isinstance(item, SpaceItem):
-                    has_children = True
-                elif isinstance(item, CellsItem) or isinstance(item, RefItem):
-                    has_children = False
-                else:
-                    return
-            else:
-                return
-
-            if has_children:
-                dialog = ImportNamesDialog(self)
-                dialog.exec()
-
-                if self.reply['accepted']:
-                    import_selected = self.reply['import_selected']
-                    import_children = self.reply['import_children']
-                    replace_existing = self.reply['replace_existing']
-                    self.reply = None
-                else:
-                    self.reply = None
-                    return
-            else:
-                import_selected = True
-                import_children = False
-                replace_existing = True
-
-            self.shell.import_names(item.itemData['fullname'],
-                                    import_selected,
-                                    import_children,
-                                    replace_existing
-                                    )
+            self.import_names_action()
 
         elif action == self.action_analyze_preds:
             self.analyze_current(tab=0)
@@ -425,9 +429,22 @@ class MxExplorer(QWidget):
 
         self.treeview = treeview = MxTreeView(self)
 
+        # Create toolbar
+        toolbar_layout = QHBoxLayout()
+        toolbar_layout.setContentsMargins(0, 0, 0, 0)
+        
+        # Create Import Names toolbar button
+        self.import_names_btn = QToolButton(self)
+        self.import_names_btn.setIcon(ima.icon('edit_add'))
+        self.import_names_btn.setToolTip(_("Import Names"))
+        self.import_names_btn.clicked.connect(self.treeview.import_names_action)
+        toolbar_layout.addWidget(self.import_names_btn)
+        toolbar_layout.addStretch()
+
         # Main layout
         layout = QVBoxLayout()
         layout.setContentsMargins(0, 0, 0, 0)
+        layout.addLayout(toolbar_layout)
         layout.addWidget(self.treeview)
         self.setLayout(layout)
 
