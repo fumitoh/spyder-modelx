@@ -93,5 +93,23 @@ def is_numpy_number(obj):
 
     return False
 
-
+def to_builtin(obj):
+    """ Convert a numpy scalar to its python builtin (np.int64 -> int, ...).
+        Needed because MxAnalyzer args may contain numpy scalars:
+        
+        - get_adjacent sends args as a tuple through json (TupleEncoder), and
+          numpy scalars are not JSON serializable -> tree fails to expand.
+          
+        - The double-click path sends str(args); since numpy 2.0 (NEP 51) the
+          scalar repr changed (np.int64(5) instead of 5), breaking the kernel's
+          ast.literal_eval.
+        
+        Converting to plain Python numbers keeps both paths working on any numpy version.       
+        
+    """
+    
+    if is_numpy_number(obj):
+        return obj.item()
+    return obj
+    
 

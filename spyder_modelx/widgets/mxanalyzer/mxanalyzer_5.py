@@ -87,6 +87,7 @@ else:
 
 
 from spyder_modelx.utility.tupleencoder import TupleEncoder
+from spyder_modelx.utility.typeutil import to_builtin
 from spyder_modelx.widgets.mxlineedit import MxPyExprLineEdit
 from spyder_modelx.widgets.mxtoolbar import MxToolBarMixin
 from spyder_modelx.widgets.mxcodeeditor import BaseCodePane
@@ -135,8 +136,9 @@ class NodeItem(object):
     def _reloadChildren(self):
         self.childItems.clear()
         sw = self.model.get_shell()
+        safe_args = tuple(to_builtin(a) for a in self.node['args'])
         nodes = sw.get_adjacent(self.node['obj']['fullname'],
-                                self.node['args'], self.adjacency)
+                                safe_args, self.adjacency)
         items = [NodeItem(node, self) for node in nodes]
         self.childItems.extend(items)
         self.isChildLoaded = True
@@ -658,7 +660,7 @@ class MxAnalyzerTree(QTreeView):
 
             item = index.internalPointer()
             obj = item.node['obj']['fullname']
-            args = str(item.node['args'])
+            args = str(tuple(to_builtin(a) for a in item.node['args']))
 
             data, _ = self.shell.get_obj_value(
                 'analyze_getval', obj, args)
