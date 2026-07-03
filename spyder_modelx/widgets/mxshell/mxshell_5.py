@@ -63,6 +63,7 @@ from spyder.utils import encoding
 from spyder.py3compat import to_text_string
 
 from spyder_modelx.utility.tupleencoder import TupleEncoder, hinted_tuple_hook
+from spyder_modelx.utility.typeutil import to_builtin
 from spyder_modelx.utility.formula import (
     is_funcdef, is_lambda, replace_funcname, get_funcname)
 
@@ -169,8 +170,15 @@ class MxShellWidget(ShellWidget):
 
     def get_obj_value(self, msgtype: str, obj: str, args: str,
                       calc: bool=False):
+        """Get the value of a modelx object with args passed as a repr string.
 
-
+        For MxAnalyzer's value view, superseded by get_node_value in
+        spyder-modelx versions later than 0.15.0; spyder-modelx 0.15.0
+        and earlier use this method for that purpose, and later
+        versions still fall back on it on Spyder versions earlier
+        than 4. This method remains in use for MxDataViewer, whose
+        args are entered by the user as a literal string.
+        """
         # jsonargs = TupleEncoder(ensure_ascii=True).encode(args)
 
         if spyder.version_info > (4,):
@@ -204,6 +212,27 @@ class MxShellWidget(ShellWidget):
                 raise RuntimeError('must not happen')
 
             return self._mx_wait_reply(code, sig)
+
+    def get_node_value(self, obj: str, args: tuple, calc: bool=False):
+        """Get the value of a node passing args as cloudpickled bytes.
+
+        Unlike get_obj_value, which passes args as a repr string,
+        args are serialized by cloudpickle so that they need no
+        conversion, such as numpy numbers to Python builtins.
+        """
+        if spyder.version_info > (4,):
+            result = self.call_kernel(
+                interrupt=True,
+                blocking=True,
+                timeout=CALL_KERNEL_TIMEOUT).mx_node_value(
+                obj, cloudpickle.dumps(args), calc
+            )
+            return result
+        else:
+            # Fall back on the repr-string path as args are
+            # embedded in a code string.
+            safe_args = str(tuple(to_builtin(a) for a in args))
+            return self.get_obj_value('analyze_getval', obj, safe_args, calc)
 
     def update_mxdataview(self, is_obj, obj=None, args=None, expr=None, calc=False):
         """Update dataview"""
@@ -403,19 +432,29 @@ class MxShellWidget(ShellWidget):
             self.update_mxanalyzer(adj)
 
     def get_adjacent(self, obj: str, args: tuple, adjacency: str):
+        """Get adjacent nodes of a node.
 
-        jsonargs = TupleEncoder(ensure_ascii=True).encode(args)
-        msgtype = "analyze_" + adjacency
-
+        Since spyder-modelx versions later than 0.15.0, args are sent
+        as cloudpickled bytes to mx_adj_node, which requires
+        spymx-kernels 0.3.0 or later. spyder-modelx 0.15.0 and earlier
+        send args as json to mx_get_adjacent, which mx_adj_node
+        supersedes. On Spyder versions earlier than 4, args are still
+        sent as json to mx_get_adjacent through code execution.
+        """
         if spyder.version_info > (4,):
             result = self.call_kernel(
                 interrupt=True,
                 blocking=True,
-                timeout=CALL_KERNEL_TIMEOUT).mx_get_adjacent(
-                msgtype, obj, jsonargs, adjacency
+                timeout=CALL_KERNEL_TIMEOUT).mx_adj_node(
+                obj, cloudpickle.dumps(args), adjacency
             )
             return result
         else:
+            # Convert numpy numbers to Python builtins as args are
+            # passed as json embedded in a code string.
+            safe_args = tuple(to_builtin(a) for a in args)
+            jsonargs = TupleEncoder(ensure_ascii=True).encode(safe_args)
+            msgtype = "analyze_" + adjacency
             code = (
                 "get_ipython().kernel.mx_get_adjacent('%s', '%s', '%s', '%s')"
                 % (msgtype, obj, jsonargs, adjacency)

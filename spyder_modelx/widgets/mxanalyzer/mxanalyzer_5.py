@@ -86,7 +86,6 @@ else:
     from spyder.widgets.variableexplorer.dataframeeditor import DataFrameEditor
 
 
-from spyder_modelx.utility.tupleencoder import TupleEncoder
 from spyder_modelx.widgets.mxlineedit import MxPyExprLineEdit
 from spyder_modelx.widgets.mxtoolbar import MxToolBarMixin
 from spyder_modelx.widgets.mxcodeeditor import BaseCodePane
@@ -658,10 +657,8 @@ class MxAnalyzerTree(QTreeView):
 
             item = index.internalPointer()
             obj = item.node['obj']['fullname']
-            args = str(item.node['args'])
 
-            data, _ = self.shell.get_obj_value(
-                'analyze_getval', obj, args)
+            data, _ = self.shell.get_node_value(obj, item.node['args'])
 
             if isinstance(data, (pd.DataFrame, pd.Index, pd.Series)):
                 dialog = DataFrameEditor(self)
