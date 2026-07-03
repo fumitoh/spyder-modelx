@@ -58,7 +58,6 @@ from spyder.config.base import _, debug_print
 from spyder.plugins.ipythonconsole.widgets.client import ShellWidget
 from spyder.utils import encoding
 
-from spyder_modelx.utility.tupleencoder import TupleEncoder, hinted_tuple_hook
 from spyder_modelx.utility.formula import (
     is_funcdef, is_lambda, replace_funcname, get_funcname)
 
@@ -128,6 +127,21 @@ class MxShellWidget(ShellWidget):
             blocking=True,
             timeout=CALL_KERNEL_TIMEOUT).mx_get_value(
             obj, args, calc
+        ))
+        return result
+
+    def get_node_value(self, obj: str, args: tuple, calc: bool=False):
+        """Get the value of a node passing args as cloudpickled bytes.
+
+        Unlike get_obj_value, which passes args as a repr string,
+        args are serialized by cloudpickle so that they need no
+        conversion, such as numpy numbers to Python builtins.
+        """
+        result = cloudpickle.loads(self.call_kernel(
+            interrupt=True,
+            blocking=True,
+            timeout=CALL_KERNEL_TIMEOUT).mx_node_value(
+            obj, cloudpickle.dumps(args), calc
         ))
         return result
 
@@ -284,13 +298,11 @@ class MxShellWidget(ShellWidget):
 
     def get_adjacent(self, obj: str, args: tuple, adjacency: str):
 
-        jsonargs = TupleEncoder(ensure_ascii=True).encode(args)
-
         result = cloudpickle.loads(self.call_kernel(
             interrupt=True,
             blocking=True,
-            timeout=CALL_KERNEL_TIMEOUT).mx_get_adjacent(
-            obj, jsonargs, adjacency
+            timeout=CALL_KERNEL_TIMEOUT).mx_adj_node(
+            obj, cloudpickle.dumps(args), adjacency
         ))
         return result
 
