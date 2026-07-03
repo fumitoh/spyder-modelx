@@ -117,7 +117,14 @@ class MxShellWidget(ShellWidget):
 
     def get_obj_value(self, obj: str, args: str,
                       calc: bool=False):
+        """Get the value of a modelx object with args passed as a repr string.
 
+        For MxAnalyzer's value view, superseded by get_node_value in
+        spyder-modelx versions later than 0.15.0; spyder-modelx 0.15.0
+        and earlier use this method for that purpose. This method
+        remains in use for MxDataViewer, whose args are entered by the
+        user as a literal string.
+        """
         # logger.debug(f"get_obj_value: {msgtype}, {obj}, {args}, {calc}")
 
         # jsonargs = TupleEncoder(ensure_ascii=True).encode(args)
@@ -297,7 +304,14 @@ class MxShellWidget(ShellWidget):
             self.update_mxanalyzer(adj)
 
     def get_adjacent(self, obj: str, args: tuple, adjacency: str):
+        """Get adjacent nodes of a node.
 
+        Since spyder-modelx versions later than 0.15.0, args are sent
+        as cloudpickled bytes to mx_adj_node, which requires
+        spymx-kernels 0.3.0 or later. spyder-modelx 0.15.0 and earlier
+        send args as json to mx_get_adjacent, which mx_adj_node
+        supersedes.
+        """
         result = cloudpickle.loads(self.call_kernel(
             interrupt=True,
             blocking=True,
