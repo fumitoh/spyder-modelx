@@ -1,3 +1,4 @@
+import functools
 import os.path as osp
 
 import spyder
@@ -15,11 +16,38 @@ from spyder.config.base import DEV, get_conf_path, get_home_dir, get_module_path
 from spyder.config.manager import CONF
 from spyder.utils import encoding, programs, sourcecode
 
+from spyder.api.asyncdispatcher import AsyncDispatcher
 from spyder.plugins.ipythonconsole.plugin import IPythonConsole
 from spyder.plugins.ipythonconsole.widgets import KernelConnectionDialog
+from spyder.utils.environ import get_user_environment_variables
 
 from spyder_modelx.kernelspec import MxKernelSpec
 from spyder_modelx.widgets.mxclient import MxClientWidget_6_0 as MxClientWidget
+
+
+def _kernel_env_must_be_set():
+    """Whether the caller must fill in the kernel spec's environment.
+
+    Up to Spyder 6.1.0, ``SpyderKernelSpec.env`` was a computed property that
+    merged ``os.environ`` itself, so a spec that was never assigned an ``env``
+    still reported a complete environment. Spyder 6.1.1 moved that merge into
+    the ``env`` setter (spyder-ide/spyder#23761), which means a spec whose
+    ``env`` is never assigned now reports an empty dict and the kernel gets
+    launched with no environment variables at all.
+
+    Detect the setter instead of pinning a Spyder version: on 6.0.x ``env`` is
+    read-only and assigning to it would raise, while on 6.1.0 assigning is
+    harmless and is what Spyder itself does.
+
+    ``MxKernelSpec`` is inspected rather than ``SpyderKernelSpec`` because it is
+    the class actually assigned to below, so this stays correct even if
+    ``MxKernelSpec`` ever overrides ``env`` itself.
+    """
+    for klass in MxKernelSpec.__mro__:
+        if 'env' in klass.__dict__:
+            prop = klass.__dict__['env']
+            return isinstance(prop, property) and prop.fset is not None
+    return False
 
 
 class MxConsoleAPI_6_0:
@@ -64,16 +92,46 @@ class MxConsoleAPI_6_0:
             special_kernel=special
         )
 
+        future = None
+        if _kernel_env_must_be_set():
+            # Get the environment variables asynchronously and connect the
+            # kernel once they are available, as create_new_client in Spyder's
+            # IPythonConsoleWidget does.
+            future = get_user_environment_variables()
+            future.connect(
+                AsyncDispatcher.QtSlot(
+                    functools.partial(
+                        self._connect_new_client_to_kernel,
+                        cache,
+                        path_to_custom_interpreter,
+                        client,
+                    )
+                )
+            )
+
         # Add client to widget
         ipycon.add_tab(
             client, name=client.get_name(), filename=filename,
             give_focus=give_focus)
+
+        if future is None:
+            self._connect_new_client_to_kernel(
+                cache, path_to_custom_interpreter, client)
+
+        return client
+
+    def _connect_new_client_to_kernel(self, cache, path_to_custom_interpreter,
+                                      client, future=None):
+        """Connect kernel to client after environment variables are obtained"""
+        ipycon = self.ipyconsole
 
         try:
             # Create new kernel
             kernel_spec = MxKernelSpec(
                 path_to_custom_interpreter=path_to_custom_interpreter
             )
+            if future is not None:
+                kernel_spec.env = future.result()
             kernel_handler = ipycon.get_cached_kernel(kernel_spec, cache=cache)
         except Exception as e:
             client.show_kernel_error(e)
@@ -81,7 +139,6 @@ class MxConsoleAPI_6_0:
 
         # Connect kernel to client
         client.connect_kernel(kernel_handler)
-        return client
 
 
     def create_client_for_kernel(self, connection_file, hostname, sshkey,
