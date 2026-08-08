@@ -18,6 +18,7 @@ from spyder.utils import encoding, programs, sourcecode
 
 from spyder.api.asyncdispatcher import AsyncDispatcher
 from spyder.plugins.ipythonconsole.plugin import IPythonConsole
+from spyder.plugins.ipythonconsole.utils.kernel_handler import KernelHandler
 from spyder.plugins.ipythonconsole.widgets import KernelConnectionDialog
 from spyder.utils.environ import get_user_environment_variables
 
@@ -141,9 +142,20 @@ class MxConsoleAPI_6_0:
         client.connect_kernel(kernel_handler)
 
 
-    def create_client_for_kernel(self, connection_file, hostname, sshkey,
-                                 password, server_id=None, give_focus=False,
-                                 can_close=True):
+    # Modified from create_client_for_kernel at
+    # https://github.com/spyder-ide/spyder/blob/v6.1.4/spyder/plugins/ipythonconsole/widgets/main_widget.py#L1846
+    def create_client_for_kernel(
+        self,
+        connection_file,
+        hostname,
+        sshkey,
+        password,
+        server_id=None,     # mx_change: Removed from Spyder 6.1.x
+        jupyter_api=None,   # mx_change: Added in Spyder 6.1.x
+        files_api=None,     # mx_change: Added in Spyder 6.1.x
+        give_focus=False,
+        can_close=True
+    ):
         """Create a client connected to an existing kernel."""
 
         ipycon = self.ipyconsole
@@ -190,7 +202,9 @@ class MxConsoleAPI_6_0:
             config_options=ipycon.config_options(),
             additional_options=ipycon.additional_options(),
             handlers=ipycon.registered_spyder_kernel_handlers,
-            server_id=server_id,
+            server_id=server_id,        # mx_change: Removed from Spyder 6.1.x
+            jupyter_api=jupyter_api,    # mx_change: Added in Spyder 6.1.x
+            files_api=files_api,        # mx_change: Added in Spyder 6.1.x
             give_focus=give_focus,
             can_close=can_close,
         )
@@ -206,8 +220,11 @@ class MxConsoleAPI_6_0:
             client.t0 = master_client.t0
             client.timer.timeout.connect(client.show_time)
             client.timer.start(1000)
+            client.timer.timeout.emit()
 
-        if server_id:
+        # mx_change: is_remote checks server_id on Spyder 6.0.x and
+        # jupyter_api on 6.1.x, so it stands for both versions of the test.
+        if client.is_remote():
             # This is a client created by the RemoteClient plugin. So, we only
             # create the client and show it as loading because the kernel
             # connection part will be done by that plugin.
@@ -248,5 +265,8 @@ class MxConsoleAPI_6_0:
                                    "<b>%s</b>") % connection_file)
             return
 
-        ipycon.create_client_for_kernel(
+        # mx_change: Call our own create_client_for_kernel, not the one of the
+        # IPython console, so that an MxClientWidget is created and the modelx
+        # panes are connected to the kernel.
+        self.create_client_for_kernel(
             connection_file, hostname, sshkey, password)

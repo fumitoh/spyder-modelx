@@ -69,7 +69,7 @@ from spyder.utils.qthelpers import (add_actions, create_action,
 from spyder.plugins.ipythonconsole.plugin import IPythonConsole
 from spyder.plugins.ipythonconsole.widgets import KernelConnectionDialog
 
-from spyder_modelx.kernelspecs.kernelspec import MxKernelSpec
+from spyder_modelx.kernelspec import MxKernelSpec
 from spyder_modelx.widgets.mxexplorer import MxMainWidget
 from spyder_modelx.widgets.mxclient import MxClientWidget
 
