@@ -42,86 +42,32 @@
 # FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
 # OTHER DEALINGS IN THE SOFTWARE.
 
-from spyder.plugins.ipythonconsole.utils.kernelspec import (
-    SpyderKernelSpec,
-    get_python_executable,
-    is_conda_env,
-    find_conda,
-    get_conda_env_path,
-    logger
-)
+from spyder.plugins.ipythonconsole.utils.kernelspec import SpyderKernelSpec
 
-# Modified from https://github.com/spyder-ide/spyder/blob/v6.0.4/spyder/plugins/ipythonconsole/utils/kernelspec.py#L79
+# The module started by the kernel command. Spyder starts its own kernels
+# with SPYDER_KERNELS_MODULE and modelx replaces it with MX_KERNELS_MODULE.
+SPYDER_KERNELS_MODULE = 'spyder_kernels.console'
+MX_KERNELS_MODULE = 'spymx_kernels.console'
+
+
 class MxKernelSpec(SpyderKernelSpec):
-    """Kernel spec for Spyder kernels"""
+    """Kernel spec for modelx kernels"""
 
     CONF_SECTION = 'ipython_console'
 
     @property
     def argv(self):
-        """Command to start kernels"""
-        # Python interpreter used to start kernels
-        if (
-            self.get_conf('default', section='main_interpreter')
-            and not self.path_to_custom_interpreter
-        ):
-            pyexec = get_python_executable()
-        else:
-            pyexec = self.get_conf('executable', section='main_interpreter')
-            if self.path_to_custom_interpreter:
-                pyexec = self.path_to_custom_interpreter
-            if not has_spyder_kernels(pyexec):
-                raise SpyderKernelError(
-                    ERROR_SPYDER_KERNEL_INSTALLED.format(
-                        pyexec,
-                        SPYDER_KERNELS_VERSION,
-                        SPYDER_KERNELS_CONDA,
-                        SPYDER_KERNELS_PIP
-                    )
-                )
-                return
-            if not is_python_interpreter(pyexec):
-                pyexec = get_python_executable()
-                self.set_conf('executable', '', section='main_interpreter')
-                self.set_conf('default', True, section='main_interpreter')
-                self.set_conf('custom', False, section='main_interpreter')
+        """Command to start kernels
 
-        # Command used to start kernels
-        kernel_cmd = []
+        This delegates to ``SpyderKernelSpec.argv`` and only swaps the module
+        started by the interpreter, so that interpreter detection and
+        environment activation (conda, mamba, pixi, ...) never drift from
+        Spyder's own implementation.
 
-        if is_conda_env(pyexec=pyexec):
-            # If executable is a conda environment, use "run" subcommand to
-            # activate it and run spyder-kernels.
-            conda_exe = find_conda()
-
-            kernel_cmd.extend([
-                conda_exe,
-                'run',
-                '--prefix',
-                get_conda_env_path(pyexec)
-            ])
-
-            # We need to use this flag to prevent conda_exe from capturing the
-            # kernel process stdout/stderr streams. That way we are able to
-            # show them in Spyder.
-            if conda_exe.endswith(('micromamba', 'micromamba.exe')):
-                kernel_cmd.extend(['--attach', '""'])
-            else:
-                # Note: We use --no-capture-output instead of --live-stream
-                # here because it works for older Conda versions.
-                kernel_cmd.append('--no-capture-output')
-
-        kernel_cmd.extend([
-            pyexec,
-            # This is necessary to avoid a spurious message on Windows.
-            # Fixes spyder-ide/spyder#20800.
-            '-Xfrozen_modules=off',
-            '-m', 'spymx_kernels.console',
-            '-f', '{connection_file}'
-        ])
-
-        logger.info('Kernel command: {}'.format(kernel_cmd))
-
-        return kernel_cmd
-
+        See https://github.com/fumitoh/spyder-modelx/issues/45
+        """
+        return [
+            MX_KERNELS_MODULE if arg == SPYDER_KERNELS_MODULE else arg
+            for arg in super().argv
+        ]
 
