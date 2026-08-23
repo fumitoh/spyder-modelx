@@ -589,8 +589,8 @@ class MxModelSelector(QComboBox):
             return True
 
         for cur, oth in zip(self.modellist, modellist):
-            if cur is None:
-                if oth is None:
+            if cur is None or oth is None:
+                if cur is None and oth is None:
                     continue
                 else:
                     return True
